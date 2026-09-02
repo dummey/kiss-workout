@@ -54,7 +54,7 @@ export default function Layout() {
         padding: 24, display: 'flex', flexDirection: 'column', gap: 8
       }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: '1.1rem', fontWeight: 700 }}>GZCL Tracker</h1>
+          <img src="/src/assets/logo.png" alt="KISS Workout Tracker" style={{ width: '100%', height: 'auto' }} />
           <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 4 }}>v2</p>
         </div>
 

@@ -5,7 +5,8 @@
   --border: #2a2f3a;
   --text: #e6e8ec;
   --muted: #8a90a0;
-  --accent: #6c8cff;
+  --accent: #b8a4e8;
+  --accent-hover: #a08cd4;
   --t1: #ff6b6b;
   --t2: #f5b042;
   --t3: #4ecb71;
@@ -30,7 +31,7 @@ body {
 }
 .btn:hover { border-color: var(--accent); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn-primary:hover { background: #5a7ae6; border-color: #5a7ae6; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-success { background: var(--t3); border-color: var(--t3); color: #0f1115; }
 .btn-success:hover { background: #3db85f; border-color: #3db85f; }
 .btn-ghost { background: transparent; }
