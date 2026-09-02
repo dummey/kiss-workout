@@ -9,6 +9,20 @@ export default function SessionDetailPage() {
   const [notes, setNotes] = useState('')
   const saveTimeoutRef = useRef(null)
 
+  // All hooks must come before any conditional returns
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    const session = data?.sessions?.find(s => s.date === date)
+    if (session?.notes && notes === '') {
+      setNotes(session.notes)
+    }
+  }, [data, date])
+
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
   const session = data.sessions.find(s => s.date === date)
@@ -29,20 +43,6 @@ export default function SessionDetailPage() {
       updateSessionNotes(date, value)
     }, 500)
   }
-
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    }
-  }, [])
-
-  // Load session notes on mount
-  useEffect(() => {
-    if (session?.notes && notes === '') {
-      setNotes(session.notes)
-    }
-  }, [session])
 
   function getNextProgression(ex, prevInfo) {
     const tier = ex.tier
@@ -74,7 +74,7 @@ export default function SessionDetailPage() {
     const def = getExercise(sessionEx.id) || {}
     return {
       ...def,
-      ...sessionEx,  // Session data (weight, reps, sets) overrides definition
+      ...sessionEx,
       idx
     }
   })

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 
@@ -8,6 +8,18 @@ export default function SessionsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [workout, setWorkout] = useState('Squat Workout')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter sessions by search query - hook must be before conditional return
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return data?.sessions || []
+    const query = searchQuery.toLowerCase()
+    return (data?.sessions || []).filter(session =>
+      session.date.toLowerCase().includes(query) ||
+      session.workoutName.toLowerCase().includes(query) ||
+      (session.notes && session.notes.toLowerCase().includes(query))
+    )
+  }, [data?.sessions, searchQuery])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
@@ -24,16 +36,31 @@ export default function SessionsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Sessions</h1>
-          <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{data.sessions.length} sessions logged</p>
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{filteredSessions.length} sessions logged</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Session</button>
       </div>
 
-      {data.sessions.length === 0 ? (
-        <p style={{ color: 'var(--muted)' }}>No sessions yet. Click "+ Add Session" to get started.</p>
+      {/* Search bar */}
+      <div style={{ marginBottom: 20 }}>
+        <input
+          type="text"
+          placeholder="Search by date, workout, or notes..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%', padding: '10px 14px', background: 'var(--surface2)', border: '1px solid var(--border)',
+            color: 'var(--text)', borderRadius: 8, fontSize: '0.9rem', fontFamily: 'inherit',
+            boxSizing: 'border-box'
+          }}
+        />
+      </div>
+
+      {filteredSessions.length === 0 ? (
+        <p style={{ color: 'var(--muted)' }}>No sessions found.</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-          {data.sessions.map(session => (
+          {filteredSessions.map(session => (
             <div
               key={session.date}
               className="card"
