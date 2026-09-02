@@ -75,6 +75,7 @@ export default function SessionsPage() {
               </div>
               <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>
                 {session.exercises.filter(ex => ex.weight || ex.reps).length} / {session.exercises.length} exercises logged
+                {session.elapsedTime ? ` • ${Math.floor(session.elapsedTime / 60)}m ${session.elapsedTime % 60}s` : ''}
               </p>
             </div>
           ))}

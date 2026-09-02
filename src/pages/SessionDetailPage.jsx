@@ -5,9 +5,12 @@ import { useTracker } from '../context'
 export default function SessionDetailPage() {
   const { date } = useParams()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, getPreviousPerformance, getExercise } = useTracker()
+  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise } = useTracker()
   const [notes, setNotes] = useState('')
+  const [elapsedTime, setElapsedTime] = useState(0)
+  const [isRunning, setIsRunning] = useState(true)
   const saveTimeoutRef = useRef(null)
+  const startTimeRef = useRef(Date.now())
 
   // All hooks must come before any conditional returns
   useEffect(() => {
@@ -16,8 +19,24 @@ export default function SessionDetailPage() {
     }
   }, [])
 
+  // Workout timer
+  useEffect(() => {
+    if (!isRunning) return
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
+      setElapsedTime(elapsed)
+      updateSessionTime(date, elapsed)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isRunning, date])
+
+  // Load existing data on mount
   useEffect(() => {
     const session = data?.sessions?.find(s => s.date === date)
+    if (session?.elapsedTime) {
+      setElapsedTime(session.elapsedTime)
+      startTimeRef.current = Date.now() - session.elapsedTime * 1000
+    }
     if (session?.notes && notes === '') {
       setNotes(session.notes)
     }
@@ -95,29 +114,51 @@ export default function SessionDetailPage() {
         }}>Delete Session</button>
       </div>
 
-      {/* Notes section */}
-      <div style={{ marginBottom: 24, background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16 }}>
-        <h3 style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
-          Notes
-        </h3>
-        <textarea
-          value={notes}
-          onChange={e => handleNotesChange(e.target.value)}
-          placeholder="Add any notes about this session..."
-          style={{
-            width: '100%',
-            minHeight: 100,
-            padding: '10px 14px',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
-            borderRadius: 8,
-            fontSize: '0.85rem',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-            boxSizing: 'border-box'
-          }}
-        />
+      {/* Timer and Notes in a row */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+        {/* Timer - Left */}
+        <div style={{ flex: '0 0 400px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
+          <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
+            Time
+          </h3>
+          <div style={{ fontSize: '3.6rem', fontWeight: 800, fontFamily: 'monospace', color: isRunning ? 'var(--t3)' : 'var(--muted)' }}>
+            {Math.floor((elapsedTime % 3600) / 60).toString().padStart(2, '0')}:
+            {(elapsedTime % 60).toString().padStart(2, '0')}
+          </div>
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 8 }}>
+            <button className="btn btn-sm" style={{ fontSize: '0.65rem', padding: '2px 8px' }} onClick={() => { if (!isRunning) startTimeRef.current = Date.now() - elapsedTime * 1000; setIsRunning(!isRunning) }}>
+              {isRunning ? 'Pause' : 'Resume'}
+            </button>
+            <button className="btn btn-sm" style={{ fontSize: '0.65rem', padding: '2px 8px', color: 'var(--t1)' }} onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); setIsRunning(false) }}>
+              Reset
+            </button>
+          </div>
+        </div>
+
+        {/* Notes - Right */}
+        <div style={{ flex: '1', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16 }}>
+          <h3 style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
+            Notes
+          </h3>
+          <textarea
+            value={notes}
+            onChange={e => handleNotesChange(e.target.value)}
+            placeholder="Add any notes about this session..."
+            style={{
+              width: '100%',
+              minHeight: 80,
+              padding: '8px 12px',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+              borderRadius: 8,
+              fontSize: '0.82rem',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
       </div>
 
       {tierOrder.map(tier => {

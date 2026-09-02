@@ -91,6 +91,14 @@ export function TrackerProvider({ children }) {
     saveData(newData)
   }
 
+  function updateSessionTime(date, elapsedTime) {
+    const newData = { ...data }
+    const session = newData.sessions.find(s => s.date === date)
+    if (!session) return
+    session.elapsedTime = elapsedTime
+    saveData(newData)
+  }
+
   function updateExercise(sessionDate, exIdx, field, value) {
     const newData = { ...data }
     const session = newData.sessions.find(s => s.date === sessionDate)
@@ -241,6 +249,7 @@ export function TrackerProvider({ children }) {
     addSession,
     deleteSession,
     updateSessionNotes,
+    updateSessionTime,
     updateExercise,
     addExercise,
     updateExerciseDef,
