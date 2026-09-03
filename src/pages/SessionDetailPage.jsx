@@ -8,9 +8,10 @@ export default function SessionDetailPage() {
   const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise } = useTracker()
   const [notes, setNotes] = useState('')
   const [elapsedTime, setElapsedTime] = useState(0)
-  const [isRunning, setIsRunning] = useState(true)
+  const [isRunning, setIsRunning] = useState(false)
   const saveTimeoutRef = useRef(null)
   const startTimeRef = useRef(Date.now())
+  const lastSaveRef = useRef(0)
 
   // All hooks must come before any conditional returns
   useEffect(() => {
@@ -19,32 +20,46 @@ export default function SessionDetailPage() {
     }
   }, [])
 
-  // Workout timer
+  // Persist final time on unmount
+  const lastTimeRef = useRef(0)
+  useEffect(() => {
+    return () => {
+      if (lastTimeRef.current > 0) {
+        updateSessionTime(date, lastTimeRef.current)
+      }
+    }
+  }, [])
+  // Update ref in the interval tick
   useEffect(() => {
     if (!isRunning) return
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
       setElapsedTime(elapsed)
-      updateSessionTime(date, elapsed)
+      lastTimeRef.current = elapsed
+      if (elapsed - lastSaveRef.current >= 5) {
+        lastSaveRef.current = elapsed
+        updateSessionTime(date, elapsed)
+      }
     }, 1000)
     return () => clearInterval(interval)
   }, [isRunning, date])
 
   // Load existing data on mount
   useEffect(() => {
-    const session = data?.sessions?.find(s => s.date === date)
-    if (session?.elapsedTime) {
-      setElapsedTime(session.elapsedTime)
-      startTimeRef.current = Date.now() - session.elapsedTime * 1000
+    const existingSession = data?.sessions?.find(s => s.date === date)
+    if (existingSession?.elapsedTime) {
+      setElapsedTime(existingSession.elapsedTime)
+      startTimeRef.current = Date.now() - existingSession.elapsedTime * 1000
     }
-    if (session?.notes && notes === '') {
-      setNotes(session.notes)
+    if (existingSession?.notes && notes === '') {
+      setNotes(existingSession.notes)
     }
   }, [data, date])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
-  const session = data.sessions.find(s => s.date === date)
+  const session = data?.sessions?.find(s => s.date === date)
+
   if (!session) {
     return (
       <div>
@@ -122,6 +137,7 @@ export default function SessionDetailPage() {
             Time
           </h3>
           <div style={{ fontSize: '3.6rem', fontWeight: 800, fontFamily: 'monospace', color: isRunning ? 'var(--t3)' : 'var(--muted)' }}>
+            {elapsedTime >= 3600 && <span>{Math.floor(elapsedTime / 3600)}:</span>}
             {Math.floor((elapsedTime % 3600) / 60).toString().padStart(2, '0')}:
             {(elapsedTime % 60).toString().padStart(2, '0')}
           </div>
@@ -198,6 +214,7 @@ export default function SessionDetailPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <input
                             type="text"
+                            inputMode="decimal"
                             className="edit-input"
                             placeholder="Weight"
                             value={ex.weight}
@@ -220,7 +237,7 @@ export default function SessionDetailPage() {
                             type="text"
                             className="edit-input"
                             placeholder="Sets"
-                            value={ex.sets || ''}
+                            value={ex.sets ?? ''}
                             onChange={e => updateExercise(date, ex.idx, 'sets', e.target.value)}
                           />
                           <div className="edit-lbl">Sets</div>

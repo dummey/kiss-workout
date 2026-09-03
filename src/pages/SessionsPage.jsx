@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 
@@ -7,7 +7,13 @@ export default function SessionsPage() {
   const navigate = useNavigate()
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [workout, setWorkout] = useState('Squat Workout')
+  const [workout, setWorkout] = useState('')
+
+  useEffect(() => {
+    if (!workout || !data?.workouts.some(w => w.name === workout)) {
+      setWorkout(data?.workouts[0]?.name || '')
+    }
+  }, [data?.workouts])
   const [searchQuery, setSearchQuery] = useState('')
 
   // Filter sessions by search query - hook must be before conditional return
@@ -99,6 +105,11 @@ export default function SessionsPage() {
                     <option key={w.name} value={w.name}>{w.name}</option>
                   ))}
                 </select>
+                {!data.workouts.some(w => w.name === workout) && (
+                  <p style={{ color: 'var(--t1)', fontSize: '0.75rem', marginTop: 4 }}>
+                    Selected workout no longer exists — pick another.
+                  </p>
+                )}
               </div>
             </div>
             <div className="modal-actions">

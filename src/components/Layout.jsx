@@ -13,7 +13,7 @@ export default function Layout() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `gzcl-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -37,6 +37,12 @@ export default function Layout() {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
+      // Validate shape before storing
+      if (!data || typeof data !== 'object' || !Array.isArray(data.exercises) || !Array.isArray(data.workouts) || !Array.isArray(data.sessions)) {
+        alert('Invalid backup file: missing exercises or workouts array.')
+        e.target.value = ''
+        return
+      }
       await setStore('tracker', data)
       alert('Data imported successfully!')
       window.location.reload()

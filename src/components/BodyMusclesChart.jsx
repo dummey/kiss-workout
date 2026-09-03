@@ -82,9 +82,11 @@ function BodyChartView({ view, bodyState, label }) {
 }
 
 export default function BodyMusclesChart({ muscles = [], allMuscles = [] }) {
+  const musclesKey = muscles.join('|')
+  const allKey = allMuscles.join('|')
   const bodyState = useMemo(() => {
     return buildBodyState(muscles, allMuscles)
-  }, [JSON.stringify(muscles), JSON.stringify(allMuscles)])
+  }, [musclesKey, allKey])
 
   return (
     <div style={{

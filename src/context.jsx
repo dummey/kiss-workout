@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react'
+import React, { useState, useEffect, createContext, useContext, useMemo } from 'react'
 import { getStore, setStore } from './db'
 import { SEED_DATA } from './data'
 
@@ -17,14 +17,20 @@ export function TrackerProvider({ children }) {
   }, [])
 
   async function initDB() {
-    const stored = await getStore('tracker')
-    if (stored) {
-      setData(stored)
-    } else {
+    try {
+      const stored = await getStore('tracker')
+      if (stored) {
+        setData(stored)
+      } else {
+        setData(SEED_DATA)
+        await setStore('tracker', SEED_DATA)
+      }
+    } catch (err) {
+      console.error('Failed to initialize database:', err)
       setData(SEED_DATA)
-      await setStore('tracker', SEED_DATA)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   async function saveData(newData) {
@@ -45,6 +51,12 @@ export function TrackerProvider({ children }) {
   }
 
   function addSession(date, workoutType) {
+    // Guard against duplicate dates — route key is :date, so duplicates are unreachable
+    if (data.sessions.some(s => s.date === date)) {
+      alert(`A session already exists on ${date}. Please pick a different date.`)
+      return null
+    }
+
     const workout = data.workouts.find(w => w.name === workoutType)
     if (!workout) return
 
@@ -106,13 +118,21 @@ export function TrackerProvider({ children }) {
     const ex = session.exercises[exIdx]
     if (field === 'weight') ex.weight = value
     else if (field === 'reps') ex.reps = value
-    else if (field === 'sets') ex.sets = value ? parseInt(value) : null
+    else if (field === 'sets') {
+      if (value === '') ex.sets = null
+      else { const n = parseInt(value, 10); ex.sets = isNaN(n) ? null : n }
+    }
     saveData(newData)
   }
 
   // Exercise library CRUD
   function addExercise(exercise) {
-    const id = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const baseId = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    let id = baseId
+    let counter = 2
+    while (data.exercises.some(ex => ex.id === id)) {
+      id = `${baseId}-${counter++}`
+    }
     const newEx = {
       id,
       name: exercise.name || '',
@@ -144,9 +164,11 @@ export function TrackerProvider({ children }) {
   function deleteExercise(exId) {
     const newData = { ...data }
     newData.exercises = newData.exercises.filter(e => e.id !== exId)
-    // Also remove from all workouts
-    newData.workouts.forEach(workout => {
-      workout.exercises = workout.exercises.filter(id => id !== exId)
+    newData.workouts.forEach(w => {
+      w.exercises = w.exercises.filter(id => id !== exId)
+    })
+    newData.sessions.forEach(s => {
+      s.exercises = s.exercises.filter(se => se.id !== exId)
     })
     saveData(newData)
   }
@@ -241,7 +263,7 @@ export function TrackerProvider({ children }) {
     return parse(a).localeCompare(parse(b))
   }
 
-  const value = {
+  const value = useMemo(() => ({
     data,
     loading,
     getExercise,
@@ -261,7 +283,7 @@ export function TrackerProvider({ children }) {
     deleteWorkout,
     getPreviousPerformance,
     dateCompare
-  }
+  }), [data, loading])
 
   return (
     <TrackerContext.Provider value={value}>

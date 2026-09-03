@@ -38,8 +38,9 @@ export default function WorkoutsPage() {
   function handleDeleteCurrentWorkout() {
     if (!workout) return
     if (confirm(`Delete "${workout.name}"? This will not affect past sessions.`)) {
+      const nextWorkout = data.workouts.find(w => w.name !== workout.name)
       deleteWorkout(workout.name)
-      setSelectedWorkout(data.workouts[0]?.name || '')
+      setSelectedWorkout(nextWorkout?.name || '')
     }
   }
 
