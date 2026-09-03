@@ -55,7 +55,7 @@ export default function Layout() {
       }}>
         <div style={{ marginBottom: 32 }}>
           <img src="/src/assets/logo.png" alt="KISS Workout Tracker" style={{ width: '100%', height: 'auto' }} />
-          <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 4 }}>v2</p>
+          <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 4 }}>pre-alpha</p>
         </div>
 
         <NavLink to="/sessions" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
