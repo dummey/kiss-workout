@@ -4,29 +4,37 @@ import { useTracker } from '../context'
 import Button from '../components/Button'
 import type { Session } from '../types'
 
+type SortDirection = 'desc' | 'asc'
+
 export default function SessionsPage() {
   const { data, loading, addSession, deleteSession } = useTracker()
   const navigate = useNavigate()
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [workout, setWorkout] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
   useEffect(() => {
     if (!workout || !data?.workouts.some(w => w.name === workout)) {
       setWorkout(data?.workouts[0]?.name || '')
     }
   }, [data?.workouts])
-  const [searchQuery, setSearchQuery] = useState('')
 
   const filteredSessions = useMemo(() => {
-    if (!searchQuery.trim()) return data?.sessions || []
-    const query = searchQuery.toLowerCase()
-    return (data?.sessions || []).filter(session =>
-      session.date.toLowerCase().includes(query) ||
-      session.workoutName.toLowerCase().includes(query) ||
-      (session.notes && session.notes.toLowerCase().includes(query))
-    )
-  }, [data?.sessions, searchQuery])
+    const sessions = searchQuery.trim()
+      ? (data?.sessions || []).filter(session =>
+          session.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          session.workoutName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (session.notes && session.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+      : (data?.sessions || [])
+
+    return sessions.sort((a, b) => {
+      const cmp = a.date.localeCompare(b.date)
+      return sortDirection === 'desc' ? -cmp : cmp
+    })
+  }, [data?.sessions, searchQuery, sortDirection])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
@@ -48,18 +56,25 @@ export default function SessionsPage() {
         <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Session</Button>
       </div>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <input
           type="text"
           placeholder="Search by date, workout, or notes..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={{
-            width: '100%', padding: '10px 14px', background: 'var(--surface2)', border: '1px solid var(--border)',
+            flex: 1, padding: '10px 14px', background: 'var(--surface2)', border: '1px solid var(--border)',
             color: 'var(--text)', borderRadius: 8, fontSize: '0.9rem', fontFamily: 'inherit',
             boxSizing: 'border-box'
           }}
         />
+        <Button
+          size="sm"
+          style={{ padding: '14px 14px', display: 'flex', alignItems: 'center' }}
+          onClick={() => setSortDirection(d => d === 'desc' ? 'asc' : 'desc')}
+        >
+          {sortDirection === 'desc' ? '↓ Newest' : '↑ Oldest'}
+        </Button>
       </div>
 
       {filteredSessions.length === 0 ? (

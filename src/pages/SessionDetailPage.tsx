@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Button from '../components/Button'
+import ProgressionInfo from '../components/ProgressionInfo'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
@@ -75,32 +76,6 @@ export default function SessionDetailPage() {
       if (date) updateSessionNotes(date, value)
     }, 500)
   }
-
-  function getNextProgression(ex: { tier?: string }, prevInfo: PreviousPerformance | null): string {
-    const tier = ex.tier
-    if (tier === 'T1') {
-      if (prevInfo) {
-        const prevReps = prevInfo.reps
-        const prevSets = prevInfo.sets
-        if (prevSets && prevReps && prevReps !== '—') {
-          return 'Try ' + prevInfo.weight + ' x ' + (parseInt(prevReps) + 1) + ' (' + prevSets + ') or add weight'
-        }
-      }
-      return 'Work up to 2-3RM @ 85-100% Goal Weight'
-    } else if (tier === 'T2') {
-      if (prevInfo && prevInfo.reps && prevInfo.reps !== '—' && parseInt(prevInfo.reps) >= 10) {
-        return 'Add weight, drop to 8 reps'
-      }
-      return 'Target: 8-10 reps @ 65-85% of T1'
-    } else if (tier === 'T3') {
-      if (prevInfo && prevInfo.reps && prevInfo.reps !== '—' && parseInt(prevInfo.reps) >= 15) {
-        return 'Add weight, drop to 10 reps'
-      }
-      return 'Target: 10-15+ reps @ ≤65%'
-    }
-    return 'Fill in your target weight, reps, and sets'
-  }
-
   const resolvedExercises = session.exercises.map((sessionEx, idx) => {
     const def = getExercise(sessionEx.id) || {}
     return {
@@ -181,8 +156,7 @@ export default function SessionDetailPage() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
               {tierExs.map((ex) => {
-                const prevInfo = getPreviousPerformance(ex.name, session.date)
-                const nextStep = getNextProgression(ex, prevInfo)
+                const prevInfo = getPreviousPerformance(ex.id, session.date)
 
                 return (
                   <div key={ex.id || ex.idx} className={'card' + (ex.tier === 'T1' ? ' t1-highlight' : '')}>
@@ -198,12 +172,7 @@ export default function SessionDetailPage() {
                       ))}
                     </div>
                     <div className="card-footer">
-                      {prevInfo && (
-                        <div className="progression-info">
-                          <div className="last-time">Last time: {prevInfo.weight} x {prevInfo.reps} ({prevInfo.sets})</div>
-                          <div className="next-step">{nextStep}</div>
-                        </div>
-                      )}
+                      <ProgressionInfo tier={ex.tier} prevInfo={prevInfo} />
                       <div className="edit-row">
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <input

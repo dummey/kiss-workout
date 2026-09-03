@@ -17,11 +17,11 @@ vi.stubGlobal('confirm', confirmMock)
 
 let uniqueDateCounter = 0
 
-// Generate a unique date that doesn't conflict with seed data (uses Aug 2026 dates)
+// Generate a unique date that's after the seed data (uses Oct 2026 dates)
 function getUniqueDate(): string {
   uniqueDateCounter++
-  const day = 10 + uniqueDateCounter
-  return `2026-08-${day.toString().padStart(2, '0')}`
+  const day = 1 + uniqueDateCounter
+  return `2026-10-${day.toString().padStart(2, '0')}`
 }
 
 function TestApp() {

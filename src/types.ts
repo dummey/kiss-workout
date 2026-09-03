@@ -67,7 +67,7 @@ export interface TrackerContextValue {
   addWorkout: (name: string) => void
   updateWorkout: (oldName: string, newName: string) => void
   deleteWorkout: (name: string) => void
-  getPreviousPerformance: (exName: string, currentDate: string) => PreviousPerformance | null
+  getPreviousPerformance: (exId: string, currentDate: string) => PreviousPerformance | null
   dateCompare: (a: string, b: string) => number
   deleteAllData: () => Promise<void>
   resetToSeedData: () => Promise<void>

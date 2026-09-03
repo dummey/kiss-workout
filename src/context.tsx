@@ -248,31 +248,31 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     setData(emptyData)
   }
 
-  function getPreviousPerformance(exName: string, currentDate: string): PreviousPerformance | null {
-    let best: SessionExercise | null = null
-    let bestDate = ''
+  function getPreviousPerformance(exId: string, currentDate: string): PreviousPerformance | null {
+    let lastExercise: SessionExercise | null = null
+    let lastExerciseDate = ''
 
     if (data?.sessions) {
       data.sessions.forEach(session => {
         if (dateCompare(session.date, currentDate) >= 0) return
         session.exercises.forEach(ex => {
-          if (ex.name !== exName) return
+          if (ex.id !== exId) return
           if (!ex.weight && !ex.reps) return
-          if (!bestDate || dateCompare(session.date, bestDate) > 0) {
-            best = ex
-            bestDate = session.date
+          if (!lastExerciseDate || dateCompare(session.date, lastExerciseDate) > 0) {
+            lastExercise = ex
+            lastExerciseDate = session.date
           }
         })
       })
     }
 
-    if (!best) return null
+    if (!lastExercise) return null
 
     return {
-      weight: best.weight || '—',
-      reps: best.reps || '—',
-      sets: best.sets !== null && best.sets !== undefined ? best.sets : '—',
-      date: bestDate
+      weight: lastExercise.weight || '—',
+      reps: lastExercise.reps || '—',
+      sets: lastExercise.sets !== null && lastExercise.sets !== undefined ? lastExercise.sets : '—',
+      date: lastExerciseDate
     }
   }
 
