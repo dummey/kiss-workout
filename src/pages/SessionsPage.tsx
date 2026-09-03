@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
+import Button from '../components/Button'
+import type { Session } from '../types'
 
 export default function SessionsPage() {
   const { data, loading, addSession, deleteSession } = useTracker()
@@ -16,7 +18,6 @@ export default function SessionsPage() {
   }, [data?.workouts])
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Filter sessions by search query - hook must be before conditional return
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return data?.sessions || []
     const query = searchQuery.toLowerCase()
@@ -44,10 +45,9 @@ export default function SessionsPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Sessions</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{filteredSessions.length} sessions logged</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Session</button>
+        <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Session</Button>
       </div>
 
-      {/* Search bar */}
       <div style={{ marginBottom: 20 }}>
         <input
           type="text"
@@ -95,17 +95,17 @@ export default function SessionsPage() {
             <p className="modal-sub">Pick a date and workout type to start logging.</p>
             <div className="form-row">
               <div className="form-group">
-                <label>Date</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                <label htmlFor="session-date">Date</label>
+                <input id="session-date" type="date" value={date} onChange={e => setDate(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Workout</label>
-                <select value={workout} onChange={e => setWorkout(e.target.value)}>
-                  {data.workouts.map(w => (
+                <label htmlFor="session-workout">Workout</label>
+                <select id="session-workout" value={workout} onChange={e => setWorkout(e.target.value)}>
+                  {data!.workouts.map(w => (
                     <option key={w.name} value={w.name}>{w.name}</option>
                   ))}
                 </select>
-                {!data.workouts.some(w => w.name === workout) && (
+                {!data!.workouts.some(w => w.name === workout) && (
                   <p style={{ color: 'var(--t1)', fontSize: '0.75rem', marginTop: 4 }}>
                     Selected workout no longer exists — pick another.
                   </p>
@@ -113,8 +113,8 @@ export default function SessionsPage() {
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn" onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={handleAdd}>Start Session</button>
+              <Button onClick={() => setShowAdd(false)}>Cancel</Button>
+              <Button variant="success" onClick={handleAdd}>Start Session</Button>
             </div>
           </div>
         </div>

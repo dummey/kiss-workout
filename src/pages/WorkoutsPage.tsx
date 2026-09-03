@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
+import Button from '../components/Button'
 import { useTracker } from '../context'
 import BodyMusclesChart from '../components/BodyMusclesChart'
+import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
   const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout } = useTracker()
@@ -8,20 +10,20 @@ export default function WorkoutsPage() {
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [showAddWorkout, setShowAddWorkout] = useState(false)
-  const [highlightedMuscles, setHighlightedMuscles] = useState([])
+  const [highlightedMuscles, setHighlightedMuscles] = useState<string[]>([])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
-  const workout = data.workouts.find(w => w.name === selectedWorkout)
-  const workoutExercises = workout ? workout.exercises.map(id => getExercise(id)).filter(Boolean) : []
-  const availableExercises = data.exercises.filter(ex => !workout?.exercises.includes(ex.id))
+  const workout = data!.workouts.find(w => w.name === selectedWorkout)
+  const workoutExercises: Exercise[] = workout ? workout.exercises.map(id => getExercise(id)).filter((ex): ex is Exercise => ex !== undefined) : []
+  const availableExercises = data!.exercises.filter(ex => !workout?.exercises.includes(ex.id))
 
-  function handleAddExercise(exId) {
+  function handleAddExercise(exId: string) {
     addExerciseToWorkout(selectedWorkout, exId)
     setShowAddExercise(false)
   }
 
-  function handleRemoveExercise(exId) {
+  function handleRemoveExercise(exId: string) {
     if (confirm('Remove this exercise from this workout?')) {
       removeExerciseFromWorkout(selectedWorkout, exId)
     }
@@ -38,14 +40,14 @@ export default function WorkoutsPage() {
   function handleDeleteCurrentWorkout() {
     if (!workout) return
     if (confirm(`Delete "${workout.name}"? This will not affect past sessions.`)) {
-      const nextWorkout = data.workouts.find(w => w.name !== workout.name)
+      const nextWorkout = data!.workouts.find(w => w.name !== workout.name)
       deleteWorkout(workout.name)
       setSelectedWorkout(nextWorkout?.name || '')
     }
   }
 
   const tierOrder = ['T1', 'T2', 'T3', '']
-  const tierLabels = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
+  const tierLabels: Record<string, string> = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
 
   return (
     <div>
@@ -54,13 +56,12 @@ export default function WorkoutsPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Workouts</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Organize exercises into your workout split</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddWorkout(true)}>+ Add Workout</button>
+        <Button variant="primary" onClick={() => setShowAddWorkout(true)}>+ Add Workout</Button>
       </div>
 
-      {/* Workout tabs */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {data.workouts.map(w => (
+          {data!.workouts.map(w => (
             <button
               key={w.name}
               className={'date-tab' + (w.name === selectedWorkout ? ' active' : '')}
@@ -79,16 +80,14 @@ export default function WorkoutsPage() {
               {workout.name} — {workoutExercises.length} exercises
             </h2>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-sm btn-primary" onClick={() => setShowAddExercise(true)}>+ Add Exercise</button>
-              <button className="btn btn-sm" style={{ color: 'var(--t1)' }} onClick={handleDeleteCurrentWorkout}>
+              <Button size="sm" variant="primary" onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
+              <Button size="sm" danger onClick={handleDeleteCurrentWorkout}>
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* Main content: exercises column + muscle chart */}
           <div style={{ display: 'flex', gap: 24 }}>
-            {/* Left: Exercise list */}
             <div className="exercise-list" style={{ flex: '0 0 calc(50% - 12px)', minWidth: 340 }}>
               {workoutExercises.length === 0 ? (
                 <p style={{ color: 'var(--muted)' }}>No exercises assigned to this workout. Click "+ Add Exercise" to get started.</p>
@@ -120,8 +119,8 @@ export default function WorkoutsPage() {
                                   </div>
                                 )}
                               </div>
-                              <button
-                                className="btn btn-sm"
+                              <Button
+                                size="sm"
                                 style={{ fontSize: '0.65rem', padding: '3px 6px' }}
                                 onClick={() => setHighlightedMuscles(
                                   highlightedMuscles.length === ex.muscles?.length &&
@@ -134,14 +133,15 @@ export default function WorkoutsPage() {
                                  highlightedMuscles.every(m => ex.muscles?.includes(m))
                                   ? 'Hide'
                                   : 'Show'}
-                              </button>
-                              <button
-                                className="btn btn-sm"
-                                style={{ color: 'var(--t1)', fontSize: '0.65rem', padding: '3px 6px' }}
+                              </Button>
+                              <Button
+                                size="sm"
+                                danger
+                                style={{ fontSize: '0.65rem', padding: '3px 6px' }}
                                 onClick={() => handleRemoveExercise(ex.id)}
                               >
                                 Remove
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -152,7 +152,6 @@ export default function WorkoutsPage() {
               )}
             </div>
 
-            {/* Right: Muscle visualization */}
             <div style={{ flex: '1', minWidth: 340 }}>
               {workoutExercises.length > 0 && (
                 <BodyMusclesChart muscles={highlightedMuscles} allMuscles={workoutExercises.flatMap(ex => ex.muscles || [])} />
@@ -162,7 +161,6 @@ export default function WorkoutsPage() {
         </>
       )}
 
-      {/* Add Exercise Modal */}
       {showAddExercise && (
         <div className="modal-overlay show" onClick={() => setShowAddExercise(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -191,13 +189,12 @@ export default function WorkoutsPage() {
               )}
             </div>
             <div className="modal-actions">
-              <button className="btn" onClick={() => setShowAddExercise(false)}>Close</button>
+              <Button onClick={() => setShowAddExercise(false)}>Close</Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add Workout Modal */}
       {showAddWorkout && (
         <div className="modal-overlay show" onClick={() => setShowAddWorkout(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -214,8 +211,8 @@ export default function WorkoutsPage() {
               />
             </div>
             <div className="modal-actions">
-              <button className="btn" onClick={() => setShowAddWorkout(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={handleAddWorkout} disabled={!newWorkoutName.trim()}>Create Workout</button>
+              <Button onClick={() => setShowAddWorkout(false)}>Cancel</Button>
+              <Button variant="success" onClick={handleAddWorkout} disabled={!newWorkoutName.trim()}>Create Workout</Button>
             </div>
           </div>
         </div>

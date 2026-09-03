@@ -1,28 +1,31 @@
 import React, { useState, useMemo } from 'react'
 import { useTracker } from '../context'
+import Button from '../components/Button'
+import type { Exercise } from '../types'
 
 export default function ExercisesPage() {
   const { data, loading, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout } = useTracker()
   const [showAdd, setShowAdd] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [editValues, setEditValues] = useState({})
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValues, setEditValues] = useState<{ name: string; muscles: string; setup: string; superset: string; tier: string }>({ name: '', muscles: '', setup: '', superset: '', tier: '' })
   const [newEx, setNewEx] = useState({ name: '', muscles: '', setup: '', superset: '', tier: '' })
-  const [workoutToAdd, setWorkoutToAdd] = useState({})
+  const [workoutToAdd, setWorkoutToAdd] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
 
-  if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
-
-  // Filter exercises by search query
+  // ✅ useMemo BEFORE the conditional return — hook count must be stable
   const filteredExercises = useMemo(() => {
-    if (!searchQuery.trim()) return data.exercises
+    if (!searchQuery.trim()) return data!.exercises
     const query = searchQuery.toLowerCase()
-    return data.exercises.filter(ex =>
+    return data!.exercises.filter(ex =>
       ex.name.toLowerCase().includes(query) ||
       (ex.muscles && ex.muscles.some(m => m.toLowerCase().includes(query))) ||
       (ex.tier && ex.tier.toLowerCase().includes(query)) ||
       (ex.setup && ex.setup.toLowerCase().includes(query))
     )
-  }, [data.exercises, searchQuery])
+  }, [data!.exercises, searchQuery])
+
+  // ✅ Early return AFTER all hooks
+  if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
   function handleAdd() {
     if (!newEx.name.trim()) return
@@ -33,7 +36,6 @@ export default function ExercisesPage() {
       superset: newEx.superset,
       tier: newEx.tier
     })
-    // Add to selected workouts
     Object.entries(workoutToAdd).forEach(([workoutName, checked]) => {
       if (checked) addExerciseToWorkout(workoutName, id)
     })
@@ -42,7 +44,7 @@ export default function ExercisesPage() {
     setShowAdd(false)
   }
 
-  function startEdit(ex) {
+  function startEdit(ex: Exercise) {
     setEditingId(ex.id)
     setEditValues({
       name: ex.name || '',
@@ -53,17 +55,17 @@ export default function ExercisesPage() {
     })
   }
 
-  function saveEdit(exId) {
+  function saveEdit(exId: string) {
     Object.entries(editValues).forEach(([field, value]) => {
       const val = field === 'muscles' ? value.split(',').map(m => m.trim()).filter(Boolean) : value
-      updateExerciseDef(exId, field, val)
+      updateExerciseDef(exId, field as 'name' | 'setup' | 'superset' | 'tier' | 'muscles', val)
     })
     setEditingId(null)
-    setEditValues({})
+    setEditValues({ name: '', muscles: '', setup: '', superset: '', tier: '' })
   }
 
-  function getWorkoutNamesForExercise(exId) {
-    return data.workouts.filter(w => w.exercises.includes(exId)).map(w => w.name)
+  function getWorkoutNamesForExercise(exId: string): string[] {
+    return data!.workouts.filter(w => w.exercises.includes(exId)).map(w => w.name)
   }
 
   return (
@@ -73,10 +75,9 @@ export default function ExercisesPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Exercises</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{filteredExercises.length} exercises in library</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Exercise</button>
+        <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Exercise</Button>
       </div>
 
-      {/* Search bar */}
       <div style={{ marginBottom: 20 }}>
         <input
           type="text"
@@ -127,16 +128,16 @@ export default function ExercisesPage() {
                       </select>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-sm btn-success" onClick={() => saveEdit(ex.id)}>Save</button>
-                      <button className="btn btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
+                      <Button size="sm" variant="success" onClick={() => saveEdit(ex.id)}>Save</Button>
+                      <Button size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
                     </div>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600, marginRight: 8 }}>Add to workout:</label>
-                    {data.workouts.filter(w => !w.exercises.includes(ex.id)).map(w => (
-                      <button key={w.name} className="btn btn-sm" style={{ marginRight: 4 }} onClick={() => addExerciseToWorkout(w.name, ex.id)}>
+                    {data!.workouts.filter(w => !w.exercises.includes(ex.id)).map(w => (
+                      <Button key={w.name} size="sm" style={{ marginRight: 4 }} onClick={() => addExerciseToWorkout(w.name, ex.id)}>
                         + {w.name}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -158,10 +159,10 @@ export default function ExercisesPage() {
                       </div>
                     )}
                   </div>
-                  <button className="btn btn-sm" onClick={() => startEdit(ex)}>Edit</button>
-                  <button className="btn btn-sm" style={{ color: 'var(--t1)' }} onClick={() => {
+                  <Button size="sm" onClick={() => startEdit(ex)}>Edit</Button>
+                  <Button size="sm" danger onClick={() => {
                     if (confirm(`Delete "${ex.name}"? It will be removed from all workouts.`)) deleteExercise(ex.id)
-                  }}>Delete</button>
+                  }}>Delete</Button>
                 </div>
               )}
             </div>
@@ -203,7 +204,7 @@ export default function ExercisesPage() {
             </div>
             <div style={{ marginTop: 16 }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600, display: 'block', marginBottom: 8 }}>Add to workouts (optional)</label>
-              {data.workouts.map(w => (
+              {data!.workouts.map(w => (
                 <label key={w.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: '0.85rem' }}>
                   <input
                     type="checkbox"
@@ -215,8 +216,8 @@ export default function ExercisesPage() {
               ))}
             </div>
             <div className="modal-actions">
-              <button className="btn" onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={handleAdd} disabled={!newEx.name.trim()}>Add Exercise</button>
+              <Button onClick={() => setShowAdd(false)}>Cancel</Button>
+              <Button variant="success" onClick={handleAdd} disabled={!newEx.name.trim()}>Add Exercise</Button>
             </div>
           </div>
         </div>

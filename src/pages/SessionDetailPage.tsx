@@ -1,37 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react'
+import Button from '../components/Button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
+import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 
 export default function SessionDetailPage() {
-  const { date } = useParams()
+  const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
   const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise } = useTracker()
   const [notes, setNotes] = useState('')
   const [elapsedTime, setElapsedTime] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const saveTimeoutRef = useRef(null)
+  const session = data?.sessions?.find(s => s.date === date)
+  const isToday = date === new Date().toISOString().slice(0, 10)
+  const [isRunning, setIsRunning] = useState(isToday && !(session?.elapsedTime > 0))
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startTimeRef = useRef(Date.now())
   const lastSaveRef = useRef(0)
 
-  // All hooks must come before any conditional returns
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     }
   }, [])
 
-  // Persist final time on unmount
   const lastTimeRef = useRef(0)
   useEffect(() => {
     return () => {
-      if (lastTimeRef.current > 0) {
+      if (lastTimeRef.current > 0 && date) {
         updateSessionTime(date, lastTimeRef.current)
       }
     }
-  }, [])
-  // Update ref in the interval tick
+  }, [date, updateSessionTime])
+
   useEffect(() => {
-    if (!isRunning) return
+    if (!isRunning || !date) return
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
       setElapsedTime(elapsed)
@@ -42,9 +44,8 @@ export default function SessionDetailPage() {
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [isRunning, date])
+  }, [isRunning, date, updateSessionTime])
 
-  // Load existing data on mount
   useEffect(() => {
     const existingSession = data?.sessions?.find(s => s.date === date)
     if (existingSession?.elapsedTime) {
@@ -58,8 +59,6 @@ export default function SessionDetailPage() {
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
-  const session = data?.sessions?.find(s => s.date === date)
-
   if (!session) {
     return (
       <div>
@@ -69,16 +68,15 @@ export default function SessionDetailPage() {
     )
   }
 
-  // Save notes after a short delay when typing
-  function handleNotesChange(value) {
+  function handleNotesChange(value: string) {
     setNotes(value)
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(() => {
-      updateSessionNotes(date, value)
+      if (date) updateSessionNotes(date, value)
     }, 500)
   }
 
-  function getNextProgression(ex, prevInfo) {
+  function getNextProgression(ex: { tier?: string }, prevInfo: PreviousPerformance | null): string {
     const tier = ex.tier
     if (tier === 'T1') {
       if (prevInfo) {
@@ -103,7 +101,6 @@ export default function SessionDetailPage() {
     return 'Fill in your target weight, reps, and sets'
   }
 
-  // Resolve exercise IDs to full definitions
   const resolvedExercises = session.exercises.map((sessionEx, idx) => {
     const def = getExercise(sessionEx.id) || {}
     return {
@@ -114,7 +111,7 @@ export default function SessionDetailPage() {
   })
 
   const tierOrder = ['T1', 'T2', 'T3', '']
-  const tierLabels = { T1: 'T1 — Main Lift', T2: 'T2 — Primary Accessory', T3: 'T3 — Secondary', '': 'Other' }
+  const tierLabels: Record<string, string> = { T1: 'T1 — Main Lift', T2: 'T2 — Primary Accessory', T3: 'T3 — Secondary', '': 'Other' }
 
   return (
     <div>
@@ -123,15 +120,13 @@ export default function SessionDetailPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{session.date}</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{session.workoutName} — {session.exercises.length} exercises</p>
         </div>
-        <button className="btn btn-sm" style={{ color: 'var(--t1)' }} onClick={() => {
-          deleteSession(date)
+        <Button size="sm" danger onClick={() => {
+          if (date) deleteSession(date)
           navigate('/sessions')
-        }}>Delete Session</button>
+        }}>Delete Session</Button>
       </div>
 
-      {/* Timer and Notes in a row */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        {/* Timer - Left */}
         <div style={{ flex: '0 0 400px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
           <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
             Time
@@ -142,16 +137,15 @@ export default function SessionDetailPage() {
             {(elapsedTime % 60).toString().padStart(2, '0')}
           </div>
           <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 8 }}>
-            <button className="btn btn-sm" style={{ fontSize: '0.65rem', padding: '2px 8px' }} onClick={() => { if (!isRunning) startTimeRef.current = Date.now() - elapsedTime * 1000; setIsRunning(!isRunning) }}>
-              {isRunning ? 'Pause' : 'Resume'}
-            </button>
-            <button className="btn btn-sm" style={{ fontSize: '0.65rem', padding: '2px 8px', color: 'var(--t1)' }} onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); setIsRunning(false) }}>
+            <Button size="sm" onClick={() => { if (!isRunning) startTimeRef.current = Date.now() - elapsedTime * 1000; setIsRunning(!isRunning) }}>
+              {isRunning ? 'Pause' : (elapsedTime === 0 ? 'Start' : 'Resume')}
+            </Button>
+            <Button size="sm" danger onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); setIsRunning(false) }}>
               Reset
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* Notes - Right */}
         <div style={{ flex: '1', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16 }}>
           <h3 style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
             Notes
@@ -218,7 +212,7 @@ export default function SessionDetailPage() {
                             className="edit-input"
                             placeholder="Weight"
                             value={ex.weight}
-                            onChange={e => updateExercise(date, ex.idx, 'weight', e.target.value)}
+                            onChange={e => date && updateExercise(date, ex.idx, 'weight', e.target.value)}
                           />
                           <div className="edit-lbl">Weight</div>
                         </div>
@@ -228,7 +222,7 @@ export default function SessionDetailPage() {
                             className="edit-input"
                             placeholder="Reps"
                             value={ex.reps}
-                            onChange={e => updateExercise(date, ex.idx, 'reps', e.target.value)}
+                            onChange={e => date && updateExercise(date, ex.idx, 'reps', e.target.value)}
                           />
                           <div className="edit-lbl">Reps</div>
                         </div>
@@ -238,7 +232,7 @@ export default function SessionDetailPage() {
                             className="edit-input"
                             placeholder="Sets"
                             value={ex.sets ?? ''}
-                            onChange={e => updateExercise(date, ex.idx, 'sets', e.target.value)}
+                            onChange={e => date && updateExercise(date, ex.idx, 'sets', e.target.value)}
                           />
                           <div className="edit-lbl">Sets</div>
                         </div>

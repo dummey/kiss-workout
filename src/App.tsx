@@ -5,6 +5,7 @@ import SessionsPage from './pages/SessionsPage'
 import ExercisesPage from './pages/ExercisesPage'
 import SessionDetailPage from './pages/SessionDetailPage'
 import WorkoutsPage from './pages/WorkoutsPage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="sessions/:date" element={<SessionDetailPage />} />
           <Route path="exercises" element={<ExercisesPage />} />
           <Route path="workouts" element={<WorkoutsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

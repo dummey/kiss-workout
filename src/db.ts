@@ -2,10 +2,10 @@ const DB_NAME = 'gzcl-tracker-v2'
 const DB_VERSION = 1
 const STORE_NAME = 'data'
 
-let db = null
+let db: IDBDatabase | null = null
 
-async function openDB() {
-  if (db) return db
+function openDB(): Promise<IDBDatabase> {
+  if (db) return Promise.resolve(db)
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     request.onerror = () => reject(request.error)
@@ -14,7 +14,7 @@ async function openDB() {
       resolve(db)
     }
     request.onupgradeneeded = (e) => {
-      const database = e.target.result
+      const database = (e.target as IDBOpenDBRequest).result
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME)
       }
@@ -22,18 +22,18 @@ async function openDB() {
   })
 }
 
-export async function getStore(key) {
+export async function getStore(key: string): Promise<unknown> {
   const database = await openDB()
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORE_NAME, 'readonly')
     const store = tx.objectStore(STORE_NAME)
     const req = store.get(key)
-    req.onsuccess = () => resolve(req.result || null)
+    req.onsuccess = () => resolve(req.result ?? null)
     req.onerror = () => reject(req.error)
   })
 }
 
-export async function setStore(key, value) {
+export async function setStore(key: string, value: unknown): Promise<void> {
   const database = await openDB()
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORE_NAME, 'readwrite')
@@ -44,7 +44,7 @@ export async function setStore(key, value) {
   })
 }
 
-export async function deleteStore(key) {
+export async function deleteStore(key: string): Promise<void> {
   const database = await openDB()
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORE_NAME, 'readwrite')
