@@ -195,14 +195,34 @@ export default function SessionDetailPage() {
                           />
                           <div className="edit-lbl">Reps</div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
                           <input
                             type="text"
                             className="edit-input"
                             placeholder="Sets"
                             value={ex.sets ?? ''}
                             onChange={e => date && updateExercise(date, ex.idx, 'sets', e.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box' }}
                           />
+                          <Button
+                            size="sm"
+                            style={{
+                              position: 'absolute',
+                              right: 2,
+                              top: 1,
+                              // top: '50%',
+                              // transform: 'translateY(-50%)',
+                              padding: '6px',
+                              minWidth: 36,
+                              lineHeight: 1
+                            }}
+                            onClick={() => {
+                              const current = ex.sets ?? 0
+                              if (date) updateExercise(date, ex.idx, 'sets', (current + 1).toString())
+                            }}
+                          >
+                            +
+                          </Button>
                           <div className="edit-lbl">Sets</div>
                         </div>
                       </div>

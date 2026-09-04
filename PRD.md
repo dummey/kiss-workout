@@ -267,7 +267,8 @@ Includes 27 exercises across 3 T1/T2 tiers and realistic GZCL setup notes.
 | `logic.test.ts` | 18 | Date compare, GZCL progression, ID generation, duplicate-date guard, sets parsing (including NaN guard) |
 | `Button.test.tsx` | 8 | Variants, sizes, danger state, className merging, disabled, onClick |
 | `ProgressionInfo.test.tsx` | 6 | Null data, normal data, missing data, CSS classes |
-| `session-workflow.test.tsx` | 12 | Create session, persist to IndexedDB, log exercise data, save notes, timer labels (Start/Resume) |
+| `session-workflow.test.tsx` | 5 | Create session, persist to IndexedDB, log exercise data, save notes, timer labels (Start/Resume) |
+| `SettingsPage.test.tsx` | 7 | Stats rendering, load seed, delete confirmation modal, cancel flows |
 
 Run: `npm test` (single run) or `npm run test:watch` (watch mode)
 
