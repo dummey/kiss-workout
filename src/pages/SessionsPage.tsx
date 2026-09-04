@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
+import { getStore } from '../db'
 import Button from '../components/Button'
 import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
+import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal } from '../components/ModalProvider'
+import { useBackupReminder } from '../hooks/useBackupReminder'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -14,6 +17,7 @@ const PAGE_SIZES = [12, 24, 48]
 export default function SessionsPage() {
   const { data, loading, addSession, deleteSession, importSession } = useTracker()
   const { showModal } = useModal()
+  const { recordBackup } = useBackupReminder()
   const navigate = useNavigate()
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -33,12 +37,12 @@ export default function SessionsPage() {
   const filteredSessions = useMemo(() => {
     const sessions = searchQuery.trim()
       ? (data?.sessions || []).filter(session =>
-          session.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          session.workoutName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (session.notes && session.notes.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
+        session.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        session.workoutName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (session.notes && session.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
       : (data?.sessions || [])
-    
+
     return sessions.sort((a, b) => {
       const cmp = a.date.localeCompare(b.date)
       return sortDirection === 'desc' ? -cmp : cmp
@@ -142,6 +146,22 @@ export default function SessionsPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+              <BackupReminderBanner onExport={() => {
+        getStore('tracker').then((data) => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          recordBackup()
+        })
+      }} />
+      </div>
+      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
         <div style={{ flex: '1 1 60%', height: '100%' }}>
           <CalendarHeatmap sessions={data?.sessions || []} />
         </div>
@@ -149,8 +169,9 @@ export default function SessionsPage() {
           <SessionStats sessions={data?.sessions || []} />
         </div>
       </div>
-
+                
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+
         <input
           type="text"
           placeholder="Search by date, workout, or notes..."
@@ -190,9 +211,9 @@ export default function SessionsPage() {
                   </div>
                 </div>
                 {session.notes && (
-                  <p style={{ 
-                    color: 'var(--muted)', 
-                    fontSize: '0.78rem', 
+                  <p style={{
+                    color: 'var(--muted)',
+                    fontSize: '0.78rem',
                     marginTop: 6,
                     marginBottom: 6,
                     overflow: 'hidden',
@@ -211,10 +232,10 @@ export default function SessionsPage() {
           </div>
 
           {/* Pagination controls */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginTop: 24,
             padding: '12px 0',
             borderTop: '1px solid var(--border)'

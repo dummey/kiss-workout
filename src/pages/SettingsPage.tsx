@@ -3,11 +3,13 @@ import { useTracker } from '../context'
 import { getStore, setStore } from '../db'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
+import { useBackupReminder } from '../hooks/useBackupReminder'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
   const { data, deleteAllData, resetToSeedData } = useTracker()
   const { showModal } = useModal()
+  const { meta, recordBackup } = useBackupReminder()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -24,6 +26,7 @@ export default function SettingsPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      recordBackup()
     }).catch((err) => {
       showModal({
         title: 'Export Failed',
@@ -122,6 +125,22 @@ export default function SettingsPage() {
               <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>{data?.sessions.length || 0}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Sessions</div>
             </div>
+          </div>
+          <div style={{ 
+            marginTop: 16, 
+            paddingTop: 16, 
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.8rem',
+            color: 'var(--muted)'
+          }}>
+            <span>
+              {meta.lastBackupDate 
+                ? `Last backup: ${Math.floor((Date.now() - new Date(meta.lastBackupDate).getTime()) / 86400000)} days ago`
+                : 'No backup yet'}
+            </span>
+            <span>{meta.sessionsSinceBackup} sessions since backup</span>
           </div>
         </div>
 

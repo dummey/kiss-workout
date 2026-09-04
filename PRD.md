@@ -61,17 +61,24 @@ sessions[]
 | Duration display | Shows elapsed time if recorded (e.g., "45m 30s") |
 | Add session | Modal to pick date and workout type |
 | Navigation | Click card to view session detail |
+| Pagination | 12/24/48 page sizes with Prev/Next and "X–Y of Z" count |
+| Notes preview | Single-line truncated notes on session cards |
+| Training heatmap | GitHub-style 365-day activity calendar |
+| Session stats | Total hours, volume, avg duration, current streak |
+| Import session | Upload JSON to import a single session (with duplicate-date handling) |
 
 ### Session Detail Page (`/sessions/:date`)
 
 | Feature | Description |
 |---------|-------------|
-| Header | Date, workout name, exercise count, delete button |
+| Header | Date, workout name, exercise count, delete button, export button |
+| Export session | Download session as `session-{date}.json` |
 | Workout timer | Auto-starting H:MM:SS timer with pause/resume/reset (hours shown after 60 min) |
 | Timer persistence | Saves elapsed time every 5 seconds; final save on unmount; restores on page load |
 | Notes | Auto-saving textarea (500ms debounce) |
 | Exercise cards | Grouped by tier (T1/T2/T3/Other) |
 | Inline editing | Weight/Reps/Sets inputs per exercise |
+| Sets stepper | Plus button inset inside the Sets input for quick increment |
 | Progression guidance | GZCL-based suggestions via `ProgressionInfo` component |
 | Previous performance | Shows last logged values per exercise (matched by ID, returns most recent) |
 | Delete | Available only at detail level |
@@ -94,6 +101,7 @@ sessions[]
 |---------|-------------|
 | Workout tabs | Switch between workouts (Squat, Bench, Deadlift, etc.) |
 | Workout CRUD | Add, rename, delete workouts |
+| Clone workout | Duplicate a workout with a new name (shallow copy of exercise IDs) |
 | Exercise management | Add/remove exercises to/from workout |
 | Tier grouping | Exercises grouped by T1/T2/T3/Other |
 | Muscle visualization | Interactive body map using `body-muscles` library |
@@ -109,7 +117,7 @@ sessions[]
 | Export data | Download all IndexedDB data as JSON backup |
 | Import data | Upload JSON file to replace all data (validated before storing) |
 | Delete All Data | Permanently clears all data and resets to defaults (with confirmation) |
-| Load Seed Data | Replaces current data with test seed data (5 sessions, sample exercises) |
+| Load Seed Data | Replaces current data with test seed data (50 sessions, 27 exercises, 4 workouts) |
 
 ### Sidebar
 
@@ -153,17 +161,21 @@ src/
 ├── components/
 │   ├── BodyMusclesChart.tsx    # Wrapper for body-muscles library
 │   ├── Button.tsx              # Shared button (variants: primary/success, sizes: sm, danger)
+│   ├── CalendarHeatmap.tsx     # 365-day training activity heatmap
 │   ├── Layout.tsx              # Sidebar nav
-│   └── ProgressionInfo.tsx     # Last time + next progression step display
+│   ├── Modal.tsx               # Reusable modal (title, message, input, actions)
+│   ├── ModalProvider.tsx       # Context provider with promise-based showModal()
+│   ├── ProgressionInfo.tsx     # Last time + next progression step display
+│   └── SessionStats.tsx        # Session statistics (hours, volume, avg, streak)
 ├── pages/
-│   ├── SessionsPage.tsx        # Session list, search, sort toggle
-│   ├── SessionDetailPage.tsx   # Logging, timer, notes, exercise cards
+│   ├── SessionsPage.tsx        # Session list, search, sort toggle, pagination, heatmap, stats
+│   ├── SessionDetailPage.tsx   # Logging, timer, notes, exercise cards, export
 │   ├── ExercisesPage.tsx       # Exercise library CRUD
 │   ├── SettingsPage.tsx        # Stats, import/export, delete-all, load-seed
-│   └── WorkoutsPage.tsx        # Workout organization
+│   └── WorkoutsPage.tsx        # Workout organization, clone, muscle map
 ├── context.tsx                  # Global state + IndexedDB operations
 ├── db.ts                        # IndexedDB low-level API
-├── data.ts                      # Seed data (5 sessions, 27 exercises, 4 workouts)
+├── data.ts                      # Seed data (50 sessions, 27 exercises, 4 workouts)
 ├── types.ts                     # TypeScript interfaces for all entities
 ├── App.tsx                      # Router setup
 ├── main.tsx                     # Entry point
@@ -173,8 +185,11 @@ test/                            # Test setup
 ├── setup.ts                     # fake-indexeddb + jest-dom
 ├── logic.test.ts                # Date compare, GZCL progression, ID generation, sets parsing
 ├── Button.test.tsx              # Button variants, sizes, danger state
+├── CalendarHeatmap.test.tsx     # Heatmap rendering, intensity calculation
+├── Modal.test.tsx               # Modal open/close, actions, input, variants
 ├── ProgressionInfo.test.tsx     # ProgressionInfo rendering, null states, CSS classes
-└── session-workflow.test.tsx    # Integration: create session, log data, save notes, timer labels
+├── session-workflow.test.tsx    # Integration: create session, log data, save notes, timer labels
+└── SettingsPage.test.tsx        # Stats rendering, load seed, delete confirmation modal
 ```
 
 ### Key CSS Variables
@@ -199,6 +214,27 @@ test/                            # Test setup
 - Replaces all raw `<button className="btn ...">` elements across the app
 - `danger` adds `--t1` red color; `size="sm"` uses smaller padding
 - `className` is merged into the classes array for custom overrides
+
+**Modal** (`src/components/Modal.tsx`)
+- Props: `isOpen`, `title`, `message`, `actions`, `input` (optional), `onClose`, `onAction`
+- Promise-based API via `useModal()` hook from `ModalProvider`
+- Replaces all native `alert()`, `confirm()`, and `prompt()` calls
+- Actions: `{ label, value, variant? }[]` — variant applies button styling
+- Input: `{ defaultValue?, placeholder? }` — renders text input, Enter triggers first action
+
+**CalendarHeatmap** (`src/components/CalendarHeatmap.tsx`)
+- 365-day GitHub-style activity calendar grouped by week columns
+- Intensity levels: 0 (no session) to 4 (all exercises logged)
+- Hover tooltip shows date, workout name, exercises logged, elapsed time
+
+**SessionStats** (`src/components/SessionStats.tsx`)
+- Computes: total hours, total volume (weight × reps × sets), avg duration, current streak
+- Skips non-numeric weights ("BW", "Heavy", "30s", "40yd")
+- Streak: consecutive weeks with ≥1 session counting backward from current week
+
+**ProgressionInfo** (`src/components/ProgressionInfo.tsx`)
+- Displays "Last time" values and GZCL-based next progression step
+- Extracted from SessionDetailPage for reusability
 
 ---
 
@@ -234,6 +270,7 @@ test/                            # Test setup
 2. Select or create workout tab
 3. Add/remove exercises
 4. View muscle map to check coverage
+5. Clone workout to create variants
 
 ### Data Backup and Restore
 
@@ -243,30 +280,52 @@ test/                            # Test setup
 4. Click "Delete All" to reset to defaults
 5. Click "Load Seed" to populate test data
 
+### Single-Session Portability
+
+1. On Sessions page: click "Import Session" to upload a `session-{date}.json` file
+2. On Session Detail page: click "Export" to download that session as JSON
+3. Duplicate-date handling: modal prompts to overwrite or cancel
+
 ---
 
 ## Test Data
 
-5 seed sessions spanning Aug 25 – Sep 3, 2026:
-- Aug 25: Squat Workout (225x5 squat, etc.)
-- Aug 27: Bench Workout (185x3 bench, etc.)
-- Aug 29: Deadlift Workout (315x3 deadlift, etc.)
-- Sep 1: Squat Workout (230x5 squat progression)
-- Sep 3: Bench Workout (185x5 bench PR)
+50 seed sessions spanning July 13 – October 18, 2026:
 
-Includes 27 exercises across 3 T1/T2 tiers and realistic GZCL setup notes.
+| Workout Type | Sessions |
+|--------------|----------|
+| Squat Workout | 17 |
+| Bench Workout | 17 |
+| Deadlift Workout | 16 |
+
+**T1 Progression (realistic GZCL):**
+- Squat: 225×3 → 235×5 (added weight at rep milestones)
+- Bench: 185×3 → 190×5 (5lb jumps, rep progression)
+- Deadlift: 315×3 → 325×6 (10lb jumps, rep progression)
+
+**Other realistic touches:**
+- Deload weeks every ~4th week (reduced volume, "focusing on recovery" notes)
+- Varied rest days between sessions (1-3 days)
+- Realistic notes ("Knees felt tight", "Shoulder tweaked", "New PR!", etc.)
+- Elapsed times vary 45-90 minutes
+- T2/T3 accessories progress independently
+- ~61 incomplete exercises across sessions (T1: 2% skip, T2: 10% skip, T3: 20% skip)
+
+Includes 27 exercises across 3 T1/T2/T3 tiers and realistic GZCL setup notes.
 
 ---
 
 ## Testing
 
-**44 tests across 5 files:**
+**57 tests across 7 files:**
 
 | Test File | Count | Coverage |
 |-----------|-------|----------|
 | `logic.test.ts` | 18 | Date compare, GZCL progression, ID generation, duplicate-date guard, sets parsing (including NaN guard) |
 | `Button.test.tsx` | 8 | Variants, sizes, danger state, className merging, disabled, onClick |
-| `ProgressionInfo.test.tsx` | 6 | Null data, normal data, missing data, CSS classes |
+| `CalendarHeatmap.test.tsx` | 9 | Heatmap rendering, intensity calculation, tooltip data |
+| `Modal.test.tsx` | 8 | Open/close, actions, input, variants, onClose |
+| `ProgressionInfo.test.tsx` | 4 | Null data, normal data, missing data, CSS classes |
 | `session-workflow.test.tsx` | 5 | Create session, persist to IndexedDB, log exercise data, save notes, timer labels (Start/Resume) |
 | `SettingsPage.test.tsx` | 7 | Stats rendering, load seed, delete confirmation modal, cancel flows |
 
@@ -277,12 +336,14 @@ Run: `npm test` (single run) or `npm run test:watch` (watch mode)
 ## Future Considerations
 
 - Mobile-responsive layout improvements
-- Volume & intensity dashboard
+- Full volume & intensity dashboard (SessionStats is a start)
 - Plate calculator
 - Rest timer between sets
 - PR tracking and display
-- Calendar view / heatmap for session history
 - Dark/light theme toggle
-- Workout templates / duplication
 - 1RM estimator (Epley/Brzycki)
 - Deload recommender
+- Session comparison
+- Body weight log
+- CSV export
+- Backup reminder

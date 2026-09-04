@@ -41,6 +41,13 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     await setStore('tracker', newData)
   }
 
+  async function incrementBackupCounter() {
+    const stored = await getStore('backup-meta') as { lastBackupDate: string | null; sessionsSinceBackup: number } | null
+    const meta = stored || { lastBackupDate: null, sessionsSinceBackup: 0 }
+    meta.sessionsSinceBackup++
+    await setStore('backup-meta', meta)
+  }
+
   function getExercise(id: string): Exercise | undefined {
     return data?.exercises.find(ex => ex.id === id)
   }
@@ -86,6 +93,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sessions: [newSession, ...data.sessions]
     }
     saveData(newData)
+    incrementBackupCounter()
     return newSession
   }
 
@@ -255,6 +263,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sessions: []
     }
     await setStore('tracker', emptyData)
+    await setStore('backup-meta', { lastBackupDate: null, sessionsSinceBackup: 0 })
     setData(emptyData)
   }
 
@@ -338,7 +347,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     deleteAllData,
     resetToSeedData,
     importSession,
-    cloneWorkout
+    cloneWorkout,
+    incrementBackupCounter
   }), [data, loading])
 
   return (

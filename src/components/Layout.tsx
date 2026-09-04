@@ -1,8 +1,10 @@
 import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '../assets/logo.png'
+import { useBackupReminder } from '../hooks/useBackupReminder'
 
 export default function Layout() {
+  const { shouldShowReminder } = useBackupReminder()
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <nav style={{
@@ -23,8 +25,11 @@ export default function Layout() {
         <NavLink to="/workouts" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
           Workouts
         </NavLink>
-        <NavLink to="/settings" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
+        <NavLink to="/settings" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           Settings
+          {shouldShowReminder && (
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--t1)' }} />
+          )}
         </NavLink>
       </nav>
 
