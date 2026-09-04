@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import Button from '../components/Button'
+import { useModal } from '../components/ModalProvider'
 import { useTracker } from '../context'
 import BodyMusclesChart from '../components/BodyMusclesChart'
 import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
-  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout } = useTracker()
+  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout } = useTracker()
+  const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
@@ -24,9 +26,19 @@ export default function WorkoutsPage() {
   }
 
   function handleRemoveExercise(exId: string) {
-    if (confirm('Remove this exercise from this workout?')) {
-      removeExerciseFromWorkout(selectedWorkout, exId)
-    }
+    showModal({
+      title: 'Remove Exercise',
+      message: 'Remove this exercise from this workout?',
+      actions: [
+        { label: 'Cancel', value: null },
+        { label: 'Remove', value: 'confirm', variant: 'danger' }
+      ]
+    }).then(result => {
+      if (result.action === 'confirm') {
+        removeExerciseFromWorkout(selectedWorkout, exId)
+        setHighlightedMuscles([])
+      }
+    })
   }
 
   function handleAddWorkout() {
@@ -39,11 +51,20 @@ export default function WorkoutsPage() {
 
   function handleDeleteCurrentWorkout() {
     if (!workout) return
-    if (confirm(`Delete "${workout.name}"? This will not affect past sessions.`)) {
-      const nextWorkout = data!.workouts.find(w => w.name !== workout.name)
-      deleteWorkout(workout.name)
-      setSelectedWorkout(nextWorkout?.name || '')
-    }
+    showModal({
+      title: 'Delete Workout',
+      message: `Delete "${workout.name}"? This will not affect past sessions.`,
+      actions: [
+        { label: 'Cancel', value: null },
+        { label: 'Delete', value: 'confirm', variant: 'danger' }
+      ]
+    }).then(result => {
+      if (result.action === 'confirm') {
+        const nextWorkout = data!.workouts.find(w => w.name !== workout.name)
+        deleteWorkout(workout.name)
+        setSelectedWorkout(nextWorkout?.name || '')
+      }
+    })
   }
 
   const tierOrder = ['T1', 'T2', 'T3', '']
@@ -81,6 +102,21 @@ export default function WorkoutsPage() {
             </h2>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button size="sm" variant="primary" onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
+              <Button size="sm" onClick={async () => {
+                const result = await showModal({
+                  title: 'Clone Workout',
+                  message: `Clone "${workout.name}" as:`,
+                  input: { defaultValue: `${workout.name} (Copy)`, placeholder: 'New workout name' },
+                  actions: [
+                    { label: 'Cancel', value: null },
+                    { label: 'Clone', value: 'confirm', variant: 'success' }
+                  ]
+                })
+                if (result.action === 'confirm' && result.input?.trim()) {
+                  cloneWorkout(workout.name, result.input.trim())
+                  setSelectedWorkout(result.input.trim())
+                }
+              }}>Clone</Button>
               <Button size="sm" danger onClick={handleDeleteCurrentWorkout}>
                 Delete
               </Button>

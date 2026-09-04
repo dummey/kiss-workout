@@ -4,13 +4,19 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { TrackerProvider } from '../context'
+import { ModalProvider } from '../components/ModalProvider'
 import SettingsPage from '../pages/SettingsPage'
 import { getStore, deleteStore } from '../db'
 import type { TrackerData } from '../types'
 
 vi.stubGlobal('alert', vi.fn())
-const confirmMock = vi.fn()
-vi.stubGlobal('confirm', confirmMock)
+
+// Mock useModal
+const showModalMock = vi.fn()
+vi.mock('../components/ModalProvider', () => ({
+  useModal: () => ({ showModal: showModalMock }),
+  ModalProvider: ({ children }: { children: React.ReactNode }) => children
+}))
 
 function TestApp() {
   return (
@@ -56,7 +62,7 @@ describe('SettingsPage', () => {
   })
 
   it('loads seed data when confirmed', async () => {
-    confirmMock.mockReturnValue(true)
+    showModalMock.mockResolvedValue({ action: 'confirm' })
     const user = userEvent.setup()
 
     render(<TestApp />)
@@ -65,7 +71,7 @@ describe('SettingsPage', () => {
     await user.click(screen.getByText('Load Seed'))
 
     await waitFor(() => {
-      expect(confirmMock).toHaveBeenCalled()
+      expect(showModalMock).toHaveBeenCalled()
     })
 
     await waitFor(() => {
@@ -78,7 +84,7 @@ describe('SettingsPage', () => {
   })
 
   it('cancels load seed when not confirmed', async () => {
-    confirmMock.mockReturnValue(false)
+    showModalMock.mockResolvedValue({ action: null })
     const user = userEvent.setup()
 
     render(<TestApp />)
@@ -87,7 +93,7 @@ describe('SettingsPage', () => {
     await user.click(screen.getByText('Load Seed'))
 
     await waitFor(() => {
-      expect(confirmMock).toHaveBeenCalled()
+      expect(showModalMock).toHaveBeenCalled()
     })
 
     // Stats remain at 0

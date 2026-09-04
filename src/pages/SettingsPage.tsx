@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react'
 import { useTracker } from '../context'
 import { getStore, setStore } from '../db'
 import Button from '../components/Button'
+import { useModal } from '../components/ModalProvider'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
   const { data, deleteAllData, resetToSeedData } = useTracker()
+  const { showModal } = useModal()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -23,7 +25,11 @@ export default function SettingsPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     }).catch((err) => {
-      alert('Failed to export: ' + err.message)
+      showModal({
+        title: 'Export Failed',
+        message: 'Failed to export: ' + err.message,
+        actions: [{ label: 'OK', value: null }]
+      })
     }).finally(() => {
       setExporting(false)
     })
@@ -33,28 +39,46 @@ export default function SettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!confirm('This will replace all existing data. Continue?')) {
-      e.target.value = ''
-      return
-    }
+    showModal({
+      title: 'Import Data',
+      message: 'This will replace all existing data. Continue?',
+      actions: [
+        { label: 'Cancel', value: null },
+        { label: 'Import', value: 'confirm', variant: 'primary' }
+      ]
+    }).then(async result => {
+      if (result.action !== 'confirm') {
+        e.target.value = ''
+        return
+      }
 
-    const reader = new FileReader()
-    reader.onload = async (event) => {
       try {
-        const text = event.target?.result as string
+        const text = await file.text()
         const importedData = JSON.parse(text) as TrackerData
         if (!importedData || typeof importedData !== 'object' || !Array.isArray(importedData.exercises) || !Array.isArray(importedData.workouts) || !Array.isArray(importedData.sessions)) {
-          alert('Invalid backup file: missing exercises, workouts, or sessions array.')
+          showModal({
+            title: 'Invalid File',
+            message: 'Invalid backup file: missing exercises, workouts, or sessions array.',
+            actions: [{ label: 'OK', value: null }]
+          })
           return
         }
         await setStore('tracker', importedData)
-        alert('Data imported successfully!')
-        window.location.reload()
+        showModal({
+          title: 'Import Successful',
+          message: 'Data imported successfully!',
+          actions: [{ label: 'OK', value: null }]
+        }).then(() => {
+          window.location.reload()
+        })
       } catch (err) {
-        alert('Failed to import: ' + (err as Error).message)
+        showModal({
+          title: 'Import Failed',
+          message: 'Failed to import: ' + (err as Error).message,
+          actions: [{ label: 'OK', value: null }]
+        })
       }
-    }
-    reader.readAsText(file)
+    })
   }
 
   function handleDeleteAll() {
@@ -63,9 +87,18 @@ export default function SettingsPage() {
   }
 
   function handleLoadSeed() {
-    if (confirm('This will replace all current data with fresh seed data. Continue?')) {
-      resetToSeedData()
-    }
+    showModal({
+      title: 'Load Seed Data',
+      message: 'This will replace all current data with fresh seed data. Continue?',
+      actions: [
+        { label: 'Cancel', value: null },
+        { label: 'Load Seed', value: 'confirm', variant: 'primary' }
+      ]
+    }).then(result => {
+      if (result.action === 'confirm') {
+        resetToSeedData()
+      }
+    })
   }
 
   return (

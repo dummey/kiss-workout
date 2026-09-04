@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { TrackerProvider } from '../context'
+import { ModalProvider } from '../components/ModalProvider'
 import Layout from '../components/Layout'
 import SessionsPage from '../pages/SessionsPage'
 import SessionDetailPage from '../pages/SessionDetailPage'
@@ -12,8 +13,13 @@ import { getStore, deleteStore } from '../db'
 import type { TrackerData } from '../types'
 
 vi.stubGlobal('alert', vi.fn())
-const confirmMock = vi.fn()
-vi.stubGlobal('confirm', confirmMock)
+
+// Mock useModal
+const showModalMock = vi.fn()
+vi.mock('../components/ModalProvider', () => ({
+  useModal: () => ({ showModal: showModalMock }),
+  ModalProvider: ({ children }: { children: React.ReactNode }) => children
+}))
 
 let uniqueDateCounter = 0
 
@@ -28,14 +34,16 @@ function TestApp() {
   return (
     <MemoryRouter initialEntries={['/settings']}>
       <TrackerProvider>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Navigate to="/settings" replace />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="sessions" element={<SessionsPage />} />
-            <Route path="sessions/:date" element={<SessionDetailPage />} />
-          </Route>
-        </Routes>
+        <ModalProvider>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Navigate to="/settings" replace />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="sessions" element={<SessionsPage />} />
+              <Route path="sessions/:date" element={<SessionDetailPage />} />
+            </Route>
+          </Routes>
+        </ModalProvider>
       </TrackerProvider>
     </MemoryRouter>
   )
@@ -61,7 +69,7 @@ describe('Session workflow integration', () => {
     await screen.findByRole('heading', { name: 'Settings' })
 
     // Load seed data
-    confirmMock.mockReturnValue(true)
+    showModalMock.mockResolvedValue({ action: 'confirm' })
     await user.click(screen.getByText('Load Seed'))
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
@@ -98,7 +106,7 @@ describe('Session workflow integration', () => {
     await screen.findByRole('heading', { name: 'Settings' })
 
     // Load seed data
-    confirmMock.mockReturnValue(true)
+    showModalMock.mockResolvedValue({ action: 'confirm' })
     await user.click(screen.getByText('Load Seed'))
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
@@ -132,7 +140,7 @@ describe('Session workflow integration', () => {
     await screen.findByRole('heading', { name: 'Settings' })
 
     // Load seed data
-    confirmMock.mockReturnValue(true)
+    showModalMock.mockResolvedValue({ action: 'confirm' })
     await user.click(screen.getByText('Load Seed'))
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
@@ -182,7 +190,7 @@ describe('Session workflow integration', () => {
     await screen.findByRole('heading', { name: 'Settings' })
 
     // Load seed data
-    confirmMock.mockReturnValue(true)
+    showModalMock.mockResolvedValue({ action: 'confirm' })
     await user.click(screen.getByText('Load Seed'))
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
@@ -219,7 +227,7 @@ describe('Session workflow integration', () => {
     await screen.findByRole('heading', { name: 'Settings' })
 
     // Load seed data
-    confirmMock.mockReturnValue(true)
+    showModalMock.mockResolvedValue({ action: 'confirm' })
     await user.click(screen.getByText('Load Seed'))
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()

@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import { useTracker } from '../context'
 import Button from '../components/Button'
+import { useModal } from '../components/ModalProvider'
 import type { Exercise } from '../types'
 
 export default function ExercisesPage() {
   const { data, loading, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout } = useTracker()
+  const { showModal } = useModal()
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{ name: string; muscles: string; setup: string; superset: string; tier: string }>({ name: '', muscles: '', setup: '', superset: '', tier: '' })
@@ -161,7 +163,16 @@ export default function ExercisesPage() {
                   </div>
                   <Button size="sm" onClick={() => startEdit(ex)}>Edit</Button>
                   <Button size="sm" danger onClick={() => {
-                    if (confirm(`Delete "${ex.name}"? It will be removed from all workouts.`)) deleteExercise(ex.id)
+                    showModal({
+                      title: 'Delete Exercise',
+                      message: `Delete "${ex.name}"? It will be removed from all workouts.`,
+                      actions: [
+                        { label: 'Cancel', value: null },
+                        { label: 'Delete', value: 'confirm', variant: 'danger' }
+                      ]
+                    }).then(result => {
+                      if (result.action === 'confirm') deleteExercise(ex.id)
+                    })
                   }}>Delete</Button>
                 </div>
               )}

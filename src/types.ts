@@ -72,4 +72,5 @@ export interface TrackerContextValue {
   deleteAllData: () => Promise<void>
   resetToSeedData: () => Promise<void>
   importSession: (session: Session, overwrite?: boolean) => boolean
+  cloneWorkout: (sourceName: string, newName: string) => void
 }

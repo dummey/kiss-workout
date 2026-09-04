@@ -59,35 +59,59 @@ export default function SessionsPage() {
     if (session) {
       setShowAdd(false)
       navigate(`/sessions/${date}`)
+    } else {
+      showModal({
+        title: 'Session Exists',
+        message: `A session on ${date} already exists. Please pick a different date.`,
+        actions: [
+          { label: 'OK', value: null }
+        ]
+      })
     }
   }
 
-  function handleImportSession(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImportSession(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string
-        const session = JSON.parse(text) as Session
-        if (!session || typeof session !== 'object' || !session.date || !session.workoutName || !Array.isArray(session.exercises)) {
-          alert('Invalid session file: missing date, workoutName, or exercises array.')
-          return
-        }
-        const success = importSession(session, false)
-        if (!success) {
-          if (confirm(`A session on ${session.date} already exists. Overwrite it?`)) {
-            importSession(session, true)
-          }
-        } else {
-          alert('Session imported successfully!')
-        }
-      } catch (err) {
-        alert('Failed to import: ' + (err as Error).message)
+    const text = await file.text()
+    try {
+      const session = JSON.parse(text) as Session
+      if (!session || typeof session !== 'object' || !session.date || !session.workoutName || !Array.isArray(session.exercises)) {
+        showModal({
+          title: 'Invalid File',
+          message: 'Invalid session file: missing date, workoutName, or exercises array.',
+          actions: [{ label: 'OK', value: null }]
+        })
+        return
       }
+      const success = importSession(session, false)
+      if (!success) {
+        const result = await showModal({
+          title: 'Session Exists',
+          message: `A session on ${session.date} already exists. Overwrite it?`,
+          actions: [
+            { label: 'Cancel', value: null },
+            { label: 'Overwrite', value: 'confirm', variant: 'danger' }
+          ]
+        })
+        if (result.action === 'confirm') {
+          importSession(session, true)
+        }
+      } else {
+        showModal({
+          title: 'Import Successful',
+          message: 'Session imported successfully!',
+          actions: [{ label: 'OK', value: null }]
+        })
+      }
+    } catch (err) {
+      showModal({
+        title: 'Import Failed',
+        message: 'Failed to import: ' + (err as Error).message,
+        actions: [{ label: 'OK', value: null }]
+      })
     }
-    reader.readAsText(file)
     e.target.value = ''
   }
 

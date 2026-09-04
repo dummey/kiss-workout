@@ -54,7 +54,6 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   function addSession(date: string, workoutType: string): Session | null {
     if (!data) return null
     if (data.sessions.some(s => s.date === date)) {
-      alert(`A session already exists on ${date}. Please pick a different date.`)
       return null
     }
 
@@ -232,6 +231,17 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }
 
+  function cloneWorkout(sourceName: string, newName: string) {
+    if (!data) return
+    const source = data.workouts.find(w => w.name === sourceName)
+    if (!source) return
+    const newData: TrackerData = {
+      ...data,
+      workouts: [...data.workouts, { name: newName, exercises: [...source.exercises] }]
+    }
+    saveData(newData)
+  }
+
   async function resetToSeedData() {
     await setStore('tracker', SEED_DATA)
     setData(SEED_DATA)
@@ -327,7 +337,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     dateCompare,
     deleteAllData,
     resetToSeedData,
-    importSession
+    importSession,
+    cloneWorkout
   }), [data, loading])
 
   return (
