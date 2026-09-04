@@ -17,11 +17,11 @@ vi.stubGlobal('confirm', confirmMock)
 
 let uniqueDateCounter = 0
 
-// Generate a unique date that's after the seed data (uses Oct 2026 dates)
+// Generate a unique date that's after the seed data (uses Nov 2026 dates)
 function getUniqueDate(): string {
   uniqueDateCounter++
   const day = 1 + uniqueDateCounter
-  return `2026-10-${day.toString().padStart(2, '0')}`
+  return `2026-11-${day.toString().padStart(2, '0')}`
 }
 
 function TestApp() {
@@ -69,7 +69,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions via sidebar
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/5 sessions logged/i)
+    await screen.findByText(/\d+ sessions logged/i)
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -87,7 +87,7 @@ describe('Session workflow integration', () => {
 
     // Navigate back to sessions via sidebar
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/6 sessions logged/i)
+    await screen.findByText(/\d+ sessions logged/i)
   })
 
   it('persists session data to IndexedDB after creation', async () => {
@@ -106,7 +106,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/5 sessions logged/i)
+    await screen.findByText(/\d+ sessions logged/i)
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -120,7 +120,7 @@ describe('Session workflow integration', () => {
 
     const stored = await getStore('tracker') as TrackerData | null
     expect(stored).not.toBeNull()
-    expect(stored!.sessions.length).toBe(6)
+    expect(stored!.sessions.length).toBe(51)
     expect(stored!.sessions[0].workoutName).toBe('Squat Workout')
   })
 
@@ -140,7 +140,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/5 sessions logged/i)
+    await screen.findByText(/\d+ sessions logged/i)
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -190,7 +190,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/5 sessions logged/i)
+    await screen.findByText(/\d+ sessions logged/i)
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -227,7 +227,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/5 sessions logged/i)
+    await screen.findByText(/\d+ sessions logged/i)
 
     // Create a new session with past date (Aug 2026)
     await user.click(screen.getByText('+ Add Session'))

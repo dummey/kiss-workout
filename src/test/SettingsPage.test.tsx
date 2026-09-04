@@ -74,7 +74,7 @@ describe('SettingsPage', () => {
 
     const stored = await getStore('tracker') as TrackerData | null
     expect(stored).not.toBeNull()
-    expect(stored!.sessions.length).toBe(5)
+    expect(stored!.sessions.length).toBe(50)
   })
 
   it('cancels load seed when not confirmed', async () => {
