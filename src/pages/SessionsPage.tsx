@@ -97,6 +97,19 @@ export default function SessionsPage() {
                   <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: 4 }}>{session.workoutName}</p>
                 </div>
               </div>
+              {session.notes && (
+                <p style={{ 
+                  color: 'var(--muted)', 
+                  fontSize: '0.78rem', 
+                  marginTop: 6,
+                  marginBottom: 6,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {session.notes.length > 60 ? session.notes.slice(0, 60) + '…' : session.notes}
+                </p>
+              )}
               <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>
                 {session.exercises.filter(ex => ex.weight || ex.reps).length} / {session.exercises.length} exercises logged
                 {session.elapsedTime ? ` • ${Math.floor(session.elapsedTime / 60)}m ${session.elapsedTime % 60}s` : ''}
