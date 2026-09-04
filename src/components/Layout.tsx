@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import logo from '../assets/logo.png'
 
 export default function Layout() {
   return (
@@ -9,7 +10,7 @@ export default function Layout() {
         padding: 24, display: 'flex', flexDirection: 'column', gap: 8
       }}>
         <div style={{ marginBottom: 32 }}>
-          <img src="/src/assets/logo.png" alt="KISS Workout Tracker" style={{ width: '100%', height: 'auto' }} />
+          <img src={logo} alt="KISS Workout Tracker" style={{ width: '100%', height: 'auto' }} />
           <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 4 }}>pre-alpha</p>
         </div>
 
