@@ -4,6 +4,7 @@ import { useTracker } from '../context'
 import Button from '../components/Button'
 import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
+import { useModal } from '../components/ModalProvider'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -12,6 +13,7 @@ const PAGE_SIZES = [12, 24, 48]
 
 export default function SessionsPage() {
   const { data, loading, addSession, deleteSession, importSession } = useTracker()
+  const { showModal } = useModal()
   const navigate = useNavigate()
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
