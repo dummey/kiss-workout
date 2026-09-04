@@ -248,6 +248,22 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     setData(emptyData)
   }
 
+  function importSession(session: Session, overwrite = false) {
+    if (!data) return false
+    const existingIdx = data.sessions.findIndex(s => s.date === session.date)
+    if (existingIdx >= 0 && !overwrite) {
+      return false
+    }
+    const newData = { ...data }
+    if (existingIdx >= 0) {
+      newData.sessions[existingIdx] = session
+    } else {
+      newData.sessions = [session, ...data.sessions]
+    }
+    saveData(newData)
+    return true
+  }
+
   function getPreviousPerformance(exId: string, currentDate: string): PreviousPerformance | null {
     let lastExercise: SessionExercise | null = null
     let lastExerciseDate = ''
@@ -310,7 +326,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     getPreviousPerformance,
     dateCompare,
     deleteAllData,
-    resetToSeedData
+    resetToSeedData,
+    importSession
   }), [data, loading])
 
   return (

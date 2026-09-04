@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
@@ -10,7 +10,7 @@ type SortDirection = 'desc' | 'asc'
 const PAGE_SIZES = [12, 24, 48]
 
 export default function SessionsPage() {
-  const { data, loading, addSession, deleteSession } = useTracker()
+  const { data, loading, addSession, deleteSession, importSession } = useTracker()
   const navigate = useNavigate()
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -19,6 +19,7 @@ export default function SessionsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!workout || !data?.workouts.some(w => w.name === workout)) {
@@ -61,6 +62,35 @@ export default function SessionsPage() {
     }
   }
 
+  function handleImportSession(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string
+        const session = JSON.parse(text) as Session
+        if (!session || typeof session !== 'object' || !session.date || !session.workoutName || !Array.isArray(session.exercises)) {
+          alert('Invalid session file: missing date, workoutName, or exercises array.')
+          return
+        }
+        const success = importSession(session, false)
+        if (!success) {
+          if (confirm(`A session on ${session.date} already exists. Overwrite it?`)) {
+            importSession(session, true)
+          }
+        } else {
+          alert('Session imported successfully!')
+        }
+      } catch (err) {
+        alert('Failed to import: ' + (err as Error).message)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -68,7 +98,20 @@ export default function SessionsPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Sessions</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{filteredSessions.length} sessions logged</p>
         </div>
-        <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Session</Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportSession}
+            style={{ display: 'none' }}
+            id="import-session-input"
+            ref={fileInputRef}
+          />
+          <label htmlFor="import-session-input" className="btn" style={{ cursor: 'pointer' }}>
+            Import Session
+          </label>
+          <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Session</Button>
+        </div>
       </div>
 
       <CalendarHeatmap sessions={data?.sessions || []} />

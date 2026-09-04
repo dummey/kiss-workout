@@ -95,10 +95,23 @@ export default function SessionDetailPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{session.date}</h1>
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{session.workoutName} — {session.exercises.length} exercises</p>
         </div>
-        <Button size="sm" danger onClick={() => {
-          if (date) deleteSession(date)
-          navigate('/sessions')
-        }}>Delete Session</Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button onClick={() => {
+            const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `session-${session.date}.json`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+          }}>Export</Button>
+          <Button danger onClick={() => {
+            if (date) deleteSession(date)
+            navigate('/sessions')
+          }}>Delete</Button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
