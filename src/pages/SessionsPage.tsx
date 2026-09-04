@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
+import CalendarHeatmap from '../components/CalendarHeatmap'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -55,6 +56,8 @@ export default function SessionsPage() {
         </div>
         <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Session</Button>
       </div>
+
+      <CalendarHeatmap sessions={data?.sessions || []} />
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <input
