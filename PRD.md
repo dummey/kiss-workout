@@ -34,9 +34,14 @@ sessions[]
 │   ├── muscles: string[]
 │   ├── setup: string
 │   ├── tier: string
+│   ├── superset: string
 │   ├── weight: string
 │   ├── reps: string
 │   ├── sets: number | null
+
+backup-meta (separate IndexedDB store)
+├── lastBackupDate: string | null (ISO date)
+├── sessionsSinceBackup: number
 ```
 
 ### Key Design Decisions
@@ -45,6 +50,7 @@ sessions[]
 - **Sessions reference exercise IDs**: Preserves full exercise metadata at time of logging
 - **Flat exercise library**: Exercises are managed independently of their assignment to workouts
 - **Progression tracking by exercise ID**: Survives exercise renames (history doesn't break)
+- **Backup metadata tracked separately**: `backup-meta` store tracks last backup date and session count for reminder system
 
 ---
 
@@ -66,6 +72,7 @@ sessions[]
 | Training heatmap | GitHub-style 365-day activity calendar |
 | Session stats | Total hours, volume, avg duration, current streak |
 | Import session | Upload JSON to import a single session (with duplicate-date handling) |
+| Backup reminder banner | Dismissible banner when backup is overdue (≥10 sessions or ≥14 days) |
 
 ### Session Detail Page (`/sessions/:date`)
 
@@ -113,10 +120,10 @@ sessions[]
 
 | Feature | Description |
 |---------|-------------|
-| App statistics | Count of exercises, workouts, and sessions |
+| App statistics | Count of exercises, workouts, sessions + backup status (days since last backup, sessions since backup) |
 | Export data | Download all IndexedDB data as JSON backup |
 | Import data | Upload JSON file to replace all data (validated before storing) |
-| Delete All Data | Permanently clears all data and resets to defaults (with confirmation) |
+| Delete All Data | Permanently clears all data and resets to defaults, including backup metadata (with confirmation) |
 | Load Seed Data | Replaces current data with test seed data (50 sessions, 27 exercises, 4 workouts) |
 
 ### Sidebar
@@ -124,6 +131,7 @@ sessions[]
 | Feature | Description |
 |---------|-------------|
 | Navigation | Sessions, Exercises, Workouts, Settings links |
+| Backup indicator | Red dot on Settings nav link when backup reminder is active |
 
 ---
 
@@ -143,6 +151,29 @@ sessions[]
 
 ---
 
+## Backup Reminder System
+
+### Triggers
+
+The reminder activates when ANY of the following are true:
+- ≥10 sessions logged without a backup
+- ≥14 days since last backup
+- No backup ever created and at least 1 session exists
+
+### UI Elements
+
+- **Banner**: Dismissible banner on Sessions page with message ("It's been X days since your last backup" or "You have X sessions without a backup"), Export button, and "Remind me later" button
+- **Nav indicator**: Red dot on Settings nav link when reminder is active
+
+### Data Flow
+
+- `incrementBackupCounter()` called after each `addSession()`
+- `recordBackup()` called after successful export (resets date and counter)
+- `dismissReminder()` resets session counter but preserves lastBackupDate (time-based trigger still works)
+- `deleteAllData()` clears `backup-meta` alongside tracker data
+
+---
+
 ## Technical Architecture
 
 ### Stack
@@ -150,7 +181,7 @@ sessions[]
 - **Framework**: React 19+ with TypeScript
 - **Build tool**: Vite
 - **Routing**: react-router-dom v7
-- **Storage**: IndexedDB (via custom `db.ts` wrapper)
+- **Storage**: IndexedDB (via custom `db.ts` wrapper) — two stores: `tracker` and `backup-meta`
 - **Body visualization**: `body-muscles` npm package
 - **Testing**: Vitest + @testing-library/react
 
@@ -160,18 +191,21 @@ sessions[]
 src/
 ├── components/
 │   ├── BodyMusclesChart.tsx    # Wrapper for body-muscles library
+│   ├── BackupReminderBanner.tsx # Dismissible backup reminder banner
 │   ├── Button.tsx              # Shared button (variants: primary/success, sizes: sm, danger)
 │   ├── CalendarHeatmap.tsx     # 365-day training activity heatmap
-│   ├── Layout.tsx              # Sidebar nav
+│   ├── Layout.tsx              # Sidebar nav with backup indicator
 │   ├── Modal.tsx               # Reusable modal (title, message, input, actions)
 │   ├── ModalProvider.tsx       # Context provider with promise-based showModal()
 │   ├── ProgressionInfo.tsx     # Last time + next progression step display
 │   └── SessionStats.tsx        # Session statistics (hours, volume, avg, streak)
+├── hooks/
+│   └── useBackupReminder.ts    # Backup metadata management and reminder logic
 ├── pages/
-│   ├── SessionsPage.tsx        # Session list, search, sort toggle, pagination, heatmap, stats
+│   ├── SessionsPage.tsx        # Session list, search, sort toggle, pagination, heatmap, stats, backup banner
 │   ├── SessionDetailPage.tsx   # Logging, timer, notes, exercise cards, export
 │   ├── ExercisesPage.tsx       # Exercise library CRUD
-│   ├── SettingsPage.tsx        # Stats, import/export, delete-all, load-seed
+│   ├── SettingsPage.tsx        # Stats, import/export, delete-all, load-seed, backup status
 │   └── WorkoutsPage.tsx        # Workout organization, clone, muscle map
 ├── context.tsx                  # Global state + IndexedDB operations
 ├── db.ts                        # IndexedDB low-level API
@@ -236,6 +270,11 @@ test/                            # Test setup
 - Displays "Last time" values and GZCL-based next progression step
 - Extracted from SessionDetailPage for reusability
 
+**BackupReminderBanner** (`src/components/BackupReminderBanner.tsx`)
+- Dismissible banner with dynamic message (days-since-backup or sessions-without-backup)
+- Export button triggers download and updates backup metadata
+- "Remind me later" resets session counter (time-based trigger still works)
+
 ---
 
 ## User Flows
@@ -277,7 +316,7 @@ test/                            # Test setup
 1. Go to Settings page
 2. Click "Export" to download JSON backup
 3. Click "Import" to restore from backup file (validated before storing)
-4. Click "Delete All" to reset to defaults
+4. Click "Delete All" to reset to defaults (clears backup metadata too)
 5. Click "Load Seed" to populate test data
 
 ### Single-Session Portability
@@ -285,6 +324,14 @@ test/                            # Test setup
 1. On Sessions page: click "Import Session" to upload a `session-{date}.json` file
 2. On Session Detail page: click "Export" to download that session as JSON
 3. Duplicate-date handling: modal prompts to overwrite or cancel
+
+### Backup Reminder
+
+1. System tracks sessions since last backup and days since last backup
+2. Banner appears on Sessions page when threshold exceeded (≥10 sessions or ≥14 days)
+3. Red dot on Settings nav link indicates active reminder
+4. Click "Export" in banner to download backup and clear reminder
+5. Click "Remind me later" to dismiss (resets session counter, time-based trigger still works)
 
 ---
 
@@ -346,4 +393,3 @@ Run: `npm test` (single run) or `npm run test:watch` (watch mode)
 - Session comparison
 - Body weight log
 - CSV export
-- Backup reminder
