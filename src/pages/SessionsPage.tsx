@@ -7,6 +7,8 @@ import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
 
+const PAGE_SIZES = [12, 24, 48]
+
 export default function SessionsPage() {
   const { data, loading, addSession, deleteSession } = useTracker()
   const navigate = useNavigate()
@@ -15,6 +17,8 @@ export default function SessionsPage() {
   const [workout, setWorkout] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
 
   useEffect(() => {
     if (!workout || !data?.workouts.some(w => w.name === workout)) {
@@ -30,14 +34,24 @@ export default function SessionsPage() {
           (session.notes && session.notes.toLowerCase().includes(searchQuery.toLowerCase()))
         )
       : (data?.sessions || [])
-
+    
     return sessions.sort((a, b) => {
       const cmp = a.date.localeCompare(b.date)
       return sortDirection === 'desc' ? -cmp : cmp
     })
   }, [data?.sessions, searchQuery, sortDirection])
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, sortDirection, pageSize])
+
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
+
+  const totalPages = Math.ceil(filteredSessions.length / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedSessions = filteredSessions.slice(startIndex, endIndex)
 
   function handleAdd() {
     const session = addSession(date, workout)
@@ -83,40 +97,90 @@ export default function SessionsPage() {
       {filteredSessions.length === 0 ? (
         <p style={{ color: 'var(--muted)' }}>No sessions found.</p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-          {filteredSessions.map(session => (
-            <div
-              key={session.date}
-              className="card"
-              style={{ cursor: 'pointer' }}
-              onClick={() => navigate(`/sessions/${session.date}`)}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <div>
-                  <strong style={{ fontSize: '1.1rem' }}>{session.date}</strong>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: 4 }}>{session.workoutName}</p>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {paginatedSessions.map(session => (
+              <div
+                key={session.date}
+                className="card"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/sessions/${session.date}`)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <div>
+                    <strong style={{ fontSize: '1.1rem' }}>{session.date}</strong>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: 4 }}>{session.workoutName}</p>
+                  </div>
                 </div>
-              </div>
-              {session.notes && (
-                <p style={{ 
-                  color: 'var(--muted)', 
-                  fontSize: '0.78rem', 
-                  marginTop: 6,
-                  marginBottom: 6,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {session.notes.length > 60 ? session.notes.slice(0, 60) + '…' : session.notes}
+                {session.notes && (
+                  <p style={{ 
+                    color: 'var(--muted)', 
+                    fontSize: '0.78rem', 
+                    marginTop: 6,
+                    marginBottom: 6,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {session.notes.length > 60 ? session.notes.slice(0, 60) + '…' : session.notes}
+                  </p>
+                )}
+                <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>
+                  {session.exercises.filter(ex => ex.weight || ex.reps).length} / {session.exercises.length} exercises logged
+                  {session.elapsedTime ? ` • ${Math.floor(session.elapsedTime / 60)}m ${session.elapsedTime % 60}s` : ''}
                 </p>
-              )}
-              <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>
-                {session.exercises.filter(ex => ex.weight || ex.reps).length} / {session.exercises.length} exercises logged
-                {session.elapsedTime ? ` • ${Math.floor(session.elapsedTime / 60)}m ${session.elapsedTime % 60}s` : ''}
-              </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination controls */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginTop: 24,
+            padding: '12px 0',
+            borderTop: '1px solid var(--border)'
+          }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ color: 'var(--muted)', fontSize: '0.8rem', marginRight: 8 }}>Per page:</span>
+              {PAGE_SIZES.map(size => (
+                <Button
+                  key={size}
+                  size="sm"
+                  variant={pageSize === size ? 'primary' : 'default'}
+                  onClick={() => setPageSize(size)}
+                  style={{ padding: '4px 10px' }}
+                >
+                  {size}
+                </Button>
+              ))}
             </div>
-          ))}
-        </div>
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
+                {startIndex + 1}–{Math.min(endIndex, filteredSessions.length)} of {filteredSessions.length}
+              </span>
+              <Button
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                ← Prev
+              </Button>
+              <span style={{ color: 'var(--muted)', fontSize: '0.8rem', minWidth: 60, textAlign: 'center' }}>
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next →
+              </Button>
+            </div>
+          </div>
+        </>
       )}
 
       {showAdd && (
