@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
 import CalendarHeatmap from '../components/CalendarHeatmap'
+import SessionStats from '../components/SessionStats'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -138,7 +139,14 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      <CalendarHeatmap sessions={data?.sessions || []} />
+      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+        <div style={{ flex: '1 1 60%', height: '100%' }}>
+          <CalendarHeatmap sessions={data?.sessions || []} />
+        </div>
+        <div style={{ flex: '1 1 40%' }}>
+          <SessionStats sessions={data?.sessions || []} />
+        </div>
+      </div>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <input

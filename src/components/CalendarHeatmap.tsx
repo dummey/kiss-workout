@@ -98,8 +98,8 @@ export default function CalendarHeatmap({ sessions }: CalendarHeatmapProps) {
       background: 'var(--surface)',
       borderRadius: 'var(--radius)',
       padding: 16,
-      marginBottom: 24,
-      position: 'relative'
+      position: 'relative',
+      height: '100%'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', fontWeight: 700 }}>
