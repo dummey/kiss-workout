@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, useMemo } from 'react'
+import React, { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react'
 import { getStore, setStore } from './db'
 import { SEED_DATA } from './data'
 import type { TrackerData, TrackerContextValue, Exercise, Session, SessionExercise, PreviousPerformance } from './types'
@@ -41,12 +41,12 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     await setStore('tracker', newData)
   }
 
-  async function incrementBackupCounter() {
+  const incrementBackupCounter = useCallback(async () => {
     const stored = await getStore('backup-meta') as { lastBackupDate: string | null; sessionsSinceBackup: number } | null
     const meta = stored || { lastBackupDate: null, sessionsSinceBackup: 0 }
     meta.sessionsSinceBackup++
     await setStore('backup-meta', meta)
-  }
+  }, [])
 
   function getExercise(id: string): Exercise | undefined {
     return data?.exercises.find(ex => ex.id === id)
@@ -115,14 +115,14 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }
 
-  function updateSessionTime(date: string, elapsedTime: number) {
+  const updateSessionTime = useCallback((date: string, elapsedTime: number) => {
     if (!data) return
     const newData = { ...data }
     const session = newData.sessions.find(s => s.date === date)
     if (!session) return
     session.elapsedTime = elapsedTime
     saveData(newData)
-  }
+  }, [data])
 
   function updateExercise(sessionDate: string, exIdx: number, field: 'weight' | 'reps' | 'sets', value: string) {
     if (!data) return

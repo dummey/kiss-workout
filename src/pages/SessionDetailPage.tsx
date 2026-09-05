@@ -25,13 +25,18 @@ export default function SessionDetailPage() {
   }, [])
 
   const lastTimeRef = useRef(0)
+  const updateSessionTimeRef = useRef(updateSessionTime)
+  useEffect(() => {
+    updateSessionTimeRef.current = updateSessionTime
+  }, [updateSessionTime])
+
   useEffect(() => {
     return () => {
       if (lastTimeRef.current > 0 && date) {
-        updateSessionTime(date, lastTimeRef.current)
+        updateSessionTimeRef.current(date, lastTimeRef.current)
       }
     }
-  }, [date, updateSessionTime])
+  }, [date])
 
   useEffect(() => {
     if (!isRunning || !date) return
@@ -41,11 +46,12 @@ export default function SessionDetailPage() {
       lastTimeRef.current = elapsed
       if (elapsed - lastSaveRef.current >= 5) {
         lastSaveRef.current = elapsed
-        updateSessionTime(date, elapsed)
+        updateSessionTimeRef.current(date, elapsed)
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [isRunning, date, updateSessionTime])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning, date])
 
   useEffect(() => {
     const existingSession = data?.sessions?.find(s => s.date === date)
