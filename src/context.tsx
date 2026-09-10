@@ -309,6 +309,31 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data])
 
+  const duplicateExerciseInSession = useCallback((sessionDate: string, exIdx: number) => {
+    if (!data) return
+    const session = data.sessions.find(s => s.date === sessionDate)
+    if (!session || !session.exercises[exIdx]) return
+
+    const original = session.exercises[exIdx]
+    const copy: SessionExercise = {
+      ...original,
+      id: `${original.id}-copy-${Date.now()}`,
+      name: `${original.name} (2)`,
+      weight: '',
+      reps: '',
+      sets: null
+    }
+
+    const newData = { ...data }
+    const target = newData.sessions.find(s => s.date === sessionDate)!
+    target.exercises = [
+      ...target.exercises.slice(0, exIdx + 1),
+      copy,
+      ...target.exercises.slice(exIdx + 1)
+    ]
+    saveData(newData)
+  }, [data])
+
   const removeExerciseFromSession = useCallback((sessionDate: string, exId: string) => {
     if (!data) return
     const session = data.sessions.find(s => s.date === sessionDate)
@@ -397,6 +422,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     importSession,
     addExerciseToSession,
     removeExerciseFromSession,
+    duplicateExerciseInSession,
     cloneWorkout,
     incrementBackupCounter
   }), [data, loading])

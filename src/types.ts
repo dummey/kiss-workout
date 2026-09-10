@@ -74,6 +74,7 @@ export interface TrackerContextValue {
   importSession: (session: Session, overwrite?: boolean) => boolean
   addExerciseToSession: (sessionDate: string, exId: string) => void
   removeExerciseFromSession: (sessionDate: string, exId: string) => void
+  duplicateExerciseInSession: (sessionDate: string, exIdx: number) => void
   cloneWorkout: (sourceName: string, newName: string) => void
   incrementBackupCounter: () => Promise<void>
 }

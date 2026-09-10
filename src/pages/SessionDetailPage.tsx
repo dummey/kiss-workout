@@ -8,7 +8,7 @@ import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise, addExerciseToSession, removeExerciseFromSession } = useTracker()
+  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession } = useTracker()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
@@ -191,16 +191,21 @@ export default function SessionDetailPage() {
                         <div className="card-name">{ex.name}</div>
                         {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                       </div>
-                      <Button size="sm" onClick={() => {
-                        if (ex.tier === 'T1') {
-                          const t1Count = session?.exercises.filter(e => e.tier === 'T1').length || 0
-                          if (t1Count <= 1) {
-                            setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier, canRemove: false })
-                            return
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
+                        <Button size="sm" onClick={() => {
+                          if (date) duplicateExerciseInSession(date, ex.idx)
+                        }}>⧉</Button>
+                        <Button size="sm" onClick={() => {
+                          if (ex.tier === 'T1') {
+                            const t1Count = session?.exercises.filter(e => e.tier === 'T1').length || 0
+                            if (t1Count <= 1) {
+                              setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier, canRemove: false })
+                              return
+                            }
                           }
-                        }
-                        setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier || '', canRemove: true })
-                      }}>×</Button>
+                          setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier || '', canRemove: true })
+                        }}>×</Button>
+                      </div>
                     </div>
                     <div className="card-tags">
                       {ex.setup && <span className="tag setup">{ex.setup}</span>}
