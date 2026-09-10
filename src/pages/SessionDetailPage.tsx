@@ -8,7 +8,13 @@ import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise } = useTracker()
+  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise, addExerciseToSession, removeExerciseFromSession } = useTracker()
+  const [showAddExercise, setShowAddExercise] = useState(false)
+  const [addExerciseSearch, setAddExerciseSearch] = useState('')
+  const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
+  useEffect(() => {
+    if (showAddExercise) setAddExerciseSearch('')
+  }, [showAddExercise])
   const [notes, setNotes] = useState('')
   const [elapsedTime, setElapsedTime] = useState(0)
   const session = data?.sessions?.find(s => s.date === date)
@@ -102,6 +108,7 @@ export default function SessionDetailPage() {
           <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{session.workoutName} — {session.exercises.length} exercises</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <Button onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
           <Button onClick={() => {
             const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' })
             const url = URL.createObjectURL(blob)
@@ -179,9 +186,21 @@ export default function SessionDetailPage() {
 
                 return (
                   <div key={ex.id || ex.idx} className={'card' + (ex.tier === 'T1' ? ' t1-highlight' : '')}>
-                    <div className="card-head">
-                      <div className="card-name">{ex.name}</div>
-                      {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
+                    <div className="card-head" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="card-name">{ex.name}</div>
+                        {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
+                      </div>
+                      <Button size="sm" onClick={() => {
+                        if (ex.tier === 'T1') {
+                          const t1Count = session?.exercises.filter(e => e.tier === 'T1').length || 0
+                          if (t1Count <= 1) {
+                            setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier, canRemove: false })
+                            return
+                          }
+                        }
+                        setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier || '', canRemove: true })
+                      }}>×</Button>
                     </div>
                     <div className="card-tags">
                       {ex.setup && <span className="tag setup">{ex.setup}</span>}
@@ -253,6 +272,79 @@ export default function SessionDetailPage() {
           </div>
         )
       })}
+      {showAddExercise && (
+        <div className="modal-overlay show" onClick={() => setShowAddExercise(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Add Exercise</h2>
+            <p className="modal-sub">Select an exercise from the library to add to this session.</p>
+            <input
+              type="text"
+              placeholder="Search exercises..."
+              value={addExerciseSearch}
+              onChange={e => setAddExerciseSearch(e.target.value)}
+              autoFocus
+              style={{
+                width: '100%', padding: '10px 14px', background: 'var(--surface2)',
+                border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8,
+                fontSize: '0.9rem', marginBottom: 16, boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              {data?.exercises
+                .filter(ex => !session?.exercises.some(se => se.id === ex.id))
+                .filter(ex => addExerciseSearch.trim() === '' ||
+                  ex.name.toLowerCase().includes(addExerciseSearch.toLowerCase()) ||
+                  ex.muscles?.some(m => m.toLowerCase().includes(addExerciseSearch.toLowerCase()))
+                )
+                .map(ex => (
+                  <div
+                    key={ex.id}
+                    className="card"
+                    style={{ marginBottom: 8, cursor: 'pointer' }}
+                    onClick={() => {
+                      if (date) addExerciseToSession(date, ex.id)
+                      setShowAddExercise(false)
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{ex.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      {ex.tier} {ex.muscles.length > 0 && `• ${ex.muscles.join(', ')}`}
+                    </div>
+                  </div>
+                ))}
+            </div>
+            <div className="modal-actions">
+              <Button onClick={() => setShowAddExercise(false)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {removeConfirm && (
+        <div className="modal-overlay show" onClick={() => setRemoveConfirm(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Remove Exercise</h2>
+            <p className="modal-sub">
+              {!removeConfirm.canRemove
+                ? `${removeConfirm.name} is your T1 main lift. It can't be removed from the session.`
+                : `Remove ${removeConfirm.name} from this session?`}
+            </p>
+            <div className="modal-actions">
+              <Button onClick={() => setRemoveConfirm(null)}>Cancel</Button>
+              {removeConfirm.canRemove && date && (
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    removeExerciseFromSession(date, removeConfirm.exId)
+                    setRemoveConfirm(null)
+                  }}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

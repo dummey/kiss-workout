@@ -283,6 +283,54 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     return true
   }
 
+  const addExerciseToSession = useCallback((sessionDate: string, exId: string) => {
+    if (!data) return
+    const session = data.sessions.find(s => s.date === sessionDate)
+    if (!session) return
+    const ex = getExercise(exId)
+    if (!ex) return
+    if (session.exercises.some(se => se.id === exId)) return
+
+    const newEx: SessionExercise = {
+      id: ex.id,
+      name: ex.name,
+      muscles: ex.muscles || [],
+      setup: ex.setup || '',
+      tier: ex.tier || '',
+      superset: '',
+      weight: '',
+      reps: '',
+      sets: null
+    }
+
+    const newData = { ...data }
+    const target = newData.sessions.find(s => s.date === sessionDate)!
+    target.exercises = [...target.exercises, newEx]
+    saveData(newData)
+  }, [data])
+
+  const removeExerciseFromSession = useCallback((sessionDate: string, exId: string) => {
+    if (!data) return
+    const session = data.sessions.find(s => s.date === sessionDate)
+    if (!session) return
+    
+    const ex = session.exercises.find(e => e.id === exId)
+    if (!ex) return
+    
+    // Prevent removing the last T1 exercise
+    if (ex.tier === 'T1') {
+      const t1Count = session.exercises.filter(e => e.tier === 'T1').length
+      if (t1Count <= 1) {
+        return // Can't remove last T1
+      }
+    }
+    
+    const newData = { ...data }
+    const target = newData.sessions.find(s => s.date === sessionDate)!
+    target.exercises = target.exercises.filter(e => e.id !== exId)
+    saveData(newData)
+  }, [data])
+
   function getPreviousPerformance(exId: string, currentDate: string): PreviousPerformance | null {
     let lastExercise: SessionExercise | null = null
     let lastExerciseDate = ''
@@ -347,6 +395,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     deleteAllData,
     resetToSeedData,
     importSession,
+    addExerciseToSession,
+    removeExerciseFromSession,
     cloneWorkout,
     incrementBackupCounter
   }), [data, loading])
