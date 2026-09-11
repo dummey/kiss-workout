@@ -132,7 +132,7 @@ describe('Session workflow integration', () => {
 
     const stored = await getStore('tracker') as TrackerData | null
     expect(stored).not.toBeNull()
-    expect(stored!.sessions.length).toBe(51)
+    expect(stored!.sessions.length).toBe(52)
     expect(stored!.sessions[0].workoutName).toBe('Squat Workout')
   })
 

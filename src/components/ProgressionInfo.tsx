@@ -15,25 +15,25 @@ function parseNumber(value: string): number | null {
 
 function getNextProgression(tier: string, prevInfo: PreviousPerformance[]): string {
   if (tier === 'T1') {
-    if (prevInfo.length > 0) {
-      const first = prevInfo[0]
-      const prevReps = parseNumber(first.reps)
-      const prevSets = first.sets
-      if (prevSets && prevReps) {
-        return `Try ${first.weight} x ${prevReps + 1} (${prevSets}) or add weight`
-      }
-    }
-    return 'Work up to 2-3RM @ 85-100% Goal Weight'
+    // if (prevInfo.length > 0) {
+    //   const first = prevInfo[0]
+    //   const prevReps = parseNumber(first.reps)
+    //   const prevSets = first.sets
+    //   if (prevSets && prevReps) {
+    //     return `Try ${first.weight} x ${prevReps + 1} (${prevSets}) or add weight`
+    //   }
+    // }
+    return 'Add 5lbs (bench) or 10lbs (squat and deadlift). \n If fail, 5x3 > 6x2 > 10x1 > restart at 85% of 1rep.'
   } else if (tier === 'T2') {
-    if (prevInfo.length > 0 && parseNumber(prevInfo[0].reps) && parseNumber(prevInfo[0].reps)! >= 10) {
-      return 'Add weight, drop to 8 reps'
-    }
-    return 'Target: 8-10 reps @ 65-85% of T1'
+    // if (prevInfo.length > 0 && parseNumber(prevInfo[0].reps) && parseNumber(prevInfo[0].reps)! >= 10) {
+    //   return 'Add weight, drop to 8 reps'
+    // }
+    return 'Add weight. If fail, 3x10 > 3x8 > 3x6 > restart, +5-10lbs from last 3x10.'
   } else if (tier === 'T3') {
-    if (prevInfo.length > 0 && parseNumber(prevInfo[0].reps) && parseNumber(prevInfo[0].reps)! >= 15) {
-      return 'Add weight, drop to 10 reps'
-    }
-    return 'Target: 10-15+ reps @ ≤65%'
+    // if (prevInfo.length > 0 && parseNumber(prevInfo[0].reps) && parseNumber(prevInfo[0].reps)! >= 15) {
+    //   return 'Add weight, drop to 10 reps'
+    // }
+    return '3x10-15, AMRAP on last set, add weight when >25 reps.'
   }
   return 'Fill in your target weight, reps, and sets'
 }

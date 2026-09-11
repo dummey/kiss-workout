@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Button from '../components/Button'
 import ProgressionInfo from '../components/ProgressionInfo'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -12,6 +12,77 @@ export default function SessionDetailPage() {
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
+  const [restTime, setRestTime] = useState(0)
+  const [restIsRunning, setRestIsRunning] = useState(false)
+  const restStartTimeRef = useRef(Date.now())
+  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const restTierRef = useRef('T1')
+
+  const tierRestDurations: Record<string, number> = {
+    T1: 240,  // 4 minutes
+    T2: 150,  // 2.5 minutes
+    T3: 75    // 75 seconds
+  }
+
+  useEffect(() => {
+    return () => {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (restIsRunning) {
+      restIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - restStartTimeRef.current) / 1000)
+        const duration = tierRestDurations[restTierRef.current] || 120
+        const remaining = duration - elapsed
+        if (remaining <= 0) {
+          setRestTime(0)
+          setRestIsRunning(false)
+          if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+          navigator.vibrate?.([200, 100, 200])
+        } else {
+          setRestTime(remaining)
+        }
+      }, 1000)
+    } else {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+    }
+    return () => {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+    }
+  }, [restIsRunning])
+
+  const startRestTimer = useCallback((tier: string) => {
+    const duration = tierRestDurations[tier] || 120
+    restTierRef.current = tier
+    setRestTime(duration)
+    restStartTimeRef.current = Date.now()
+    setRestIsRunning(true)
+  }, [])
+
+  const pauseRestTimer = useCallback(() => {
+    setRestIsRunning(false)
+  }, [])
+
+  const resumeRestTimer = useCallback(() => {
+    if (restTime > 0) {
+      const duration = tierRestDurations[restTierRef.current] || 120
+      restStartTimeRef.current = Date.now() - (duration - restTime) * 1000
+      setRestIsRunning(true)
+    }
+  }, [restTime])
+
+  const resetRestTimer = useCallback(() => {
+    setRestIsRunning(false)
+    setRestTime(tierRestDurations[restTierRef.current] || 120)
+  }, [])
+
+  const skipRestTimer = useCallback(() => {
+    setRestIsRunning(false)
+    setRestTime(0)
+  }, [])
+
   useEffect(() => {
     if (showAddExercise) setAddExerciseSearch('')
   }, [showAddExercise])
@@ -99,6 +170,7 @@ export default function SessionDetailPage() {
 
   const tierOrder = ['T1', 'T2', 'T3', '']
   const tierLabels: Record<string, string> = { T1: 'T1 — Main Lift', T2: 'T2 — Primary Accessory', T3: 'T3 — Secondary', '': 'Other' }
+  const tierSubtitles: Record<string, string> = { T1: '3–5 minutes between sets', T2: '2–3 minutes between sets', T3: '60–90 seconds between sets', '': '' }
 
   return (
     <div>
@@ -127,10 +199,10 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div style={{ flex: '0 0 400px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', padding: '8px 0' }}>
+        <div style={{ flex: '0 0 280px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
           <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
-            Time
+            Session Time
           </h3>
           <div style={{ fontSize: '3.6rem', fontWeight: 800, fontFamily: 'monospace', color: isRunning ? 'var(--t3)' : 'var(--muted)' }}>
             {elapsedTime >= 3600 && <span>{Math.floor(elapsedTime / 3600)}:</span>}
@@ -144,6 +216,25 @@ export default function SessionDetailPage() {
             <Button size="sm" danger onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); setIsRunning(false) }}>
               Reset
             </Button>
+          </div>
+        </div>
+
+        <div style={{ flex: '0 0 280px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
+          <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
+            Rest Time
+          </h3>
+          <div style={{ fontSize: '3.6rem', fontWeight: 800, fontFamily: 'monospace', color: restIsRunning ? 'var(--t3)' : 'var(--muted)' }}>
+            {restTime >= 60 && <span>{Math.floor(restTime / 60)}:</span>}
+            {(restTime % 60).toString().padStart(2, '0')}
+          </div>
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 8 }}>
+            {restIsRunning ? (
+              <Button size="sm" onClick={pauseRestTimer}>Pause</Button>
+            ) : (
+              <Button size="sm" onClick={resumeRestTimer}>Resume</Button>
+            )}
+            <Button size="sm" danger onClick={resetRestTimer}>Reset</Button>
+            <Button size="sm" onClick={skipRestTimer}>Skip</Button>
           </div>
         </div>
 
@@ -177,9 +268,14 @@ export default function SessionDetailPage() {
         if (tierExs.length === 0) return null
         return (
           <div key={tier} style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 12, fontWeight: 700 }}>
+            <h3 style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 4, fontWeight: 700 }}>
               {tierLabels[tier]}
             </h3>
+            {tierSubtitles[tier] && (
+              <p style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: 12 }}>
+                {tierSubtitles[tier]}
+              </p>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
               {tierExs.map((ex) => {
                 const prevInfo = getPreviousPerformances(ex.id, session.date)
@@ -192,10 +288,10 @@ export default function SessionDetailPage() {
                         {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                       </div>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
-                        <Button size="sm" onClick={() => {
+                        <Button size="sm" title="Duplicate exercise" onClick={() => {
                           if (date) duplicateExerciseInSession(date, ex.idx)
                         }}>⧉</Button>
-                        <Button size="sm" onClick={() => {
+                        <Button size="sm" danger title="Remove exercise" onClick={() => {
                           if (ex.tier === 'T1') {
                             const t1Count = session?.exercises.filter(e => e.tier === 'T1').length || 0
                             if (t1Count <= 1) {
@@ -244,7 +340,13 @@ export default function SessionDetailPage() {
                             className="edit-input"
                             placeholder="Sets"
                             value={ex.sets ?? ''}
-                            onChange={e => date && updateExercise(date, ex.idx, 'sets', e.target.value)}
+                            onChange={e => {
+                              if (date) updateExercise(date, ex.idx, 'sets', e.target.value)
+                              const newVal = parseInt(e.target.value, 10)
+                              if (!isNaN(newVal) && newVal > 0) {
+                                startRestTimer(ex.tier || 'T1')
+                              }
+                            }}
                             style={{ width: '100%', boxSizing: 'border-box' }}
                           />
                           <Button
@@ -262,6 +364,7 @@ export default function SessionDetailPage() {
                             onClick={() => {
                               const current = ex.sets ?? 0
                               if (date) updateExercise(date, ex.idx, 'sets', (current + 1).toString())
+                              startRestTimer(ex.tier || 'T1')
                             }}
                           >
                             +

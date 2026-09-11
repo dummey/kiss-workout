@@ -345,6 +345,20 @@ export const SEED_DATA: TrackerData = {
     {
       "name": "Unscheduled",
       "exercises": []
+    },
+    {
+      "name": "Bench Workout (Volume)",
+      "exercises": [
+        "barbell-bench",
+        "bulgarian-split-squats",
+        "nordics",
+        "glute-kickbacks",
+        "tib-raises",
+        "calf-raises",
+        "cable-rotations",
+        "cable-leg-curls",
+        "cable-hip-flexion-leg-extension"
+      ]
     }
   ],
   "sessions": [
@@ -352,7 +366,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-10-18",
       "workoutName": "Bench Workout",
       "elapsedTime": 4636,
-      "notes": "Shoulder was slightly tweaked. Went easy on accessories.",
+      "notes": "Superset day: Bench 185\u00d75 then Bench 135\u00d710 for volume.",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -480,6 +494,22 @@ export const SEED_DATA: TrackerData = {
           "weight": "35",
           "reps": "14",
           "sets": 3
+        },
+        {
+          "id": "barbell-bench-copy-001",
+          "originalId": "barbell-bench",
+          "name": "Barbell Bench (2)",
+          "muscles": [
+            "Chest",
+            "Front Delts",
+            "Triceps"
+          ],
+          "setup": "Spotter at 8/-3",
+          "tier": "T1",
+          "superset": "",
+          "weight": "135",
+          "reps": "10",
+          "sets": 3
         }
       ]
     },
@@ -487,7 +517,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-10-17",
       "workoutName": "Squat Workout",
       "elapsedTime": 5080,
-      "notes": "Felt strong today. Squat is moving well.",
+      "notes": "Added Face Pulls for shoulder health \u2014 not in regular template.",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -634,6 +664,21 @@ export const SEED_DATA: TrackerData = {
           "weight": "",
           "reps": "",
           "sets": null
+        },
+        {
+          "id": "face-pulls",
+          "name": "Face Pulls",
+          "muscles": [
+            "Rear Delts",
+            "Rhomboids",
+            "External Rotators"
+          ],
+          "setup": "Cable",
+          "tier": "T3",
+          "superset": "",
+          "weight": "30",
+          "reps": "15",
+          "sets": 4
         }
       ]
     },
@@ -641,7 +686,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-10-14",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 2874,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting. Only did main lift and accessories.",
       "exercises": [
         {
           "id": "deadlift",
@@ -692,80 +737,6 @@ export const SEED_DATA: TrackerData = {
           "weight": "60",
           "reps": "10",
           "sets": 3
-        },
-        {
-          "id": "db-curls",
-          "name": "DB Curls",
-          "muscles": [
-            "Biceps",
-            "Brachialis",
-            "Forearms"
-          ],
-          "setup": "DB",
-          "tier": "T3",
-          "superset": "",
-          "weight": "40",
-          "reps": "15",
-          "sets": 4
-        },
-        {
-          "id": "lat-raises",
-          "name": "Lat Raises",
-          "muscles": [
-            "Side Delts"
-          ],
-          "setup": "Cable",
-          "tier": "T3",
-          "superset": "",
-          "weight": "30",
-          "reps": "10",
-          "sets": 4
-        },
-        {
-          "id": "ab-wheel",
-          "name": "Ab Wheel",
-          "muscles": [
-            "Rectus Abdominis",
-            "Obliques",
-            "Transversus Abdominis",
-            "Hip Flexors"
-          ],
-          "setup": "",
-          "tier": "T3",
-          "superset": "",
-          "weight": "",
-          "reps": "",
-          "sets": null
-        },
-        {
-          "id": "triceps-pull-down",
-          "name": "Triceps Pull Down",
-          "muscles": [
-            "Triceps"
-          ],
-          "setup": "Cable",
-          "tier": "T3",
-          "superset": "",
-          "weight": "",
-          "reps": "",
-          "sets": null
-        },
-        {
-          "id": "farmer-carry",
-          "name": "Farmer Carry",
-          "muscles": [
-            "Forearms",
-            "Traps",
-            "Core",
-            "Quads",
-            "Grip"
-          ],
-          "setup": "DB",
-          "tier": "T3",
-          "superset": "",
-          "weight": "",
-          "reps": "",
-          "sets": null
         }
       ]
     },
@@ -773,7 +744,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-10-13",
       "workoutName": "Bench Workout",
       "elapsedTime": 4556,
-      "notes": "Only did main lift — no accessories today",
+      "notes": "T1 sets: 185\u00d75, 185\u00d73, 185\u00d71. Building volume with same weight.",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -901,6 +872,142 @@ export const SEED_DATA: TrackerData = {
           "weight": "35",
           "reps": "13",
           "sets": 3
+        },
+        {
+          "id": "barbell-bench-copy-002",
+          "originalId": "barbell-bench",
+          "name": "Barbell Bench (2)",
+          "muscles": [
+            "Chest",
+            "Front Delts",
+            "Triceps"
+          ],
+          "setup": "Spotter at 8/-3",
+          "tier": "T1",
+          "superset": "",
+          "weight": "185",
+          "reps": "3",
+          "sets": 3
+        },
+        {
+          "id": "barbell-bench-copy-003",
+          "originalId": "barbell-bench",
+          "name": "Barbell Bench (3)",
+          "muscles": [
+            "Chest",
+            "Front Delts",
+            "Triceps"
+          ],
+          "setup": "Spotter at 8/-3",
+          "tier": "T1",
+          "superset": "",
+          "weight": "185",
+          "reps": "1",
+          "sets": 3
+        }
+      ]
+    },
+    {
+      "date": "2026-10-11",
+      "workoutName": "Squat Workout",
+      "elapsedTime": 4200,
+      "notes": "Regular squat day. This session is #10 without backup \u2014 reminder should show.",
+      "exercises": [
+        {
+          "id": "barbell-back-squat",
+          "name": "Barbell Back Squat",
+          "muscles": [
+            "Quads",
+            "Glutes",
+            "Hamstrings",
+            "Core",
+            "Erector Spinae"
+          ],
+          "setup": "Spotter at 18/2",
+          "tier": "T1",
+          "superset": "",
+          "weight": "235",
+          "reps": "5",
+          "sets": 4
+        },
+        {
+          "id": "alt-belt-squat",
+          "name": "Alt: Belt Squat",
+          "muscles": [
+            "Quads",
+            "Glutes",
+            "Adductors"
+          ],
+          "setup": "",
+          "tier": "T2",
+          "superset": "",
+          "weight": "195",
+          "reps": "8",
+          "sets": 3
+        },
+        {
+          "id": "db-bench",
+          "name": "DB Bench",
+          "muscles": [
+            "Chest",
+            "Front Delts",
+            "Triceps"
+          ],
+          "setup": "DB, Bench",
+          "tier": "T2",
+          "superset": "",
+          "weight": "95",
+          "reps": "8",
+          "sets": 3
+        },
+        {
+          "id": "single-leg-rdl",
+          "name": "Single Leg RDL",
+          "muscles": [
+            "Hamstrings",
+            "Glutes",
+            "Adductors",
+            "Core"
+          ],
+          "setup": "DB",
+          "tier": "T2",
+          "superset": "",
+          "weight": "55",
+          "reps": "8",
+          "sets": 3
+        },
+        {
+          "id": "lat-pulldown",
+          "name": "Lat Pulldown",
+          "muscles": [
+            "Lats",
+            "Biceps",
+            "Rear Delts",
+            "Rhomboids"
+          ],
+          "setup": "Cable",
+          "tier": "T3",
+          "superset": "",
+          "weight": "140",
+          "reps": "10",
+          "sets": 3
+        },
+        {
+          "id": "pallof-press",
+          "name": "Pallof Press",
+          "muscles": [
+            "Obliques",
+            "Transversus Abdominis",
+            "Rectus Abdominis",
+            "Glutes",
+            "Scapular Stabilizers"
+          ],
+          "setup": "Cable",
+          "tier": "T3",
+          "superset": "",
+          "weight": "35",
+          "reps": "10",
+          "sets": 3
         }
       ]
     },
@@ -908,7 +1015,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-10-10",
       "workoutName": "Squat Workout",
       "elapsedTime": 3020,
-      "notes": "Week 12 deload — reduced volume, focusing on recovery.",
+      "notes": "Week 12 deload \u2014 reduced volume, focusing on recovery.",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -1194,7 +1301,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-10-06",
       "workoutName": "Bench Workout",
       "elapsedTime": 3582,
-      "notes": "Week 12 deload — reduced volume, focusing on recovery.",
+      "notes": "Week 12 deload \u2014 reduced volume, focusing on recovery.",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -1904,7 +2011,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-27",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 4965,
-      "notes": "Only did main lift — no accessories today.",
+      "notes": "Only did main lift \u2014 no accessories today.",
       "exercises": [
         {
           "id": "deadlift",
@@ -2036,7 +2143,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-26",
       "workoutName": "Bench Workout",
       "elapsedTime": 2891,
-      "notes": "Skipped some T3s — ran out of time.",
+      "notes": "Skipped some T3s \u2014 ran out of time.",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -2325,7 +2432,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-21",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 3746,
-      "notes": "Skipped some T3s — ran out of time",
+      "notes": "Skipped some T3s \u2014 ran out of time",
       "exercises": [
         {
           "id": "deadlift",
@@ -2878,7 +2985,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-16",
       "workoutName": "Bench Workout",
       "elapsedTime": 2708,
-      "notes": "Cut session short — gym was closing",
+      "notes": "Cut session short \u2014 gym was closing",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -3167,7 +3274,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-11",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 3346,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting",
       "exercises": [
         {
           "id": "deadlift",
@@ -3299,7 +3406,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-08",
       "workoutName": "Bench Workout",
       "elapsedTime": 4737,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -3434,7 +3541,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-06",
       "workoutName": "Squat Workout",
       "elapsedTime": 3817,
-      "notes": "Skipped some T3s — ran out of time",
+      "notes": "Skipped some T3s \u2014 ran out of time",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -3855,7 +3962,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-09-01",
       "workoutName": "Squat Workout",
       "elapsedTime": 4723,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -4141,7 +4248,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-26",
       "workoutName": "Bench Workout",
       "elapsedTime": 4375,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -4430,7 +4537,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-23",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 4668,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting",
       "exercises": [
         {
           "id": "deadlift",
@@ -4851,7 +4958,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-16",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 4132,
-      "notes": "Cut session short — gym was closing",
+      "notes": "Cut session short \u2014 gym was closing",
       "exercises": [
         {
           "id": "deadlift",
@@ -4983,7 +5090,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-13",
       "workoutName": "Bench Workout",
       "elapsedTime": 4812,
-      "notes": "Skipped T3s — early meeting",
+      "notes": "Skipped T3s \u2014 early meeting",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -5118,7 +5225,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-12",
       "workoutName": "Squat Workout",
       "elapsedTime": 4938,
-      "notes": "Cut session short — gym was closing",
+      "notes": "Cut session short \u2014 gym was closing",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -5539,7 +5646,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-06",
       "workoutName": "Squat Workout",
       "elapsedTime": 5090,
-      "notes": "Skipped some T3s — ran out of time",
+      "notes": "Skipped some T3s \u2014 ran out of time",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -5825,7 +5932,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-08-03",
       "workoutName": "Bench Workout",
       "elapsedTime": 4971,
-      "notes": "Only did main lift — no accessories today",
+      "notes": "Only did main lift \u2014 no accessories today",
       "exercises": [
         {
           "id": "barbell-bench",
@@ -6114,7 +6221,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-07-30",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 5022,
-      "notes": "Cut session short — gym was closing",
+      "notes": "Cut session short \u2014 gym was closing",
       "exercises": [
         {
           "id": "deadlift",
@@ -6535,7 +6642,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-07-23",
       "workoutName": "Deadlift Workout",
       "elapsedTime": 3329,
-      "notes": "Skipped some T3s — ran out of time",
+      "notes": "Skipped some T3s \u2014 ran out of time",
       "exercises": [
         {
           "id": "deadlift",
@@ -6802,7 +6909,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-07-18",
       "workoutName": "Squat Workout",
       "elapsedTime": 3623,
-      "notes": "Only did main lift — no accessories today",
+      "notes": "Only did main lift \u2014 no accessories today",
       "exercises": [
         {
           "id": "barbell-back-squat",
@@ -7088,7 +7195,7 @@ export const SEED_DATA: TrackerData = {
       "date": "2026-07-15",
       "workoutName": "Bench Workout",
       "elapsedTime": 3706,
-      "notes": "Cut session short — gym was closing",
+      "notes": "Cut session short \u2014 gym was closing",
       "exercises": [
         {
           "id": "barbell-bench",
