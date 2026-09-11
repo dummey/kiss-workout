@@ -76,5 +76,4 @@ export interface TrackerContextValue {
   removeExerciseFromSession: (sessionDate: string, exId: string) => void
   duplicateExerciseInSession: (sessionDate: string, exIdx: number) => void
   cloneWorkout: (sourceName: string, newName: string) => void
-  incrementBackupCounter: () => Promise<void>
 }

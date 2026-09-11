@@ -1,5 +1,5 @@
 import React from 'react'
-import { useBackupReminder } from '../hooks/useBackupReminder'
+import { useBackup } from '../context/BackupContext'
 import Button from './Button'
 
 interface BackupReminderBannerProps {
@@ -7,7 +7,7 @@ interface BackupReminderBannerProps {
 }
 
 export default function BackupReminderBanner({ onExport }: BackupReminderBannerProps) {
-  const { shouldShowReminder, dismissReminder, meta, recordBackup } = useBackupReminder()
+  const { shouldShowReminder, dismissReminder, meta, recordBackup } = useBackup()
 
   if (!shouldShowReminder) return null
 

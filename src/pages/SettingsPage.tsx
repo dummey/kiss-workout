@@ -3,13 +3,13 @@ import { useTracker } from '../context'
 import { getStore, setStore } from '../db'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
-import { useBackupReminder } from '../hooks/useBackupReminder'
+import { useBackup } from '../context/BackupContext'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
   const { data, deleteAllData, resetToSeedData } = useTracker()
   const { showModal } = useModal()
-  const { meta, recordBackup } = useBackupReminder()
+  const { meta, recordBackup } = useBackup()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)

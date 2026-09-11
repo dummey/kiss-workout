@@ -7,7 +7,8 @@ import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal } from '../components/ModalProvider'
-import { useBackupReminder } from '../hooks/useBackupReminder'
+import { useBackup } from '../context/BackupContext'
+import { usePagination } from '../hooks/usePagination'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -17,15 +18,13 @@ const PAGE_SIZES = [12, 24, 48]
 export default function SessionsPage() {
   const { data, loading, addSession, deleteSession, importSession } = useTracker()
   const { showModal } = useModal()
-  const { recordBackup } = useBackupReminder()
+  const { recordBackup } = useBackup()
   const navigate = useNavigate()
   const [showAdd, setShowAdd] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [workout, setWorkout] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(12)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -37,28 +36,36 @@ export default function SessionsPage() {
   const filteredSessions = useMemo(() => {
     const sessions = searchQuery.trim()
       ? (data?.sessions || []).filter(session =>
-        session.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.workoutName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (session.notes && session.notes.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
+          session.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          session.workoutName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (session.notes && session.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
       : (data?.sessions || [])
-
+    
     return sessions.sort((a, b) => {
       const cmp = a.date.localeCompare(b.date)
       return sortDirection === 'desc' ? -cmp : cmp
     })
   }, [data?.sessions, searchQuery, sortDirection])
 
-  // Reset to page 1 when filters change
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    startIndex,
+    endIndex,
+    setPageSize,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination({ totalItems: filteredSessions.length })
+
   useEffect(() => {
-    setCurrentPage(1)
-  }, [searchQuery, sortDirection, pageSize])
+    goToPage(1)
+  }, [searchQuery, sortDirection, pageSize, goToPage])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
-  const totalPages = Math.ceil(filteredSessions.length / pageSize)
-  const startIndex = (currentPage - 1) * pageSize
-  const endIndex = startIndex + pageSize
   const paginatedSessions = filteredSessions.slice(startIndex, endIndex)
 
   function handleAdd() {
@@ -146,7 +153,15 @@ export default function SessionsPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-              <BackupReminderBanner onExport={() => {
+        <div style={{ flex: '1 1 60%', height: '100%' }}>
+          <CalendarHeatmap sessions={data?.sessions || []} />
+        </div>
+        <div style={{ flex: '1 1 40%' }}>
+          <SessionStats sessions={data?.sessions || []} />
+        </div>
+      </div>
+
+      <BackupReminderBanner onExport={() => {
         getStore('tracker').then((data) => {
           const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
           const url = URL.createObjectURL(blob)
@@ -160,18 +175,8 @@ export default function SessionsPage() {
           recordBackup()
         })
       }} />
-      </div>
-      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-        <div style={{ flex: '1 1 60%', height: '100%' }}>
-          <CalendarHeatmap sessions={data?.sessions || []} />
-        </div>
-        <div style={{ flex: '1 1 40%' }}>
-          <SessionStats sessions={data?.sessions || []} />
-        </div>
-      </div>
                 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-
         <input
           type="text"
           placeholder="Search by date, workout, or notes..."
@@ -211,9 +216,9 @@ export default function SessionsPage() {
                   </div>
                 </div>
                 {session.notes && (
-                  <p style={{
-                    color: 'var(--muted)',
-                    fontSize: '0.78rem',
+                  <p style={{ 
+                    color: 'var(--muted)', 
+                    fontSize: '0.78rem', 
                     marginTop: 6,
                     marginBottom: 6,
                     overflow: 'hidden',
@@ -232,9 +237,9 @@ export default function SessionsPage() {
           </div>
 
           {/* Pagination controls */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
             alignItems: 'center',
             marginTop: 24,
             padding: '12px 0',
@@ -262,7 +267,7 @@ export default function SessionsPage() {
               <Button
                 size="sm"
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
+                onClick={prevPage}
               >
                 ← Prev
               </Button>
@@ -272,7 +277,7 @@ export default function SessionsPage() {
               <Button
                 size="sm"
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
+                onClick={nextPage}
               >
                 Next →
               </Button>

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, memo } from 'react'
 import type { Session } from '../types'
 
 interface SessionStatsProps {
@@ -17,7 +17,7 @@ function formatNumber(num: number): string {
   return num.toLocaleString('en-US')
 }
 
-export default function SessionStats({ sessions }: SessionStatsProps) {
+function SessionStats({ sessions }: SessionStatsProps) {
   const stats = useMemo(() => {
     if (!sessions || sessions.length === 0) {
       return {
@@ -117,6 +117,8 @@ export default function SessionStats({ sessions }: SessionStatsProps) {
     </div>
   )
 }
+
+export default memo(SessionStats)
 
 function StatItem({ label, value }: { label: string; value: string }) {
   return (

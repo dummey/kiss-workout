@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { TrackerProvider } from '../context'
+import { BackupProvider } from '../context/BackupContext'
 import { ModalProvider } from '../components/ModalProvider'
 import SettingsPage from '../pages/SettingsPage'
 import { getStore, deleteStore } from '../db'
@@ -21,11 +22,13 @@ vi.mock('../components/ModalProvider', () => ({
 function TestApp() {
   return (
     <MemoryRouter initialEntries={['/settings']}>
-      <TrackerProvider>
-        <Routes>
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </TrackerProvider>
+      <BackupProvider>
+        <TrackerProvider>
+          <Routes>
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </TrackerProvider>
+      </BackupProvider>
     </MemoryRouter>
   )
 }
@@ -35,6 +38,7 @@ describe('SettingsPage', () => {
     vi.clearAllMocks()
     try {
       await deleteStore('tracker')
+      await deleteStore('backup-meta')
     } catch {
       // ignore
     }

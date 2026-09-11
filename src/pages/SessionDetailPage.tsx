@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import Button from '../components/Button'
 import ProgressionInfo from '../components/ProgressionInfo'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -88,14 +88,14 @@ export default function SessionDetailPage() {
       if (date) updateSessionNotes(date, value)
     }, 500)
   }
-  const resolvedExercises = session.exercises.map((sessionEx, idx) => {
+  const resolvedExercises = session?.exercises?.map((sessionEx, idx) => {
     const def = getExercise(sessionEx.id) || {}
     return {
       ...def,
       ...sessionEx,
       idx
     }
-  })
+  }) || []
 
   const tierOrder = ['T1', 'T2', 'T3', '']
   const tierLabels: Record<string, string> = { T1: 'T1 — Main Lift', T2: 'T2 — Primary Accessory', T3: 'T3 — Secondary', '': 'Other' }

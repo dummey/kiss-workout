@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { TrackerProvider } from '../context'
+import { BackupProvider } from '../context/BackupContext'
 import { ModalProvider } from '../components/ModalProvider'
 import Layout from '../components/Layout'
 import SessionsPage from '../pages/SessionsPage'
@@ -33,18 +34,20 @@ function getUniqueDate(): string {
 function TestApp() {
   return (
     <MemoryRouter initialEntries={['/settings']}>
-      <TrackerProvider>
-        <ModalProvider>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Navigate to="/settings" replace />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="sessions" element={<SessionsPage />} />
-              <Route path="sessions/:date" element={<SessionDetailPage />} />
-            </Route>
-          </Routes>
-        </ModalProvider>
-      </TrackerProvider>
+      <BackupProvider>
+        <TrackerProvider>
+          <ModalProvider>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Navigate to="/settings" replace />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="sessions" element={<SessionsPage />} />
+                <Route path="sessions/:date" element={<SessionDetailPage />} />
+              </Route>
+            </Routes>
+          </ModalProvider>
+        </TrackerProvider>
+      </BackupProvider>
     </MemoryRouter>
   )
 }
@@ -56,6 +59,7 @@ describe('Session workflow integration', () => {
     // Clear DB so each test starts fresh
     try {
       await deleteStore('tracker')
+      await deleteStore('backup-meta')
     } catch {
       // ignore
     }
@@ -168,9 +172,19 @@ describe('Session workflow integration', () => {
     await user.type(repsInputs[0], '5')
     await user.type(setsInputs[0], '3')
 
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData | null
+      expect(stored?.sessions[0]?.exercises[0]?.weight).toBe('225')
+    }, { timeout: 5000 })
+
     await user.type(weightInputs[1], '185')
     await user.type(repsInputs[1], '10')
     await user.type(setsInputs[1], '3')
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData | null
+      expect(stored?.sessions[0]?.exercises[1]?.weight).toBe('185')
+    }, { timeout: 3000 })
 
     const stored = await getStore('tracker') as TrackerData | null
     const session = stored!.sessions[0]

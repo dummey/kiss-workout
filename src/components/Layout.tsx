@@ -1,10 +1,10 @@
 import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '../assets/logo.png'
-import { useBackupReminder } from '../hooks/useBackupReminder'
+import { useBackup } from '../context/BackupContext'
 
 export default function Layout() {
-  const { shouldShowReminder } = useBackupReminder()
+  const { shouldShowReminder } = useBackup()
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <nav style={{

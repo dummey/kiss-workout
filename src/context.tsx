@@ -25,7 +25,6 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         setData(stored)
       } else {
-        // Don't auto-load seed data — user can click "Load Seed" on Settings page
         setData(null)
       }
     } catch (err) {
@@ -36,29 +35,22 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function saveData(newData: TrackerData) {
+  const saveData = useCallback(async (newData: TrackerData) => {
     setData(newData)
     await setStore('tracker', newData)
-  }
-
-  const incrementBackupCounter = useCallback(async () => {
-    const stored = await getStore('backup-meta') as { lastBackupDate: string | null; sessionsSinceBackup: number } | null
-    const meta = stored || { lastBackupDate: null, sessionsSinceBackup: 0 }
-    meta.sessionsSinceBackup++
-    await setStore('backup-meta', meta)
   }, [])
 
-  function getExercise(id: string): Exercise | undefined {
+  const getExercise = useCallback((id: string): Exercise | undefined => {
     return data?.exercises.find(ex => ex.id === id)
-  }
+  }, [data])
 
-  function getWorkoutExercises(workoutName: string): Exercise[] {
+  const getWorkoutExercises = useCallback((workoutName: string): Exercise[] => {
     const workout = data?.workouts.find(w => w.name === workoutName)
     if (!workout) return []
     return workout.exercises.map(id => getExercise(id)).filter((ex): ex is Exercise => ex !== undefined)
-  }
+  }, [data, getExercise])
 
-  function addSession(date: string, workoutType: string): Session | null {
+  const addSession = useCallback((date: string, workoutType: string): Session | null => {
     if (!data) return null
     if (data.sessions.some(s => s.date === date)) {
       return null
@@ -93,27 +85,26 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sessions: [newSession, ...data.sessions]
     }
     saveData(newData)
-    incrementBackupCounter()
     return newSession
-  }
+  }, [data, getExercise, saveData])
 
-  function deleteSession(date: string) {
+  const deleteSession = useCallback((date: string) => {
     if (!data) return
     const newData: TrackerData = {
       ...data,
       sessions: data.sessions.filter(s => s.date !== date)
     }
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function updateSessionNotes(date: string, notes: string) {
+  const updateSessionNotes = useCallback((date: string, notes: string) => {
     if (!data) return
     const newData = { ...data }
     const session = newData.sessions.find(s => s.date === date)
     if (!session) return
     session.notes = notes
     saveData(newData)
-  }
+  }, [data, saveData])
 
   const updateSessionTime = useCallback((date: string, elapsedTime: number) => {
     if (!data) return
@@ -122,9 +113,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     if (!session) return
     session.elapsedTime = elapsedTime
     saveData(newData)
-  }, [data])
+  }, [data, saveData])
 
-  function updateExercise(sessionDate: string, exIdx: number, field: 'weight' | 'reps' | 'sets', value: string) {
+  const updateExercise = useCallback((sessionDate: string, exIdx: number, field: 'weight' | 'reps' | 'sets', value: string) => {
     if (!data) return
     const newData = { ...data }
     const session = newData.sessions.find(s => s.date === sessionDate)
@@ -137,9 +128,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       else { const n = parseInt(value, 10); ex.sets = isNaN(n) ? null : n }
     }
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function addExercise(exercise: Partial<Exercise> & { name: string }): string {
+  const addExercise = useCallback((exercise: Partial<Exercise> & { name: string }): string => {
     if (!data) return ''
     const baseId = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     let id = baseId
@@ -161,9 +152,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     }
     saveData(newData)
     return id
-  }
+  }, [data, saveData])
 
-  function updateExerciseDef(exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'muscles', value: string | string[]) {
+  const updateExerciseDef = useCallback((exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'muscles', value: string | string[]) => {
     if (!data) return
     const newData = { ...data }
     const ex = newData.exercises.find(e => e.id === exId)
@@ -174,9 +165,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     else if (field === 'tier') ex.tier = value as Exercise['tier']
     else if (field === 'muscles') ex.muscles = value as string[]
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function deleteExercise(exId: string) {
+  const deleteExercise = useCallback((exId: string) => {
     if (!data) return
     const newData = { ...data }
     newData.exercises = newData.exercises.filter(e => e.id !== exId)
@@ -187,9 +178,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       s.exercises = s.exercises.filter(se => se.id !== exId)
     })
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function addExerciseToWorkout(workoutName: string, exId: string) {
+  const addExerciseToWorkout = useCallback((workoutName: string, exId: string) => {
     if (!data) return
     const newData = { ...data }
     const workout = newData.workouts.find(w => w.name === workoutName)
@@ -198,27 +189,27 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       workout.exercises.push(exId)
       saveData(newData)
     }
-  }
+  }, [data, saveData])
 
-  function removeExerciseFromWorkout(workoutName: string, exId: string) {
+  const removeExerciseFromWorkout = useCallback((workoutName: string, exId: string) => {
     if (!data) return
     const newData = { ...data }
     const workout = newData.workouts.find(w => w.name === workoutName)
     if (!workout) return
     workout.exercises = workout.exercises.filter(id => id !== exId)
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function addWorkout(name: string) {
+  const addWorkout = useCallback((name: string) => {
     if (!data) return
     const newData: TrackerData = {
       ...data,
       workouts: [...data.workouts, { name, exercises: [] }]
     }
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function updateWorkout(oldName: string, newName: string) {
+  const updateWorkout = useCallback((oldName: string, newName: string) => {
     if (!data) return
     const newData = { ...data }
     const workout = newData.workouts.find(w => w.name === oldName)
@@ -228,18 +219,18 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       if (s.workoutName === oldName) s.workoutName = newName
     })
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function deleteWorkout(name: string) {
+  const deleteWorkout = useCallback((name: string) => {
     if (!data) return
     const newData: TrackerData = {
       ...data,
       workouts: data.workouts.filter(w => w.name !== name)
     }
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  function cloneWorkout(sourceName: string, newName: string) {
+  const cloneWorkout = useCallback((sourceName: string, newName: string) => {
     if (!data) return
     const source = data.workouts.find(w => w.name === sourceName)
     if (!source) return
@@ -248,14 +239,14 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       workouts: [...data.workouts, { name: newName, exercises: [...source.exercises] }]
     }
     saveData(newData)
-  }
+  }, [data, saveData])
 
-  async function resetToSeedData() {
+  const resetToSeedData = useCallback(async () => {
     await setStore('tracker', SEED_DATA)
     setData(SEED_DATA)
-  }
+  }, [])
 
-  async function deleteAllData() {
+  const deleteAllData = useCallback(async () => {
     const emptyData: TrackerData = {
       meta: { method: 'GZCL', created: new Date().toISOString() },
       exercises: [],
@@ -263,11 +254,10 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sessions: []
     }
     await setStore('tracker', emptyData)
-    await setStore('backup-meta', { lastBackupDate: null, sessionsSinceBackup: 0 })
     setData(emptyData)
-  }
+  }, [])
 
-  function importSession(session: Session, overwrite = false) {
+  const importSession = useCallback((session: Session, overwrite = false) => {
     if (!data) return false
     const existingIdx = data.sessions.findIndex(s => s.date === session.date)
     if (existingIdx >= 0 && !overwrite) {
@@ -281,7 +271,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     }
     saveData(newData)
     return true
-  }
+  }, [data, saveData])
 
   const addExerciseToSession = useCallback((sessionDate: string, exId: string) => {
     if (!data) return
@@ -307,7 +297,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     const target = newData.sessions.find(s => s.date === sessionDate)!
     target.exercises = [...target.exercises, newEx]
     saveData(newData)
-  }, [data])
+  }, [data, getExercise, saveData])
 
   const duplicateExerciseInSession = useCallback((sessionDate: string, exIdx: number) => {
     if (!data) return
@@ -332,31 +322,30 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       ...target.exercises.slice(exIdx + 1)
     ]
     saveData(newData)
-  }, [data])
+  }, [data, saveData])
 
   const removeExerciseFromSession = useCallback((sessionDate: string, exId: string) => {
     if (!data) return
     const session = data.sessions.find(s => s.date === sessionDate)
     if (!session) return
-    
+
     const ex = session.exercises.find(e => e.id === exId)
     if (!ex) return
-    
-    // Prevent removing the last T1 exercise
+
     if (ex.tier === 'T1') {
       const t1Count = session.exercises.filter(e => e.tier === 'T1').length
       if (t1Count <= 1) {
-        return // Can't remove last T1
+        return
       }
     }
-    
+
     const newData = { ...data }
     const target = newData.sessions.find(s => s.date === sessionDate)!
     target.exercises = target.exercises.filter(e => e.id !== exId)
     saveData(newData)
-  }, [data])
+  }, [data, saveData])
 
-  function getPreviousPerformance(exId: string, currentDate: string): PreviousPerformance | null {
+  const getPreviousPerformance = useCallback((exId: string, currentDate: string): PreviousPerformance | null => {
     let lastExercise: SessionExercise | null = null
     let lastExerciseDate = ''
 
@@ -382,9 +371,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sets: lastExercise.sets !== null && lastExercise.sets !== undefined ? lastExercise.sets : '—',
       date: lastExerciseDate
     }
-  }
+  }, [data])
 
-  function dateCompare(a: string, b: string): number {
+  const dateCompare = useCallback((a: string, b: string): number => {
     const parse = (d: string): string => {
       if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d
       if (/^\d{1,2}\/\d{1,2}(\s*-\s*\d{1,2}\/\d{1,2})?$/.test(d)) {
@@ -395,7 +384,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       return '0000-00-00'
     }
     return parse(a).localeCompare(parse(b))
-  }
+  }, [])
 
   const value = useMemo<TrackerContextValue>(() => ({
     data,
@@ -423,9 +412,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     addExerciseToSession,
     removeExerciseFromSession,
     duplicateExerciseInSession,
-    cloneWorkout,
-    incrementBackupCounter
-  }), [data, loading])
+    cloneWorkout
+  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformance, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout])
 
   return (
     <TrackerContext.Provider value={value}>

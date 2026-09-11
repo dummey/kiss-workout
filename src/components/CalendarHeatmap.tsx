@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, memo } from 'react'
 import type { Session } from '../types'
 
 interface CalendarHeatmapProps {
@@ -27,7 +27,7 @@ function formatDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-export default function CalendarHeatmap({ sessions }: CalendarHeatmapProps) {
+function CalendarHeatmap({ sessions }: CalendarHeatmapProps) {
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
 
   const { weeks, months } = useMemo(() => {
@@ -210,3 +210,5 @@ export default function CalendarHeatmap({ sessions }: CalendarHeatmapProps) {
     </div>
   )
 }
+
+export default memo(CalendarHeatmap)
