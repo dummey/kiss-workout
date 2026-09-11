@@ -22,6 +22,7 @@ export interface SessionExercise {
   weight: string
   reps: string
   sets: number | null
+  originalId?: string
 }
 
 export interface Session {
@@ -67,7 +68,7 @@ export interface TrackerContextValue {
   addWorkout: (name: string) => void
   updateWorkout: (oldName: string, newName: string) => void
   deleteWorkout: (name: string) => void
-  getPreviousPerformance: (exId: string, currentDate: string) => PreviousPerformance | null
+  getPreviousPerformances: (exId: string, currentDate: string) => PreviousPerformance[]
   dateCompare: (a: string, b: string) => number
   deleteAllData: () => Promise<void>
   resetToSeedData: () => Promise<void>

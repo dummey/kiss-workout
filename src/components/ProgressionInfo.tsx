@@ -2,26 +2,35 @@ import type { PreviousPerformance } from '../types'
 
 interface ProgressionInfoProps {
   tier?: string
-  prevInfo: PreviousPerformance | null
+  prevInfo: PreviousPerformance[]
 }
 
-function getNextProgression(tier: string, prevInfo: PreviousPerformance | null): string {
+function parseNumber(value: string): number | null {
+  if (!value || value === '—') return null
+  const cleaned = value.replace(/[^\d.]/g, '')
+  if (!cleaned) return null
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? null : num
+}
+
+function getNextProgression(tier: string, prevInfo: PreviousPerformance[]): string {
   if (tier === 'T1') {
-    if (prevInfo) {
-      const prevReps = prevInfo.reps
-      const prevSets = prevInfo.sets
-      if (prevSets && prevReps && prevReps !== '—') {
-        return 'Try ' + prevInfo.weight + ' x ' + (parseInt(prevReps) + 1) + ' (' + prevSets + ') or add weight'
+    if (prevInfo.length > 0) {
+      const first = prevInfo[0]
+      const prevReps = parseNumber(first.reps)
+      const prevSets = first.sets
+      if (prevSets && prevReps) {
+        return `Try ${first.weight} x ${prevReps + 1} (${prevSets}) or add weight`
       }
     }
     return 'Work up to 2-3RM @ 85-100% Goal Weight'
   } else if (tier === 'T2') {
-    if (prevInfo && prevInfo.reps && prevInfo.reps !== '—' && parseInt(prevInfo.reps) >= 10) {
+    if (prevInfo.length > 0 && parseNumber(prevInfo[0].reps) && parseNumber(prevInfo[0].reps)! >= 10) {
       return 'Add weight, drop to 8 reps'
     }
     return 'Target: 8-10 reps @ 65-85% of T1'
   } else if (tier === 'T3') {
-    if (prevInfo && prevInfo.reps && prevInfo.reps !== '—' && parseInt(prevInfo.reps) >= 15) {
+    if (prevInfo.length > 0 && parseNumber(prevInfo[0].reps) && parseNumber(prevInfo[0].reps)! >= 15) {
       return 'Add weight, drop to 10 reps'
     }
     return 'Target: 10-15+ reps @ ≤65%'
@@ -30,14 +39,15 @@ function getNextProgression(tier: string, prevInfo: PreviousPerformance | null):
 }
 
 export default function ProgressionInfo({ tier, prevInfo }: ProgressionInfoProps) {
-  if (!prevInfo) return null
+  if (!prevInfo || prevInfo.length === 0) return null
 
   const nextStep = getNextProgression(tier || '', prevInfo)
+  const lastTimeText = prevInfo.map(p => `${p.weight} x ${p.reps} (${p.sets})`).join(', ')
 
   return (
     <div className="progression-info">
       <div className="last-time">
-        Last time: {prevInfo.weight} x {prevInfo.reps} ({prevInfo.sets})
+        Last time: {lastTimeText}
       </div>
       <div className="next-step">{nextStep}</div>
     </div>

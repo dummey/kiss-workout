@@ -279,7 +279,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     if (!session) return
     const ex = getExercise(exId)
     if (!ex) return
-    if (session.exercises.some(se => se.id === exId)) return
+    if (session.exercises.some(se => se.id === exId || se.originalId === exId)) return
 
     const newEx: SessionExercise = {
       id: ex.id,
@@ -308,6 +308,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     const copy: SessionExercise = {
       ...original,
       id: `${original.id}-copy-${Date.now()}`,
+      originalId: original.id,
       name: `${original.name} (2)`,
       weight: '',
       reps: '',
@@ -345,32 +346,36 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
-  const getPreviousPerformance = useCallback((exId: string, currentDate: string): PreviousPerformance | null => {
-    let lastExercise: SessionExercise | null = null
+  const getPreviousPerformances = useCallback((exId: string, currentDate: string): PreviousPerformance[] => {
     let lastExerciseDate = ''
 
     if (data?.sessions) {
       data.sessions.forEach(session => {
         if (dateCompare(session.date, currentDate) >= 0) return
         session.exercises.forEach(ex => {
-          if (ex.id !== exId) return
+          if (ex.id !== exId && ex.originalId !== exId) return
           if (!ex.weight && !ex.reps) return
           if (!lastExerciseDate || dateCompare(session.date, lastExerciseDate) > 0) {
-            lastExercise = ex
             lastExerciseDate = session.date
           }
         })
       })
     }
 
-    if (!lastExercise) return null
+    if (!lastExerciseDate) return []
 
-    return {
-      weight: lastExercise.weight || '—',
-      reps: lastExercise.reps || '—',
-      sets: lastExercise.sets !== null && lastExercise.sets !== undefined ? lastExercise.sets : '—',
+    const exercises = data!.sessions
+      .find(s => s.date === lastExerciseDate)!
+      .exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps))
+
+    if (exercises.length === 0) return []
+
+    return exercises.map(ex => ({
+      weight: ex.weight || '—',
+      reps: ex.reps || '—',
+      sets: ex.sets !== null && ex.sets !== undefined ? ex.sets : '—',
       date: lastExerciseDate
-    }
+    }))
   }, [data])
 
   const dateCompare = useCallback((a: string, b: string): number => {
@@ -404,7 +409,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     addWorkout,
     updateWorkout,
     deleteWorkout,
-    getPreviousPerformance,
+    getPreviousPerformances,
     dateCompare,
     deleteAllData,
     resetToSeedData,
@@ -413,7 +418,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     removeExerciseFromSession,
     duplicateExerciseInSession,
     cloneWorkout
-  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformance, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout])
+  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout])
 
   return (
     <TrackerContext.Provider value={value}>

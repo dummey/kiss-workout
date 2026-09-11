@@ -8,7 +8,7 @@ import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformance, getExercise, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession } = useTracker()
+  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession } = useTracker()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
@@ -182,7 +182,7 @@ export default function SessionDetailPage() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
               {tierExs.map((ex) => {
-                const prevInfo = getPreviousPerformance(ex.id, session.date)
+                const prevInfo = getPreviousPerformances(ex.id, session.date)
 
                 return (
                   <div key={ex.id || ex.idx} className={'card' + (ex.tier === 'T1' ? ' t1-highlight' : '')}>
