@@ -6,12 +6,9 @@ import { useBackup } from '../context/BackupContext'
 export default function Layout() {
   const { shouldShowReminder } = useBackup()
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <nav style={{
-        width: 200, background: 'var(--surface)', borderRight: '1px solid var(--border)',
-        padding: 24, display: 'flex', flexDirection: 'column', gap: 8
-      }}>
-        <div style={{ marginBottom: 32 }}>
+    <div className="layout">
+      <nav className="sidebar">
+        <div className="sidebar-logo">
           <img src={logo} alt="KISS Workout Tracker" style={{ width: '100%', height: 'auto' }} />
           <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 4 }}>pre-alpha</p>
         </div>
@@ -25,7 +22,7 @@ export default function Layout() {
         <NavLink to="/workouts" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
           Workouts
         </NavLink>
-        <NavLink to="/settings" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <NavLink to="/settings" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
           Settings
           {shouldShowReminder && (
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--t1)' }} />
@@ -33,9 +30,31 @@ export default function Layout() {
         </NavLink>
       </nav>
 
-      <main style={{ flex: 1, padding: 32 }}>
+      <main className="main-content">
         <Outlet />
       </main>
+
+      <nav className="bottom-tab-bar">
+        <NavLink to="/sessions" className={({ isActive }) => 'tab-item' + (isActive ? ' active' : '')}>
+          <span className="tab-icon">📋</span>
+          <span>Sessions</span>
+        </NavLink>
+        <NavLink to="/exercises" className={({ isActive }) => 'tab-item' + (isActive ? ' active' : '')}>
+          <span className="tab-icon">💪</span>
+          <span>Exercises</span>
+        </NavLink>
+        <NavLink to="/workouts" className={({ isActive }) => 'tab-item' + (isActive ? ' active' : '')}>
+          <span className="tab-icon">📊</span>
+          <span>Workouts</span>
+        </NavLink>
+        <NavLink to="/settings" className={({ isActive }) => 'tab-item' + (isActive ? ' active' : '')}>
+          <span className="tab-icon">⚙️</span>
+          <span>Settings</span>
+          {shouldShowReminder && (
+            <span className="tab-badge" />
+          )}
+        </NavLink>
+      </nav>
     </div>
   )
 }

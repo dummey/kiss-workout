@@ -152,30 +152,32 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-        <div style={{ flex: '1 1 60%', height: '100%' }}>
+      <div className="heatmap-stats-row" style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+        <div className="heatmap-card" style={{ flex: '1 1 60%', height: '100%' }}>
           <CalendarHeatmap sessions={data?.sessions || []} />
         </div>
-        <div style={{ flex: '1 1 40%' }}>
+        <div className="stats-card" style={{ flex: '1 1 40%' }}>
           <SessionStats sessions={data?.sessions || []} />
         </div>
       </div>
 
-      <BackupReminderBanner onExport={() => {
-        getStore('tracker').then((data) => {
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-          URL.revokeObjectURL(url)
-          recordBackup()
-        })
-      }} />
-                
+      <div style={{ marginBottom: 20 }}>
+        <BackupReminderBanner onExport={() => {
+          getStore('tracker').then((data) => {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+            recordBackup()
+          })
+        }} />
+      </div>
+
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <input
           type="text"

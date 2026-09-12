@@ -199,10 +199,10 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', padding: '8px 0' }}>
-        <div style={{ flex: '0 0 280px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
+      <div className="timer-row" style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', padding: '8px 0' }}>
+        <div className="timer-card" style={{ flex: '1 1 280px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
           <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
-            Session Time
+            Time
           </h3>
           <div style={{ fontSize: '3.6rem', fontWeight: 800, fontFamily: 'monospace', color: isRunning ? 'var(--t3)' : 'var(--muted)' }}>
             {elapsedTime >= 3600 && <span>{Math.floor(elapsedTime / 3600)}:</span>}
@@ -219,7 +219,7 @@ export default function SessionDetailPage() {
           </div>
         </div>
 
-        <div style={{ flex: '0 0 280px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
+        <div className="timer-card" style={{ flex: '1 1 280px', background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: 16, textAlign: 'center' }}>
           <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
             Rest Time
           </h3>

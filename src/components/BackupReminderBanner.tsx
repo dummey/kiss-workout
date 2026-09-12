@@ -28,7 +28,8 @@ export default function BackupReminderBanner({ onExport }: BackupReminderBannerP
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      width: '100%'
+      width: '100%',
+      marginBottom: 20
     }}>
       <span style={{ fontSize: '0.85rem', color: 'var(--text)' }}>
         {message}
