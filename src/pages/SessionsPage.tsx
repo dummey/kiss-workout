@@ -148,13 +148,13 @@ export default function SessionsPage() {
           <label htmlFor="import-session-input" className="btn" style={{ cursor: 'pointer' }}>
             Import Session
           </label>
-          <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Session</Button>
+          <Button variant="primary" onClick={() => { setDate(new Date().toISOString().slice(0, 10)); setShowAdd(true) }}>+ Add Session</Button>
         </div>
       </div>
 
       <div className="heatmap-stats-row" style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-        <div className="heatmap-card" style={{ flex: '1 1 60%', height: '100%' }}>
-          <CalendarHeatmap sessions={data?.sessions || []} />
+        <div className="heatmap-card" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <CalendarHeatmap sessions={data?.sessions || []} months={6} />
         </div>
         <div className="stats-card" style={{ flex: '1 1 40%' }}>
           <SessionStats sessions={data?.sessions || []} />

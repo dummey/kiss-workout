@@ -3,6 +3,7 @@ import type { Session } from '../types'
 
 interface CalendarHeatmapProps {
   sessions: Session[]
+  months?: number
 }
 
 interface DayInfo {
@@ -27,22 +28,23 @@ function formatDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-function CalendarHeatmap({ sessions }: CalendarHeatmapProps) {
-  const [hoveredDate, setHoveredDate] = useState<string | null>(null)
+const CELL = 14
+const GAP = 1
 
-  const { weeks, months } = useMemo(() => {
+function CalendarHeatmap({ sessions, months = 6 }: CalendarHeatmapProps) {
+  const [hoveredDate, setHoveredDate] = useState<{ date: string; x: number; y: number } | null>(null)
+
+  const { weeks, monthLabels } = useMemo(() => {
     const today = new Date()
     const startDate = new Date(today)
-    startDate.setDate(startDate.getDate() - 365)
-
-    // Align to Sunday
+    startDate.setDate(startDate.getDate() - months * 30)
     startDate.setDate(startDate.getDate() - startDate.getDay())
 
     const sessionMap = new Map<string, Session>()
     sessions.forEach(s => sessionMap.set(s.date, s))
 
     const weeks: DayInfo[][] = []
-    const months: { label: string; colStart: number }[] = []
+    const monthData: { label: string; col: number }[] = []
     let currentDate = new Date(startDate)
     let week: DayInfo[] = []
     let lastMonth = -1
@@ -50,160 +52,112 @@ function CalendarHeatmap({ sessions }: CalendarHeatmapProps) {
     while (currentDate <= today) {
       const dateStr = formatDate(currentDate)
       const session = sessionMap.get(dateStr)
-      const dayInfo: DayInfo = {
-        date: dateStr,
-        intensity: getIntensity(session),
-        session
-      }
+      week.push({ date: dateStr, intensity: getIntensity(session), session })
 
-      if (currentDate.getDate() === 1 || (weeks.length === 0 && week.length === 0)) {
-        const monthLabel = currentDate.toLocaleString('default', { month: 'short' })
+      if (currentDate.getDate() === 1 || (weeks.length === 0 && week.length === 1)) {
+        const label = currentDate.toLocaleString('default', { month: 'short' })
         if (currentDate.getMonth() !== lastMonth) {
-          months.push({ label: monthLabel, colStart: weeks.length })
+          monthData.push({ label, col: weeks.length })
           lastMonth = currentDate.getMonth()
         }
       }
 
-      week.push(dayInfo)
       if (week.length === 7) {
         weeks.push(week)
         week = []
       }
-
       currentDate.setDate(currentDate.getDate() + 1)
     }
 
     if (week.length > 0) {
-      while (week.length < 7) {
-        week.push({ date: '', intensity: 0 })
-      }
+      while (week.length < 7) week.push({ date: '', intensity: 0 })
       weeks.push(week)
     }
 
-    return { weeks, months }
-  }, [sessions])
+    return { weeks, monthLabels: monthData }
+  }, [sessions, months])
 
-  const intensityColors = [
-    'var(--surface2)',  // 0 - no session
-    'rgba(78, 203, 113, 0.2)',  // 1 - light
-    'rgba(78, 203, 113, 0.4)',  // 2 - medium
-    'rgba(78, 203, 113, 0.7)',  // 3 - high
-    'var(--t3)'   // 4 - complete
+  const colors = [
+    'var(--surface2)',
+    'rgba(78, 203, 113, 0.2)',
+    'rgba(78, 203, 113, 0.4)',
+    'rgba(78, 203, 113, 0.7)',
+    'var(--t3)'
   ]
 
-  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+  const gridWidth = weeks.length * (CELL + GAP) - GAP
 
   return (
-    <div style={{
-      background: 'var(--surface)',
-      borderRadius: 'var(--radius)',
-      padding: 16,
-      position: 'relative',
-      height: '100%'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-        <h3 style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', fontWeight: 700 }}>
+    <div style={{ position: 'relative', width: 'fit-content' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>
           Training Activity
         </h3>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--muted)', marginRight: 4 }}>Less</span>
-          {intensityColors.map((color, i) => (
-            <div
-              key={i}
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 2,
-                background: color,
-                border: i === 0 ? '1px solid var(--border)' : 'none'
-              }}
-            />
+          <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>Less</span>
+          {colors.map((c, i) => (
+            <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c, border: i === 0 ? '1px solid var(--border)' : 'none' }} />
           ))}
-          <span style={{ fontSize: '0.65rem', color: 'var(--muted)', marginLeft: 4 }}>More</span>
+          <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>More</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, overflow: 'hidden' }}>
-        {/* Day labels */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 16 }}>
-          {dayLabels.map((label, i) => (
-            <div key={i} style={{ height: 12, fontSize: '0.6rem', color: 'var(--muted)', lineHeight: '12px' }}>
-              {i % 2 === 1 ? label : ''}
-            </div>
-          ))}
-        </div>
-
-        {/* Months and weeks */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          {/* Month labels */}
-          <div style={{ display: 'flex', height: 12, marginBottom: 4, position: 'relative' }}>
-            {months.map((month, i) => (
-              <span
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: `${month.colStart * 14}px`,
-                  fontSize: '0.6rem',
-                  color: 'var(--muted)',
-                  whiteSpace: 'nowrap'
+      <div style={{ display: 'flex', gap: GAP, width: gridWidth }}>
+        {weeks.map((week, wi) => (
+          <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
+            {week.map((day, di) => (
+              <div
+                key={di}
+                onMouseEnter={(e) => {
+                  if (!day.date) return
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  setHoveredDate({ date: day.date, x: rect.left + rect.width / 2, y: rect.top - 8 })
                 }}
-              >
-                {month.label}
-              </span>
+                onMouseLeave={() => setHoveredDate(null)}
+                style={{
+                  width: CELL,
+                  height: CELL,
+                  borderRadius: 2,
+                  background: day.date ? colors[day.intensity] : 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  cursor: day.date ? 'pointer' : 'default',
+                  boxShadow: hoveredDate?.date === day.date ? '0 0 0 2px var(--accent)' : 'none'
+                }}
+              />
             ))}
           </div>
-
-          {/* Week columns */}
-          <div style={{ display: 'flex', gap: 3 }}>
-            {weeks.map((week, wi) => (
-              <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {week.map((day, di) => (
-                  <div
-                    key={di}
-                    onMouseEnter={() => day.date && setHoveredDate(day.date)}
-                    onMouseLeave={() => setHoveredDate(null)}
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 2,
-                      background: day.date ? intensityColors[day.intensity] : 'transparent',
-                      border: day.date ? 'none' : '1px solid transparent',
-                      cursor: day.date ? 'pointer' : 'default',
-                      boxShadow: hoveredDate === day.date ? '0 0 0 2px var(--accent)' : 'none'
-                    }}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Tooltip */}
+      <div style={{ position: 'relative', height: 14, marginTop: 4, width: gridWidth }}>
+        {monthLabels.map((m, i) => (
+          <span key={i} style={{ position: 'absolute', left: m.col * (CELL + GAP), fontSize: '0.6rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+            {m.label}
+          </span>
+        ))}
+      </div>
+
       {hoveredDate && (() => {
-        const session = sessions.find(s => s.date === hoveredDate)
-        if (!session) return null
-        const logged = session.exercises.filter(ex => ex.weight || ex.reps).length
+        const s = sessions.find(x => x.date === hoveredDate.date)
+        if (!s) return null
+        const logged = s.exercises.filter(ex => ex.weight || ex.reps).length
         return (
           <div style={{
-            position: 'absolute',
-            bottom: -40,
-            left: '50%',
-            transform: 'translateX(-50%)',
+            position: 'fixed',
+            left: hoveredDate.x,
+            top: hoveredDate.y,
+            transform: 'translate(-50%, -100%)',
+            padding: '4px 8px',
             background: 'var(--surface2)',
             border: '1px solid var(--border)',
-            borderRadius: 6,
-            padding: '6px 10px',
-            fontSize: '0.72rem',
+            borderRadius: 4,
+            fontSize: '0.68rem',
             color: 'var(--text)',
             whiteSpace: 'nowrap',
-            zIndex: 10
+            zIndex: 100,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
           }}>
-            <strong>{session.date}</strong> — {session.workoutName}
-            <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
-              {logged}/{session.exercises.length} exercises
-              {session.elapsedTime ? ` • ${Math.floor(session.elapsedTime / 60)}m` : ''}
-            </span>
+            <strong>{s.date}</strong> — {s.workoutName} ({logged}/{s.exercises.length})
           </div>
         )
       })()}
