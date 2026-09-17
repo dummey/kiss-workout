@@ -1,9 +1,8 @@
-import React, { useRef, useEffect, useMemo } from 'react'
+import React, { useRef, useEffect, useMemo, useState } from 'react'
 import { BodyChart, ViewSide } from 'body-muscles'
 import type { BodyState } from 'body-muscles'
 
 const MUSCLE_NAME_TO_ID: Record<string, string[]> = {
-  // Front
   'Front Delts': ['shoulder-front-left', 'shoulder-front-right'],
   'Chest': ['chest-upper-left', 'chest-lower-left', 'chest-upper-right', 'chest-lower-right'],
   'Biceps': ['biceps-left', 'biceps-right'],
@@ -20,8 +19,6 @@ const MUSCLE_NAME_TO_ID: Record<string, string[]> = {
   'Soleus': ['calves-soleus-left', 'calves-soleus-right'],
   'Core': ['abs-upper-left', 'abs-upper-right', 'abs-lower-left', 'abs-lower-right', 'obliques-left', 'obliques-right'],
   'Grip': ['forearm-left', 'forearm-right', 'hand-left', 'hand-right'],
-
-  // Back
   'Rear Delts': ['deltoid-rear-left', 'deltoid-rear-right'],
   'Mid/Lower Trap': ['traps-lower-left', 'traps-lower-right', 'traps-mid-left', 'traps-mid-right'],
   'Traps': ['traps-upper-left', 'traps-upper-right', 'traps-mid-left', 'traps-mid-right', 'traps-lower-left', 'traps-lower-right'],
@@ -39,18 +36,29 @@ function getMuscleIdsForMuscleName(name: string): string[] {
   return MUSCLE_NAME_TO_ID[name] || []
 }
 
+function getIntensityForCount(count: number): number {
+  if (count === 0) return 0
+  if (count === 1) return 8
+  if (count === 2) return 5
+  return 2
+}
+
 function buildBodyState(highlightedMuscles: string[], allMuscles: string[]): BodyState {
   const state: BodyState = {}
+  const muscleCounts: Record<string, number> = {}
+
   ;(allMuscles || []).forEach(muscleName => {
+    muscleCounts[muscleName] = (muscleCounts[muscleName] || 0) + 1
+  })
+
+  ;(allMuscles || []).forEach(muscleName => {
+    const count = muscleCounts[muscleName] || 0
+    const intensity = getIntensityForCount(count)
     getMuscleIdsForMuscleName(muscleName).forEach(id => {
-      state[id] = { intensity: 3, selected: false }
+      state[id] = { intensity, selected: count > 0 }
     })
   })
-  ;(highlightedMuscles || []).forEach(muscleName => {
-    getMuscleIdsForMuscleName(muscleName).forEach(id => {
-      state[id] = { intensity: 8, selected: true }
-    })
-  })
+
   return state
 }
 
@@ -58,11 +66,14 @@ interface BodyChartViewProps {
   view: ViewSide | string
   bodyState: BodyState
   label: string
+  idTooltipMap: Record<string, { name: string; count: number }>
+  onHover: (data: { name: string; count: number; x: number; y: number } | null) => void
 }
 
-function BodyChartView({ view, bodyState, label }: BodyChartViewProps) {
+function BodyChartView({ view, bodyState, label, idTooltipMap, onHover }: BodyChartViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<BodyChart | null>(null)
+  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -70,13 +81,40 @@ function BodyChartView({ view, bodyState, label }: BodyChartViewProps) {
       view,
       bodyState,
       showViewLabel: false,
+      onMuscleHover: (muscleId: string | null) => {
+        if (muscleId && idTooltipMap[muscleId]) {
+          const rect = containerRef.current?.getBoundingClientRect()
+          if (rect) {
+            onHover({
+              name: idTooltipMap[muscleId].name,
+              count: idTooltipMap[muscleId].count,
+              x: mouseRef.current.x - rect.left,
+              y: mouseRef.current.y - rect.top,
+            })
+          }
+        } else {
+          onHover(null)
+        }
+      },
     })
     return () => chartRef.current?.destroy()
-  }, [view])
+  }, [view, idTooltipMap, onHover])
 
   useEffect(() => {
     chartRef.current?.update({ bodyState })
   }, [bodyState])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY }
+    }
+
+    container.addEventListener('mousemove', handleMouseMove)
+    return () => container.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -96,17 +134,51 @@ interface BodyMusclesChartProps {
 export default function BodyMusclesChart({ muscles = [], allMuscles = [] }: BodyMusclesChartProps) {
   const musclesKey = muscles.join('|')
   const allKey = allMuscles.join('|')
-  const bodyState = useMemo(() => {
-    return buildBodyState(muscles, allMuscles)
-  }, [musclesKey, allKey])
+  const [hovered, setHovered] = useState<{ name: string; count: number; x: number; y: number } | null>(null)
+
+  const bodyState = useMemo(() => buildBodyState(muscles, allMuscles), [musclesKey, allKey])
+
+  const idTooltipMap = useMemo(() => {
+    const counts: Record<string, number> = {}
+    ;(allMuscles || []).forEach(name => {
+      counts[name] = (counts[name] || 0) + 1
+    })
+
+    const idMap: Record<string, { name: string; count: number }> = {}
+    Object.entries(counts).forEach(([name, count]) => {
+      getMuscleIdsForMuscleName(name).forEach(id => {
+        idMap[id] = { name, count }
+      })
+    })
+    return idMap
+  }, [allKey])
 
   return (
     <div style={{
       background: 'var(--surface2)', borderRadius: 'var(--radius)',
-      padding: '20px 24px', marginBottom: 20, display: 'flex', justifyContent: 'center', gap: 16
+      padding: '20px 24px', marginBottom: 20, display: 'flex', justifyContent: 'center', gap: 16,
+      position: 'relative'
     }}>
-      <BodyChartView view={ViewSide.FRONT} bodyState={bodyState} label="Anterior (Front)" />
-      <BodyChartView view={ViewSide.BACK} bodyState={bodyState} label="Posterior (Back)" />
+      <BodyChartView view={ViewSide.FRONT} bodyState={bodyState} label="Anterior (Front)" idTooltipMap={idTooltipMap} onHover={setHovered} />
+      <BodyChartView view={ViewSide.BACK} bodyState={bodyState} label="Posterior (Back)" idTooltipMap={idTooltipMap} onHover={setHovered} />
+      {hovered && (
+        <div style={{
+          position: 'absolute',
+          left: hovered.x,
+          top: hovered.y - 32,
+          padding: '4px 8px',
+          background: 'var(--bg)',
+          border: '1px solid var(--border)',
+          borderRadius: 4,
+          fontSize: '0.72rem',
+          color: 'var(--text)',
+          whiteSpace: 'nowrap',
+          zIndex: 100,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+        }}>
+          {hovered.name} — {hovered.count} exercise{hovered.count !== 1 ? 's' : ''}
+        </div>
+      )}
     </div>
   )
 }
