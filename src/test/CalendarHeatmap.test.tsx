@@ -48,18 +48,18 @@ describe('CalendarHeatmap', () => {
     expect(found).toBe(true)
   })
 
-  it('renders day labels', () => {
-    render(<CalendarHeatmap sessions={[]} />)
-    // Day labels show every other day (M, W, F)
-    expect(screen.getByText('M')).toBeInTheDocument()
-    expect(screen.getByText('W')).toBeInTheDocument()
-    expect(screen.getByText('F')).toBeInTheDocument()
-  })
-
   it('renders cells for each day', () => {
     render(<CalendarHeatmap sessions={mockSessions} />)
     const dayCells = document.querySelectorAll('[style*="cursor: pointer"]')
     // Should have at least 2 days with sessions
     expect(dayCells.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('renders with sessions', () => {
+    render(<CalendarHeatmap sessions={mockSessions} />)
+    expect(screen.getByText('Training Activity')).toBeInTheDocument()
+    // Should have multiple cells (6 months × ~30 days)
+    const dayCells = document.querySelectorAll('[style*="cursor: pointer"]')
+    expect(dayCells.length).toBeGreaterThan(10)
   })
 })

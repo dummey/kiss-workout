@@ -6,7 +6,7 @@ import BodyMusclesChart from '../components/BodyMusclesChart'
 import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
-  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout } = useTracker()
+  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout, updateWorkout } = useTracker()
   const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
   const [showAddExercise, setShowAddExercise] = useState(false)
@@ -15,10 +15,11 @@ export default function WorkoutsPage() {
   const [highlightedMuscles, setHighlightedMuscles] = useState<string[]>([])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
+  if (!data) return <p style={{ color: 'var(--muted)' }}>No data available. Go to Settings → Load Seed to get started.</p>
 
-  const workout = data!.workouts.find(w => w.name === selectedWorkout)
+  const workout = data.workouts.find(w => w.name === selectedWorkout)
   const workoutExercises: Exercise[] = workout ? workout.exercises.map(id => getExercise(id)).filter((ex): ex is Exercise => ex !== undefined) : []
-  const availableExercises = data!.exercises.filter(ex => !workout?.exercises.includes(ex.id))
+  const availableExercises = data.exercises.filter(ex => !workout?.exercises.includes(ex.id))
 
   function handleAddExercise(exId: string) {
     addExerciseToWorkout(selectedWorkout, exId)
@@ -60,7 +61,7 @@ export default function WorkoutsPage() {
       ]
     }).then(result => {
       if (result.action === 'confirm') {
-        const nextWorkout = data!.workouts.find(w => w.name !== workout.name)
+        const nextWorkout = data.workouts.find(w => w.name !== workout.name)
         deleteWorkout(workout.name)
         setSelectedWorkout(nextWorkout?.name || '')
       }
@@ -82,7 +83,7 @@ export default function WorkoutsPage() {
 
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {data!.workouts.map(w => (
+          {data.workouts.map(w => (
             <button
               key={w.name}
               className={'date-tab' + (w.name === selectedWorkout ? ' active' : '')}
@@ -102,6 +103,21 @@ export default function WorkoutsPage() {
             </h2>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button size="sm" variant="primary" onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
+              <Button size="sm" onClick={async () => {
+                const result = await showModal({
+                  title: 'Rename Workout',
+                  message: 'Enter a new name for this workout.',
+                  input: { defaultValue: workout.name, placeholder: 'Workout name' },
+                  actions: [
+                    { label: 'Cancel', value: null },
+                    { label: 'Rename', value: 'confirm', variant: 'success' }
+                  ]
+                })
+                if (result.action === 'confirm' && result.input?.trim() && result.input.trim() !== workout.name) {
+                  updateWorkout(workout.name, result.input.trim())
+                  setSelectedWorkout(result.input.trim())
+                }
+              }}>Rename</Button>
               <Button size="sm" onClick={async () => {
                 const result = await showModal({
                   title: 'Clone Workout',
