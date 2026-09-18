@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react'
 import { getStore, setStore } from './db'
 import { SEED_DATA } from './data'
+import { useBackup } from './context/BackupContext'
 import type { TrackerData, TrackerContextValue, Exercise, Session, SessionExercise, PreviousPerformance } from './types'
 
 const TrackerContext = createContext<TrackerContextValue | null>(null)
@@ -14,6 +15,7 @@ export function useTracker(): TrackerContextValue {
 export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<TrackerData | null>(null)
   const [loading, setLoading] = useState(true)
+  const { incrementBackupCounter } = useBackup()
 
   useEffect(() => {
     initDB()
@@ -85,8 +87,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sessions: [newSession, ...data.sessions]
     }
     saveData(newData)
+    incrementBackupCounter()
     return newSession
-  }, [data, getExercise, saveData])
+  }, [data, getExercise, saveData, incrementBackupCounter])
 
   const deleteSession = useCallback((date: string) => {
     if (!data) return
