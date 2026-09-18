@@ -666,7 +666,8 @@ export const SEED_DATA: TrackerData = {
           "sets": null
         },
         {
-          "id": "face-pulls",
+          "id": "face-pulls-copy-001",
+          "originalId": "face-pulls",
           "name": "Face Pulls",
           "muscles": [
             "Rear Delts",
