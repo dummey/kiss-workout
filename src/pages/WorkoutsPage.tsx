@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useTracker } from '../context'
@@ -9,6 +9,12 @@ export default function WorkoutsPage() {
   const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout, updateWorkout, reorderWorkoutExercises } = useTracker()
   const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
+
+  useEffect(() => {
+    if (data && !selectedWorkout && data.workouts.length > 0) {
+      setSelectedWorkout(data.workouts[0].name)
+    }
+  }, [data, selectedWorkout])
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [showAddWorkout, setShowAddWorkout] = useState(false)
@@ -30,6 +36,12 @@ export default function WorkoutsPage() {
     if (direction === 'up' && idx === 0) return
     if (direction === 'down' && idx === ids.length - 1) return
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+
+    // Prevent crossing tier boundaries
+    const currentEx = getExercise(exId)
+    const swapEx = getExercise(ids[swapIdx])
+    if (currentEx && swapEx && (currentEx.tier || '') !== (swapEx.tier || '')) return
+
     ;[ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]]
     reorderWorkoutExercises(workoutName, ids)
   }
@@ -81,6 +93,25 @@ export default function WorkoutsPage() {
     })
   }
 
+  function canMoveUp(exId: string): boolean {
+    if (!workout) return false
+    const idx = workout.exercises.indexOf(exId)
+    if (idx <= 0) return false
+    const currentEx = getExercise(exId)
+    const prevEx = getExercise(workout.exercises[idx - 1])
+    if (!currentEx || !prevEx) return false
+    return (currentEx.tier || '') === (prevEx.tier || '')
+  }
+
+  function canMoveDown(exId: string): boolean {
+    if (!workout) return false
+    const idx = workout.exercises.indexOf(exId)
+    if (idx < 0 || idx >= workout.exercises.length - 1) return false
+    const currentEx = getExercise(exId)
+    const nextEx = getExercise(workout.exercises[idx + 1])
+    if (!currentEx || !nextEx) return false
+    return (currentEx.tier || '') === (nextEx.tier || '')
+  }
   const tierOrder = ['T1', 'T2', 'T3', '']
   const tierLabels: Record<string, string> = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
 
@@ -172,7 +203,6 @@ export default function WorkoutsPage() {
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {tierExs.map((ex) => {
-                          const globalIdx = workout.exercises.indexOf(ex.id)
                           return (
                             <div key={ex.id} className="card" style={{ padding: 10 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -180,19 +210,19 @@ export default function WorkoutsPage() {
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
                                     <button
                                       className="reorder-btn"
-                                      style={{ opacity: globalIdx === 0 ? 0.3 : 1 }}
+                                      style={{ opacity: canMoveUp(ex.id) ? 1 : 0.3 }}
                                       onClick={() => handleMoveExercise(workout.name, ex.id, 'up')}
                                       aria-label={`Move ${ex.name} up`}
-                                      disabled={globalIdx === 0}
+                                      disabled={!canMoveUp(ex.id)}
                                     >
                                       ▲
                                     </button>
                                     <button
                                       className="reorder-btn"
-                                      style={{ opacity: globalIdx === workout.exercises.length - 1 ? 0.3 : 1 }}
+                                      style={{ opacity: canMoveDown(ex.id) ? 1 : 0.3 }}
                                       onClick={() => handleMoveExercise(workout.name, ex.id, 'down')}
                                       aria-label={`Move ${ex.name} down`}
-                                      disabled={globalIdx === workout.exercises.length - 1}
+                                      disabled={!canMoveDown(ex.id)}
                                     >
                                       ▼
                                     </button>
