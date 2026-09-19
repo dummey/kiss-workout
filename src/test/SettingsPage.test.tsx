@@ -129,6 +129,28 @@ describe('SettingsPage', () => {
     })
   })
 
+  it('clears backup-meta when Delete All is confirmed', async () => {
+    const user = userEvent.setup()
+
+    // Pre-populate backup-meta with stale state
+    const { setStore } = await import('../db')
+    await setStore('backup-meta', { lastBackupDate: '2020-01-01', sessionsSinceBackup: 5 })
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await user.click(screen.getByText('Delete All'))
+    await user.click(screen.getByText('Delete Everything'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Delete All Data?')).not.toBeInTheDocument()
+    })
+
+    // Verify backup-meta was cleared
+    const backupMeta = await getStore('backup-meta')
+    expect(backupMeta).toBeNull()
+  })
+
   it('cancels delete when clicking cancel in modal', async () => {
     const user = userEvent.setup()
 

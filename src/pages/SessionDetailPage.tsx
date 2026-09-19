@@ -89,7 +89,10 @@ export default function SessionDetailPage() {
   const [notes, setNotes] = useState('')
   const [elapsedTime, setElapsedTime] = useState(0)
   const session = data?.sessions?.find(s => s.date === date)
-  const isToday = date === new Date().toISOString().slice(0, 10)
+  const isToday = date === (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
   const [isRunning, setIsRunning] = useState(isToday && !(session?.elapsedTime > 0))
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startTimeRef = useRef(Date.now())

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react'
-import { getStore, setStore } from '../db'
+import { getStore, setStore, deleteStore } from '../db'
 
 export interface BackupMeta {
   lastBackupDate: string | null
@@ -10,6 +10,7 @@ interface BackupContextValue {
   meta: BackupMeta
   incrementBackupCounter: () => Promise<void>
   recordBackup: () => Promise<void>
+  resetBackupMeta: () => Promise<void>
   dismissReminder: () => void
   shouldShowReminder: boolean
 }
@@ -61,6 +62,11 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
     setStore('backup-meta', newMeta).catch(() => {})
   }, [meta])
 
+  const resetBackupMeta = useCallback(async () => {
+    await deleteStore('backup-meta')
+    setMeta({ lastBackupDate: null, sessionsSinceBackup: 0 })
+  }, [])
+
   const shouldShowReminder = (() => {
     const { lastBackupDate, sessionsSinceBackup } = meta
     if (sessionsSinceBackup >= 10) return true
@@ -73,7 +79,7 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
   })()
 
   return (
-    <BackupContext.Provider value={{ meta, incrementBackupCounter, recordBackup, dismissReminder, shouldShowReminder }}>
+    <BackupContext.Provider value={{ meta, incrementBackupCounter, recordBackup, dismissReminder, shouldShowReminder, resetBackupMeta }}>
       {children}
     </BackupContext.Provider>
   )
