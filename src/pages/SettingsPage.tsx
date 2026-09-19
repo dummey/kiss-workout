@@ -67,6 +67,7 @@ export default function SettingsPage() {
           return
         }
         await setStore('tracker', importedData)
+        recordBackup()
         showModal({
           title: 'Import Successful',
           message: 'Data imported successfully!',
