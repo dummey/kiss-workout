@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 import { getStore } from '../db'
 import Button from '../components/Button'
 import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
-import { useModal } from '../components/ModalProvider'
+import { useModal, useModalControl } from '../components/ModalProvider'
 import { useBackup } from '../context/BackupContext'
 import { usePagination } from '../hooks/usePagination'
 import type { Session } from '../types'
@@ -15,23 +15,62 @@ type SortDirection = 'desc' | 'asc'
 
 const PAGE_SIZES = [12, 24, 48]
 
+/** Form content for the Add Session modal — manages its own local state */
+function AddSessionForm() {
+  const { onClose } = useModalControl()
+  const { data, addSession } = useTracker()
+  const navigate = useNavigate()
+  
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [workout, setWorkout] = useState(data?.workouts[0]?.name || '')
+
+  function handleSubmit() {
+    const session = addSession(date, workout)
+    if (session) {
+      onClose()
+      navigate(`/sessions/${date}`)
+    }
+    // If addSession returns falsy, the form stays open — user can pick another date
+  }
+
+  return (
+    <>
+      <p className="modal-sub">Pick a date and workout type to start logging.</p>
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="session-date">Date</label>
+          <input id="session-date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label htmlFor="session-workout">Workout</label>
+          <select id="session-workout" value={workout} onChange={e => setWorkout(e.target.value)}>
+            {data!.workouts.map(w => (
+              <option key={w.name} value={w.name}>{w.name}</option>
+            ))}
+          </select>
+          {!data!.workouts.some(w => w.name === workout) && (
+            <p style={{ color: 'var(--t1)', fontSize: '0.75rem', marginTop: 4 }}>
+              Selected workout no longer exists — pick another.
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="modal-actions">
+        <Button onClick={() => onClose()}>Cancel</Button>
+        <Button variant="success" onClick={handleSubmit}>Start Session</Button>
+      </div>
+    </>
+  )
+}
+
 export default function SessionsPage() {
-  const { data, loading, addSession, deleteSession, importSession } = useTracker()
+  const { data, loading, importSession } = useTracker()
   const { showModal } = useModal()
   const { recordBackup } = useBackup()
   const navigate = useNavigate()
-  const [showAdd, setShowAdd] = useState(false)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [workout, setWorkout] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (!workout || !data?.workouts.some(w => w.name === workout)) {
-      setWorkout(data?.workouts[0]?.name || '')
-    }
-  }, [data?.workouts])
 
   const filteredSessions = useMemo(() => {
     const sessions = searchQuery.trim()
@@ -67,22 +106,6 @@ export default function SessionsPage() {
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
 
   const paginatedSessions = filteredSessions.slice(startIndex, endIndex)
-
-  function handleAdd() {
-    const session = addSession(date, workout)
-    if (session) {
-      setShowAdd(false)
-      navigate(`/sessions/${date}`)
-    } else {
-      showModal({
-        title: 'Session Exists',
-        message: `A session on ${date} already exists. Please pick a different date.`,
-        actions: [
-          { label: 'OK', value: null }
-        ]
-      })
-    }
-  }
 
   async function handleImportSession(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = e.target.files?.[0]
@@ -148,7 +171,12 @@ export default function SessionsPage() {
           <label htmlFor="import-session-input" className="btn" style={{ cursor: 'pointer' }}>
             Import Session
           </label>
-          <Button variant="primary" onClick={() => { setDate(new Date().toISOString().slice(0, 10)); setShowAdd(true) }}>+ Add Session</Button>
+          <Button variant="primary" onClick={() => {
+            showModal({
+              title: 'Add Session',
+              children: <AddSessionForm />
+            })
+          }}>+ Add Session</Button>
         </div>
       </div>
 
@@ -286,38 +314,6 @@ export default function SessionsPage() {
             </div>
           </div>
         </>
-      )}
-
-      {showAdd && (
-        <div className="modal-overlay show" onClick={() => setShowAdd(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Add Session</h2>
-            <p className="modal-sub">Pick a date and workout type to start logging.</p>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="session-date">Date</label>
-                <input id="session-date" type="date" value={date} onChange={e => setDate(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="session-workout">Workout</label>
-                <select id="session-workout" value={workout} onChange={e => setWorkout(e.target.value)}>
-                  {data!.workouts.map(w => (
-                    <option key={w.name} value={w.name}>{w.name}</option>
-                  ))}
-                </select>
-                {!data!.workouts.some(w => w.name === workout) && (
-                  <p style={{ color: 'var(--t1)', fontSize: '0.75rem', marginTop: 4 }}>
-                    Selected workout no longer exists — pick another.
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="modal-actions">
-              <Button onClick={() => setShowAdd(false)}>Cancel</Button>
-              <Button variant="success" onClick={handleAdd}>Start Session</Button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )

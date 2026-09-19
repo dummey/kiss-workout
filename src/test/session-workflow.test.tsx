@@ -15,13 +15,6 @@ import type { TrackerData } from '../types'
 
 vi.stubGlobal('alert', vi.fn())
 
-// Mock useModal
-const showModalMock = vi.fn()
-vi.mock('../components/ModalProvider', () => ({
-  useModal: () => ({ showModal: showModalMock }),
-  ModalProvider: ({ children }: { children: React.ReactNode }) => children
-}))
-
 let uniqueDateCounter = 0
 
 // Generate a unique date that's after the seed data (uses Nov 2026 dates)
@@ -29,6 +22,19 @@ function getUniqueDate(): string {
   uniqueDateCounter++
   const day = 1 + uniqueDateCounter
   return `2026-11-${day.toString().padStart(2, '0')}`
+}
+
+async function loadSeed(user: ReturnType<typeof userEvent.setup>) {
+  // Click the "Load Seed" button on the page (the first one)
+  const loadSeedButtons = screen.getAllByText('Load Seed')
+  await user.click(loadSeedButtons[0])
+  // Wait for the modal to appear
+  await waitFor(() => {
+    expect(screen.getByText('This will replace all current data with fresh seed data. Continue?')).toBeInTheDocument()
+  })
+  // Click "Load Seed" in the modal (the last one, which is the modal button)
+  const modalButtons = screen.getAllByRole('button', { name: 'Load Seed' })
+  await user.click(modalButtons[modalButtons.length - 1])
 }
 
 function TestApp() {
@@ -69,12 +75,9 @@ describe('Session workflow integration', () => {
     const user = userEvent.setup()
 
     render(<TestApp />)
-    // Wait for the Settings heading to appear
     await screen.findByRole('heading', { name: 'Settings' })
 
-    // Load seed data
-    showModalMock.mockResolvedValue({ action: 'confirm' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
     })
@@ -106,12 +109,9 @@ describe('Session workflow integration', () => {
     const user = userEvent.setup()
 
     render(<TestApp />)
-    // Wait for the Settings heading to appear
     await screen.findByRole('heading', { name: 'Settings' })
 
-    // Load seed data
-    showModalMock.mockResolvedValue({ action: 'confirm' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
     })
@@ -140,12 +140,9 @@ describe('Session workflow integration', () => {
     const user = userEvent.setup()
 
     render(<TestApp />)
-    // Wait for the Settings heading to appear
     await screen.findByRole('heading', { name: 'Settings' })
 
-    // Load seed data
-    showModalMock.mockResolvedValue({ action: 'confirm' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
     })
@@ -200,12 +197,9 @@ describe('Session workflow integration', () => {
     const user = userEvent.setup()
 
     render(<TestApp />)
-    // Wait for the Settings heading to appear
     await screen.findByRole('heading', { name: 'Settings' })
 
-    // Load seed data
-    showModalMock.mockResolvedValue({ action: 'confirm' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
     })
@@ -237,12 +231,9 @@ describe('Session workflow integration', () => {
     const user = userEvent.setup()
 
     render(<TestApp />)
-    // Wait for the Settings heading to appear
     await screen.findByRole('heading', { name: 'Settings' })
 
-    // Load seed data
-    showModalMock.mockResolvedValue({ action: 'confirm' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
     })

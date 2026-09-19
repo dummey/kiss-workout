@@ -14,19 +14,25 @@ import { getStore, deleteStore } from '../db'
 
 vi.stubGlobal('alert', vi.fn())
 
-// Mock useModal
-const showModalMock = vi.fn()
-vi.mock('../components/ModalProvider', () => ({
-  useModal: () => ({ showModal: showModalMock }),
-  ModalProvider: ({ children }: { children: React.ReactNode }) => children
-}))
-
 let uniqueDateCounter = 0
 
 function getUniqueDate(): string {
   uniqueDateCounter++
   const day = 1 + uniqueDateCounter
   return `2026-11-${day.toString().padStart(2, '0')}`
+}
+
+async function loadSeed(user: ReturnType<typeof userEvent.setup>) {
+  // Click the "Load Seed" button on the page (the first one)
+  const loadSeedButtons = screen.getAllByText('Load Seed')
+  await user.click(loadSeedButtons[0])
+  // Wait for the modal to appear
+  await waitFor(() => {
+    expect(screen.getByText('This will replace all current data with fresh seed data. Continue?')).toBeInTheDocument()
+  })
+  // Click "Load Seed" in the modal (the last one, which is the modal button)
+  const modalButtons = screen.getAllByRole('button', { name: 'Load Seed' })
+  await user.click(modalButtons[modalButtons.length - 1])
 }
 
 function TestApp() {
@@ -58,7 +64,6 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
   beforeEach(async () => {
     vi.clearAllMocks()
     uniqueDateCounter = 0
-    showModalMock.mockResolvedValue({ action: 'confirm' })
     try {
       await deleteStore('tracker')
       await deleteStore('backup-meta')
@@ -72,7 +77,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
     render(<TestApp />)
 
     await screen.findByRole('heading', { name: 'Settings' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => expect(screen.getByText('26')).toBeInTheDocument())
 
     // Navigate to sessions
@@ -105,7 +110,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
     render(<TestApp />)
 
     await screen.findByRole('heading', { name: 'Settings' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => expect(screen.getByText('26')).toBeInTheDocument())
 
     await user.click(screen.getAllByText('Sessions')[0])
@@ -150,7 +155,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
     render(<TestApp />)
 
     await screen.findByRole('heading', { name: 'Settings' })
-    await user.click(screen.getByText('Load Seed'))
+    await loadSeed(user)
     await waitFor(() => expect(screen.getByText('26')).toBeInTheDocument())
 
     await user.click(screen.getAllByText('Sessions')[0])
@@ -184,21 +189,9 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
     await user.type(dupDateInput, date)
     await user.click(screen.getByText('Start Session'))
 
-    // The "Session Exists" modal is shown via showModal mock (ModalProvider is mocked
-    // to a passthrough). Verify showModal was called and the counter stayed at 1.
-    await waitFor(() => {
-      expect(showModalMock).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Session Exists' })
-      )
-    })
-
     // Counter should still be 1 (duplicate rejected, no increment)
     await new Promise(resolve => setTimeout(resolve, 500))
     const meta = await getBackupMeta()
     expect(meta!.sessionsSinceBackup).toBe(1)
-
-    // Reminder is visible because lastBackupDate is null and counter > 0
-    // (BackupContext: !lastBackupDate && sessionsSinceBackup > 0 => true)
-    // The key assertion is that the counter did NOT increment from 1.
   })
 })

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
-import Modal, { ModalAction } from './Modal'
+import Modal, { ModalAction, useModalControl } from './Modal'
+
+export { useModalControl }
 
 interface ModalState {
   isOpen: boolean
@@ -9,7 +11,8 @@ interface ModalState {
     defaultValue?: string
     placeholder?: string
   }
-  actions: ModalAction[]
+  actions?: ModalAction[]
+  children?: React.ReactNode | ((control: { onAction: (value: string | null, inputValue?: string) => void; onClose: () => void }) => React.ReactNode)
   resolve: ((value: { action: string | null; input?: string }) => void) | null
 }
 
@@ -18,7 +21,8 @@ interface ModalContextValue {
     title: string
     message?: string
     input?: { defaultValue?: string; placeholder?: string }
-    actions: ModalAction[]
+    actions?: ModalAction[]
+    children?: React.ReactNode | ((control: { onAction: (value: string | null, inputValue?: string) => void; onClose: () => void }) => React.ReactNode)
   }) => Promise<{ action: string | null; input?: string }>
 }
 
@@ -46,6 +50,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
         message: config.message,
         input: config.input,
         actions: config.actions,
+        children: config.children,
         resolve
       })
     })
@@ -74,6 +79,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
         message={modal.message}
         input={modal.input}
         actions={modal.actions}
+        children={modal.children}
         onClose={handleClose}
         onAction={handleAction}
       />

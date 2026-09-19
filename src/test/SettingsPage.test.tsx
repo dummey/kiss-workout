@@ -12,25 +12,32 @@ import type { TrackerData } from '../types'
 
 vi.stubGlobal('alert', vi.fn())
 
-// Mock useModal
-const showModalMock = vi.fn()
-vi.mock('../components/ModalProvider', () => ({
-  useModal: () => ({ showModal: showModalMock }),
-  ModalProvider: ({ children }: { children: React.ReactNode }) => children
-}))
-
 function TestApp() {
   return (
     <MemoryRouter initialEntries={['/settings']}>
       <BackupProvider>
         <TrackerProvider>
-          <Routes>
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
+          <ModalProvider>
+            <Routes>
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </ModalProvider>
         </TrackerProvider>
       </BackupProvider>
     </MemoryRouter>
   )
+}
+
+async function loadSeed(user: ReturnType<typeof userEvent.setup>) {
+  // Click the "Load Seed" button on the page
+  await user.click(screen.getByText('Load Seed'))
+  // Wait for the modal to appear
+  await waitFor(() => {
+    expect(screen.getByText('This will replace all current data with fresh seed data. Continue?')).toBeInTheDocument()
+  })
+  // Click "Load Seed" in the modal
+  const modalButtons = screen.getAllByRole('button', { name: 'Load Seed' })
+  await user.click(modalButtons[modalButtons.length - 1])
 }
 
 describe('SettingsPage', () => {
@@ -66,17 +73,12 @@ describe('SettingsPage', () => {
   })
 
   it('loads seed data when confirmed', async () => {
-    showModalMock.mockResolvedValue({ action: 'confirm' })
     const user = userEvent.setup()
 
     render(<TestApp />)
     await screen.findByRole('heading', { name: 'Settings' })
 
-    await user.click(screen.getByText('Load Seed'))
-
-    await waitFor(() => {
-      expect(showModalMock).toHaveBeenCalled()
-    })
+    await loadSeed(user)
 
     await waitFor(() => {
       expect(screen.getByText('26')).toBeInTheDocument()
@@ -88,16 +90,25 @@ describe('SettingsPage', () => {
   })
 
   it('cancels load seed when not confirmed', async () => {
-    showModalMock.mockResolvedValue({ action: null })
     const user = userEvent.setup()
 
     render(<TestApp />)
     await screen.findByRole('heading', { name: 'Settings' })
 
+    // Click the "Load Seed" button on the page
     await user.click(screen.getByText('Load Seed'))
 
+    // Wait for the modal to appear
     await waitFor(() => {
-      expect(showModalMock).toHaveBeenCalled()
+      expect(screen.getByText('This will replace all current data with fresh seed data. Continue?')).toBeInTheDocument()
+    })
+
+    // Click "Cancel"
+    await user.click(screen.getByText('Cancel'))
+
+    // Modal should close
+    await waitFor(() => {
+      expect(screen.queryByText('This will replace all current data with fresh seed data. Continue?')).not.toBeInTheDocument()
     })
 
     // Stats remain at 0
@@ -111,7 +122,6 @@ describe('SettingsPage', () => {
     await screen.findByRole('heading', { name: 'Settings' })
 
     await user.click(screen.getByText('Delete All'))
-
     expect(screen.getByText('Delete All Data?')).toBeInTheDocument()
   })
 
