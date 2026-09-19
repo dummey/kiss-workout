@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useTracker } from '../context'
@@ -6,9 +6,15 @@ import BodyMusclesChart from '../components/BodyMusclesChart'
 import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
-  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout, updateWorkout } = useTracker()
+  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, reorderWorkoutExercise, addWorkout, deleteWorkout, cloneWorkout, updateWorkout } = useTracker()
   const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
+
+  useEffect(() => {
+    if (data && !selectedWorkout && data.workouts.length > 0) {
+      setSelectedWorkout(data.workouts[0].name)
+    }
+  }, [data, selectedWorkout])
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [showAddWorkout, setShowAddWorkout] = useState(false)
@@ -70,6 +76,52 @@ export default function WorkoutsPage() {
 
   const tierOrder = ['T1', 'T2', 'T3', '']
   const tierLabels: Record<string, string> = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
+
+  function handleMoveExercise(exId: string, direction: 'up' | 'down') {
+    if (!workout) return
+    const ex = getExercise(exId)
+    if (!ex) return
+    const tier = ex.tier || ''
+    const tierExIds = workout.exercises.filter(id => {
+      const e = getExercise(id)
+      return e && (e.tier || '') === tier
+    })
+    const tierIdx = tierExIds.indexOf(exId)
+    if (direction === 'up' && tierIdx <= 0) return
+    if (direction === 'down' && tierIdx >= tierExIds.length - 1) return
+
+    const swapExId = direction === 'up' ? tierExIds[tierIdx - 1] : tierExIds[tierIdx + 1]
+    const globalIdx1 = workout.exercises.indexOf(exId)
+    const globalIdx2 = workout.exercises.indexOf(swapExId)
+    if (globalIdx1 === -1 || globalIdx2 === -1) return
+
+    reorderWorkoutExercise(selectedWorkout, globalIdx1, globalIdx2)
+  }
+
+  function canMoveUp(exId: string): boolean {
+    if (!workout) return false
+    const ex = getExercise(exId)
+    if (!ex) return false
+    const tier = ex.tier || ''
+    const tierExIds = workout.exercises.filter(id => {
+      const e = getExercise(id)
+      return e && (e.tier || '') === tier
+    })
+    return tierExIds.indexOf(exId) > 0
+  }
+
+  function canMoveDown(exId: string): boolean {
+    if (!workout) return false
+    const ex = getExercise(exId)
+    if (!ex) return false
+    const tier = ex.tier || ''
+    const tierExIds = workout.exercises.filter(id => {
+      const e = getExercise(id)
+      return e && (e.tier || '') === tier
+    })
+    const idx = tierExIds.indexOf(exId)
+    return idx >= 0 && idx < tierExIds.length - 1
+  }
 
   return (
     <div>
@@ -156,6 +208,24 @@ export default function WorkoutsPage() {
                         {tierExs.map(ex => (
                           <div key={ex.id} className="card" style={{ padding: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }} aria-label="Reorder exercise">
+                                <button
+                                  className="btn btn-sm reorder-btn"
+                                  onClick={() => handleMoveExercise(ex.id, 'up')}
+                                  disabled={!canMoveUp(ex.id)}
+                                  aria-label={`Move ${ex.name} up`}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  className="btn btn-sm reorder-btn"
+                                  onClick={() => handleMoveExercise(ex.id, 'down')}
+                                  disabled={!canMoveDown(ex.id)}
+                                  aria-label={`Move ${ex.name} down`}
+                                >
+                                  ▼
+                                </button>
+                              </div>
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
