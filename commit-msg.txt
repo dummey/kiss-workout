@@ -1,0 +1,8 @@
+fix(session-detail): use local date for isToday comparison
+
+Resolves merge conflict in SessionDetailPage.tsx — both branches fixed
+the same hydration-mismatch bug (UTC vs local date); kept the cleaner
+HEAD version with today/todayStr variables.
+
+Includes the performance fix from ab36cc6 (eliminate O(n²) redundant
+lookup in getPreviousPerformances).

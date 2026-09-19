@@ -15,7 +15,7 @@ export function useTracker(): TrackerContextValue {
 export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<TrackerData | null>(null)
   const [loading, setLoading] = useState(true)
-  const { incrementBackupCounter } = useBackup()
+  const { incrementBackupCounter, resetBackupMeta } = useBackup()
 
   useEffect(() => {
     initDB()
@@ -257,8 +257,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       sessions: []
     }
     await setStore('tracker', emptyData)
+    await resetBackupMeta()
     setData(emptyData)
-  }, [])
+  }, [resetBackupMeta])
 
   const importSession = useCallback((session: Session, overwrite = false) => {
     if (!data) return false
@@ -350,26 +351,28 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   }, [data, saveData])
 
   const getPreviousPerformances = useCallback((exId: string, currentDate: string): PreviousPerformance[] => {
-    let lastExerciseDate = ''
+    let bestSession: typeof data.sessions[number] | null = null
 
     if (data?.sessions) {
       data.sessions.forEach(session => {
         if (dateCompare(session.date, currentDate) >= 0) return
+        let hasMatch = false
         session.exercises.forEach(ex => {
-          if (ex.id !== exId && ex.originalId !== exId) return
+          if (!hasMatch && ex.id !== exId && ex.originalId !== exId) return
           if (!ex.weight && !ex.reps) return
-          if (!lastExerciseDate || dateCompare(session.date, lastExerciseDate) > 0) {
-            lastExerciseDate = session.date
+          if (!hasMatch) {
+            hasMatch = true
+            if (!bestSession || dateCompare(session.date, bestSession.date) > 0) {
+              bestSession = session
+            }
           }
         })
       })
     }
 
-    if (!lastExerciseDate) return []
+    if (!bestSession) return []
 
-    const exercises = data!.sessions
-      .find(s => s.date === lastExerciseDate)!
-      .exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps))
+    const exercises = bestSession.exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps))
 
     if (exercises.length === 0) return []
 
@@ -377,7 +380,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       weight: ex.weight || '—',
       reps: ex.reps || '—',
       sets: ex.sets !== null && ex.sets !== undefined ? ex.sets : '—',
-      date: lastExerciseDate
+      date: bestSession.date
     }))
   }, [data])
 
