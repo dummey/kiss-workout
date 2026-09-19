@@ -244,6 +244,17 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
+  const reorderWorkoutExercises = useCallback((workoutName: string, newOrder: string[]) => {
+    if (!data) return
+    const workout = data.workouts.find(w => w.name === workoutName)
+    if (!workout) return
+    if (newOrder.length !== workout.exercises.length) return
+    if (!newOrder.every(id => workout.exercises.includes(id))) return
+    const newData = { ...data }
+    workout.exercises = newOrder
+    saveData(newData)
+  }, [data, saveData])
+
   const resetToSeedData = useCallback(async () => {
     await setStore('tracker', SEED_DATA)
     setData(SEED_DATA)
@@ -423,8 +434,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     addExerciseToSession,
     removeExerciseFromSession,
     duplicateExerciseInSession,
-    cloneWorkout
-  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout])
+    cloneWorkout,
+    reorderWorkoutExercises
+  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercises])
 
   return (
     <TrackerContext.Provider value={value}>

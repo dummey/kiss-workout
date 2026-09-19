@@ -6,12 +6,13 @@ import BodyMusclesChart from '../components/BodyMusclesChart'
 import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
-  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout, updateWorkout } = useTracker()
+  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout, updateWorkout, reorderWorkoutExercises } = useTracker()
   const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [showAddWorkout, setShowAddWorkout] = useState(false)
+  const [reorderMode, setReorderMode] = useState(false)
   const [highlightedMuscles, setHighlightedMuscles] = useState<string[]>([])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
@@ -20,6 +21,18 @@ export default function WorkoutsPage() {
   const workout = data.workouts.find(w => w.name === selectedWorkout)
   const workoutExercises: Exercise[] = workout ? workout.exercises.map(id => getExercise(id)).filter((ex): ex is Exercise => ex !== undefined) : []
   const availableExercises = data.exercises.filter(ex => !workout?.exercises.includes(ex.id))
+
+  function handleMoveExercise(workoutName: string, exId: string, direction: 'up' | 'down') {
+    if (!workout) return
+    const ids = [...workout.exercises]
+    const idx = ids.indexOf(exId)
+    if (idx === -1) return
+    if (direction === 'up' && idx === 0) return
+    if (direction === 'down' && idx === ids.length - 1) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    ;[ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]]
+    reorderWorkoutExercises(workoutName, ids)
+  }
 
   function handleAddExercise(exId: string) {
     addExerciseToWorkout(selectedWorkout, exId)
@@ -102,6 +115,11 @@ export default function WorkoutsPage() {
               {workout.name} — {workoutExercises.length} exercises
             </h2>
             <div style={{ display: 'flex', gap: 8 }}>
+              {reorderMode ? (
+                <Button size="sm" onClick={() => setReorderMode(false)}>Done</Button>
+              ) : (
+                <Button size="sm" onClick={() => setReorderMode(true)}>Reorder</Button>
+              )}
               <Button size="sm" variant="primary" onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
               <Button size="sm" onClick={async () => {
                 const result = await showModal({
@@ -153,50 +171,75 @@ export default function WorkoutsPage() {
                         {tierLabels[tier]}
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {tierExs.map(ex => (
-                          <div key={ex.id} className="card" style={{ padding: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
-                                  {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
-                                  {ex.setup && <span className="tag setup">{ex.setup}</span>}
-                                  {ex.superset && <span className="tag ss">{ex.superset}</span>}
-                                </div>
-                                {ex.muscles && ex.muscles.length > 0 && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                    {ex.muscles.map(m => (
-                                      <span key={m} className="tag muscle" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>{m}</span>
-                                    ))}
+                        {tierExs.map((ex) => {
+                          const globalIdx = workout.exercises.indexOf(ex.id)
+                          return (
+                            <div key={ex.id} className="card" style={{ padding: 10 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {reorderMode && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+                                    <button
+                                      className="reorder-btn"
+                                      style={{ opacity: globalIdx === 0 ? 0.3 : 1 }}
+                                      onClick={() => handleMoveExercise(workout.name, ex.id, 'up')}
+                                      aria-label={`Move ${ex.name} up`}
+                                      disabled={globalIdx === 0}
+                                    >
+                                      ▲
+                                    </button>
+                                    <button
+                                      className="reorder-btn"
+                                      style={{ opacity: globalIdx === workout.exercises.length - 1 ? 0.3 : 1 }}
+                                      onClick={() => handleMoveExercise(workout.name, ex.id, 'down')}
+                                      aria-label={`Move ${ex.name} down`}
+                                      disabled={globalIdx === workout.exercises.length - 1}
+                                    >
+                                      ▼
+                                    </button>
                                   </div>
                                 )}
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+                                    {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
+                                    {ex.setup && <span className="tag setup">{ex.setup}</span>}
+                                    {ex.superset && <span className="tag ss">{ex.superset}</span>}
+                                  </div>
+                                  {ex.muscles && ex.muscles.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                      {ex.muscles.map(m => (
+                                        <span key={m} className="tag muscle" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>{m}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  style={{ fontSize: '0.65rem', padding: '3px 6px' }}
+                                  onClick={() => setHighlightedMuscles(
+                                    highlightedMuscles.length === ex.muscles?.length &&
+                                    highlightedMuscles.every(m => ex.muscles?.includes(m))
+                                      ? []
+                                      : (ex.muscles || [])
+                                  )}
+                                >
+                                  {highlightedMuscles.length === ex.muscles?.length &&
+                                   highlightedMuscles.every(m => ex.muscles?.includes(m))
+                                    ? 'Hide'
+                                    : 'Show'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  danger
+                                  style={{ fontSize: '0.65rem', padding: '3px 6px' }}
+                                  onClick={() => handleRemoveExercise(ex.id)}
+                                >
+                                  Remove
+                                </Button>
                               </div>
-                              <Button
-                                size="sm"
-                                style={{ fontSize: '0.65rem', padding: '3px 6px' }}
-                                onClick={() => setHighlightedMuscles(
-                                  highlightedMuscles.length === ex.muscles?.length &&
-                                  highlightedMuscles.every(m => ex.muscles?.includes(m))
-                                    ? []
-                                    : (ex.muscles || [])
-                                )}
-                              >
-                                {highlightedMuscles.length === ex.muscles?.length &&
-                                 highlightedMuscles.every(m => ex.muscles?.includes(m))
-                                  ? 'Hide'
-                                  : 'Show'}
-                              </Button>
-                              <Button
-                                size="sm"
-                                danger
-                                style={{ fontSize: '0.65rem', padding: '3px 6px' }}
-                                onClick={() => handleRemoveExercise(ex.id)}
-                              >
-                                Remove
-                              </Button>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   )

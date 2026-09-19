@@ -176,6 +176,29 @@ body {
 .exercise-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .exercise-list::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
+/* Reorder buttons */
+.reorder-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.65rem;
+  line-height: 1;
+  transition: all 0.15s;
+  width: 100%;
+  flex-shrink: 0;
+  min-height: 22px;
+}
+.reorder-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.reorder-btn:disabled {
+  cursor: not-allowed;
+}
+
 /* Mobile layout */
 @media (max-width: 700px) {
   body { padding: 14px; }
