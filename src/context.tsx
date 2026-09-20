@@ -356,13 +356,6 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     const ex = session.exercises.find(e => e.id === exId)
     if (!ex) return
 
-    if (ex.tier === 'T1') {
-      const t1Count = session.exercises.filter(e => e.tier === 'T1').length
-      if (t1Count <= 1) {
-        return
-      }
-    }
-
     const newData = { ...data }
     const target = newData.sessions.find(s => s.date === sessionDate)!
     target.exercises = target.exercises.filter(e => e.id !== exId)
