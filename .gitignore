@@ -35,3 +35,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# multica agent runtime
+.multica/
+.context
+.agent_context/
+.claude/
+AGENTS.md
+commit-msg.txt
+REPLY.md
+description.md
