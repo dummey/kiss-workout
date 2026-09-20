@@ -70,6 +70,24 @@ describe('ProgressionInfo', () => {
     expect(document.querySelector('.progression-info')).toBeNull()
   })
 
+  it('T1 guidance renders with preserved newlines', () => {
+    const prevInfo: PreviousPerformance[] = [{
+      weight: '225',
+      reps: '5',
+      sets: 3,
+      date: '2026-09-01'
+    }]
+
+    render(<ProgressionInfo tier="T1" prevInfo={prevInfo} />)
+    const nextStep = document.querySelector('.next-step') as HTMLElement
+    expect(nextStep).not.toBeNull()
+    // The guidance string contains \n — verify it's preserved in textContent
+    expect(nextStep.textContent).toContain('If fail, 5x3 > 6x2 > 10x1 > restart at 85% of 1rep.')
+    expect(nextStep.textContent).toContain('Add 5lbs (bench) or 10lbs (squat and deadlift).')
+    // Verify the newline character is present (white-space: pre-line will render it)
+    expect(nextStep.textContent).toContain('\n')
+  })
+
   it('renders comma-separated list when multiple performances on same date', () => {
     const prevInfo: PreviousPerformance[] = [
       { weight: '225', reps: '5', sets: 3, date: '2026-09-01' },
