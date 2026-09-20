@@ -41,3 +41,7 @@ next-env.d.ts
 .context
 .agent_context/
 .claude/
+AGENTS.md
+commit-msg.txt
+REPLY.md
+description.md
