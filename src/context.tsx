@@ -350,18 +350,6 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
   const removeExerciseFromSession = useCallback((sessionDate: string, exId: string) => {
     if (!data) return
-    const session = data.sessions.find(s => s.date === sessionDate)
-    if (!session) return
-
-    const ex = session.exercises.find(e => e.id === exId)
-    if (!ex) return
-
-    if (ex.tier === 'T1') {
-      const t1Count = session.exercises.filter(e => e.tier === 'T1').length
-      if (t1Count <= 1) {
-        return
-      }
-    }
 
     const newData = { ...data }
     const target = newData.sessions.find(s => s.date === sessionDate)!
