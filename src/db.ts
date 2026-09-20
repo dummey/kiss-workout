@@ -9,8 +9,14 @@ function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     request.onerror = () => reject(request.error)
+    request.onblocked = () =>
+      reject(new Error('IndexedDB open blocked by another tab'))
     request.onsuccess = () => {
       db = request.result
+      db.onversionchange = () => {
+        db?.close()
+        db = null
+      }
       resolve(db)
     }
     request.onupgradeneeded = (e) => {
