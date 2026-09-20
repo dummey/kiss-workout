@@ -8,7 +8,7 @@ import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession } = useTracker()
+  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession } = useTracker()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
@@ -294,14 +294,11 @@ export default function SessionDetailPage() {
                           if (date) duplicateExerciseInSession(date, ex.idx)
                         }}>⧉</Button>
                         <Button size="sm" danger title="Remove exercise" onClick={() => {
-                          if (ex.tier === 'T1') {
-                            const t1Count = session?.exercises.filter(e => e.tier === 'T1').length || 0
-                            if (t1Count <= 1) {
-                              setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier, canRemove: false })
-                              return
-                            }
+                          if (!canRemoveExerciseFromSession(date!, ex.id)) {
+                            setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier, canRemove: false })
+                          } else {
+                            setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier || '', canRemove: true })
                           }
-                          setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier || '', canRemove: true })
                         }}>×</Button>
                       </div>
                     </div>
