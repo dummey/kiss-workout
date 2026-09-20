@@ -44,5 +44,12 @@ next-env.d.ts
 AGENTS.md
 commit-msg.txt
 REPLY.md
+reply.md
 description.md
 comment.md
+review-request.md
+intake-summary.md
+screenshot.cjs
+screenshot*.png
+manifest.jsonl
+IDEA.md
