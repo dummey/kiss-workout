@@ -178,6 +178,14 @@ describe('BackupContext', () => {
     mockedGetStoreRef.mockResolvedValue({ lastBackupDate: null, sessionsSinceBackup: 1 })
 
     await user.click(screen.getByText('Inc'))
+
+    await waitFor(() => {
+      expect(mockedSetStoreRef).toHaveBeenCalledWith('backup-meta', { lastBackupDate: null, sessionsSinceBackup: 2 })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('2')).toBeInTheDocument()
+    })
   })
 
   it('recordBackup sets lastBackupDate and resets counter', async () => {
