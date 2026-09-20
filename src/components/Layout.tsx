@@ -9,7 +9,7 @@ export default function Layout() {
     <div className="layout">
       <nav className="sidebar">
         <div className="sidebar-logo">
-          <img src={logo} alt="KISS Workout Tracker" style={{ width: '100%', height: 'auto' }} />
+          <img src={logo} alt="KISS Workout Tracker" width={1024} height={1024} style={{ width: '100%', height: 'auto' }} />
           <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: 4 }}>pre-alpha</p>
         </div>
 
