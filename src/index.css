@@ -125,7 +125,7 @@ body {
   display: flex; flex-direction: column; gap: 2px;
 }
 .progression-info .last-time { color: #b8c0d0; }
-.progression-info .next-step { color: var(--t3); font-weight: 600; }
+.progression-info .next-step { color: var(--t3); font-weight: 600; white-space: pre-line; }
 
 /* Navigation */
 .nav-link {
