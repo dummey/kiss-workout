@@ -1,21 +1,10 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BackupProvider, useBackup, BackupContext } from '../context/BackupContext'
+import { BackupProvider, useBackup } from '../context/BackupContext'
 import { getStore, setStore, deleteStore } from '../db'
 
-vi.mock('../db', () => ({
-  getStore: vi.fn(),
-  setStore: vi.fn(),
-  deleteStore: vi.fn(),
-}))
-
-const mockedGetStore = vi.mocked(getStore)
-const mockedSetStore = vi.fn().mockResolvedValue(undefined)
-const mockedDeleteStore = vi.fn().mockResolvedValue(undefined)
-
-// Re-mock to use the actual mock implementations
 vi.mock('../db', () => ({
   getStore: vi.fn(),
   setStore: vi.fn().mockResolvedValue(undefined),
