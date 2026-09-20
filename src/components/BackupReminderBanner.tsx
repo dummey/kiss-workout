@@ -11,7 +11,10 @@ export default function BackupReminderBanner() {
     ? Math.floor((Date.now() - new Date(meta.lastBackupDate).getTime()) / (1000 * 60 * 60 * 24))
     : null
 
-  const message = daysSince !== null
+  const isDismissedRecently = meta.dismissedAt !== null &&
+    (Date.now() - new Date(meta.dismissedAt).getTime()) / (1000 * 60 * 60 * 24) < 14
+
+  const message = (daysSince !== null && !isDismissedRecently)
     ? `It's been ${daysSince} days since your last backup.`
     : `You have ${meta.sessionsSinceBackup} sessions without a backup.`
 

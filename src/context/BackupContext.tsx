@@ -5,6 +5,7 @@ import type { TrackerData } from '../types'
 export interface BackupMeta {
   lastBackupDate: string | null
   sessionsSinceBackup: number
+  dismissedAt: string | null
 }
 
 interface BackupContextValue {
@@ -28,7 +29,8 @@ export function useBackup(): BackupContextValue {
 export function BackupProvider({ children }: { children: React.ReactNode }) {
   const [meta, setMeta] = useState<BackupMeta>({
     lastBackupDate: null,
-    sessionsSinceBackup: 0
+    sessionsSinceBackup: 0,
+    dismissedAt: null
   })
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
 
   const incrementBackupCounter = useCallback(async () => {
     const stored = await getStore('backup-meta') as BackupMeta | null
-    const current = stored || { lastBackupDate: null, sessionsSinceBackup: 0 }
+    const current = stored || { lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null }
     const newMeta = { ...current, sessionsSinceBackup: current.sessionsSinceBackup + 1 }
     await setStore('backup-meta', newMeta)
     setMeta(newMeta)
@@ -52,7 +54,8 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
   const recordBackup = useCallback(async () => {
     const newMeta: BackupMeta = {
       lastBackupDate: new Date().toISOString(),
-      sessionsSinceBackup: 0
+      sessionsSinceBackup: 0,
+      dismissedAt: null
     }
     await setStore('backup-meta', newMeta)
     setMeta(newMeta)
@@ -77,20 +80,24 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
   }, [recordBackup])
 
   const dismissReminder = useCallback(() => {
-    const newMeta = { ...meta, sessionsSinceBackup: 0 }
+    const newMeta = { ...meta, sessionsSinceBackup: 0, dismissedAt: new Date().toISOString() }
     setMeta(newMeta)
     setStore('backup-meta', newMeta).catch(() => {})
   }, [meta])
 
   const resetBackupMeta = useCallback(async () => {
     await deleteStore('backup-meta')
-    setMeta({ lastBackupDate: null, sessionsSinceBackup: 0 })
+    setMeta({ lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null })
   }, [])
 
   const shouldShowReminder = (() => {
-    const { lastBackupDate, sessionsSinceBackup } = meta
+    const { lastBackupDate, sessionsSinceBackup, dismissedAt } = meta
     if (sessionsSinceBackup >= 10) return true
-    if (lastBackupDate) {
+
+    const isDismissedRecently = dismissedAt &&
+      (Date.now() - new Date(dismissedAt).getTime()) / (1000 * 60 * 60 * 24) < 14
+
+    if (lastBackupDate && !isDismissedRecently) {
       const daysSince = (Date.now() - new Date(lastBackupDate).getTime()) / (1000 * 60 * 60 * 24)
       if (daysSince >= 14) return true
     }

@@ -323,4 +323,85 @@ describe('BackupContext', () => {
       expect(mockedDeleteStoreRef).toHaveBeenCalledWith('backup-meta')
     })
   })
+
+  it('dismissReminder sets dismissedAt and resets sessionsSinceBackup', async () => {
+    const fifteenDaysAgo = new Date()
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
+    const mockedGetStoreRef = vi.mocked(getStore)
+    mockedGetStoreRef.mockResolvedValue({ lastBackupDate: fifteenDaysAgo.toISOString(), sessionsSinceBackup: 5, dismissedAt: null })
+    const mockedSetStoreRef = vi.mocked(setStore)
+    mockedSetStoreRef.mockResolvedValue(undefined)
+
+    function TestComp() {
+      const { meta, dismissReminder } = useBackup()
+      return (
+        <div>
+          <span>{meta.sessionsSinceBackup}</span>
+          <button onClick={() => dismissReminder()}>Dismiss</button>
+        </div>
+      )
+    }
+
+    const user = userEvent.setup()
+    render(
+      <BackupProvider>
+        <TestComp />
+      </BackupProvider>
+    )
+
+    await user.click(screen.getByText('Dismiss'))
+    await waitFor(() => {
+      expect(mockedSetStoreRef).toHaveBeenCalledWith('backup-meta', expect.objectContaining({
+        sessionsSinceBackup: 0,
+        dismissedAt: expect.any(String)
+      }))
+    })
+  })
+
+  it('shouldShowReminder is false after dismissReminder when lastBackupDate is old', async () => {
+    const fifteenDaysAgo = new Date()
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
+    const justNow = new Date()
+    const mockedGetStoreRef = vi.mocked(getStore)
+    mockedGetStoreRef.mockResolvedValue({ lastBackupDate: fifteenDaysAgo.toISOString(), sessionsSinceBackup: 0, dismissedAt: justNow.toISOString() })
+
+    function TestComp() {
+      const { shouldShowReminder } = useBackup()
+      return <div>{String(shouldShowReminder)}</div>
+    }
+
+    render(
+      <BackupProvider>
+        <TestComp />
+      </BackupProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('false')).toBeInTheDocument()
+    })
+  })
+
+  it('shouldShowReminder becomes true after dismiss cooldown expires', async () => {
+    const fifteenDaysAgo = new Date()
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
+    const twentyDaysAgo = new Date()
+    twentyDaysAgo.setDate(twentyDaysAgo.getDate() - 20)
+    const mockedGetStoreRef = vi.mocked(getStore)
+    mockedGetStoreRef.mockResolvedValue({ lastBackupDate: fifteenDaysAgo.toISOString(), sessionsSinceBackup: 0, dismissedAt: twentyDaysAgo.toISOString() })
+
+    function TestComp() {
+      const { shouldShowReminder } = useBackup()
+      return <div>{String(shouldShowReminder)}</div>
+    }
+
+    render(
+      <BackupProvider>
+        <TestComp />
+      </BackupProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('true')).toBeInTheDocument()
+    })
+  })
 })
