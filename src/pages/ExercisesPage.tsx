@@ -16,15 +16,16 @@ export default function ExercisesPage() {
 
   // ✅ useMemo BEFORE the conditional return — hook count must be stable
   const filteredExercises = useMemo(() => {
-    if (!searchQuery.trim()) return data!.exercises
+    const exercises = data?.exercises ?? []
+    if (!searchQuery.trim()) return exercises
     const query = searchQuery.toLowerCase()
-    return data!.exercises.filter(ex =>
+    return exercises.filter(ex =>
       ex.name.toLowerCase().includes(query) ||
       (ex.muscles && ex.muscles.some(m => m.toLowerCase().includes(query))) ||
       (ex.tier && ex.tier.toLowerCase().includes(query)) ||
       (ex.setup && ex.setup.toLowerCase().includes(query))
     )
-  }, [data!.exercises, searchQuery])
+  }, [data?.exercises, searchQuery])
 
   // ✅ Early return AFTER all hooks
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
