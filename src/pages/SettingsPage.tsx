@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useTracker } from '../context'
-import { getStore, setStore } from '../db'
+import { setStore } from '../db'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useBackup } from '../context/BackupContext'
@@ -9,33 +9,31 @@ import type { TrackerData } from '../types'
 export default function SettingsPage() {
   const { data, deleteAllData, resetToSeedData } = useTracker()
   const { showModal } = useModal()
-  const { meta, recordBackup } = useBackup()
+  const { meta, recordBackup, exportBackup } = useBackup()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function handleExport() {
+  async function handleExport() {
     setExporting(true)
-    getStore('tracker').then((data) => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      recordBackup()
-    }).catch((err) => {
+    try {
+      const success = await exportBackup()
+      if (!success) {
+        showModal({
+          title: 'Nothing to Export',
+          message: 'There is no data to export yet.',
+          actions: [{ label: 'OK', value: null }]
+        })
+      }
+    } catch (err) {
       showModal({
         title: 'Export Failed',
-        message: 'Failed to export: ' + err.message,
+        message: 'Failed to export: ' + (err as Error).message,
         actions: [{ label: 'OK', value: null }]
       })
-    }).finally(() => {
+    } finally {
       setExporting(false)
-    })
+    }
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {

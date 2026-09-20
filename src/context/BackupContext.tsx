@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react'
 import { getStore, setStore, deleteStore } from '../db'
+import type { TrackerData } from '../types'
 
 export interface BackupMeta {
   lastBackupDate: string | null
@@ -10,6 +11,7 @@ interface BackupContextValue {
   meta: BackupMeta
   incrementBackupCounter: () => Promise<void>
   recordBackup: () => Promise<void>
+  exportBackup: () => Promise<boolean>
   resetBackupMeta: () => Promise<void>
   dismissReminder: () => void
   shouldShowReminder: boolean
@@ -56,6 +58,24 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
     setMeta(newMeta)
   }, [])
 
+  const exportBackup = useCallback(async (): Promise<boolean> => {
+    const data = await getStore('tracker')
+    if (!data || (data as TrackerData).sessions.length === 0) {
+      return false
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    await recordBackup()
+    return true
+  }, [recordBackup])
+
   const dismissReminder = useCallback(() => {
     const newMeta = { ...meta, sessionsSinceBackup: 0 }
     setMeta(newMeta)
@@ -79,7 +99,7 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
   })()
 
   return (
-    <BackupContext.Provider value={{ meta, incrementBackupCounter, recordBackup, dismissReminder, shouldShowReminder, resetBackupMeta }}>
+    <BackupContext.Provider value={{ meta, incrementBackupCounter, recordBackup, exportBackup, dismissReminder, shouldShowReminder, resetBackupMeta }}>
       {children}
     </BackupContext.Provider>
   )

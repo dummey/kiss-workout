@@ -26,6 +26,84 @@ describe('BackupContext', () => {
     spy.mockRestore()
   })
 
+  it('exportBackup returns false when tracker store is empty', async () => {
+    const mockedGetStoreRef = vi.mocked(getStore)
+    mockedGetStoreRef.mockResolvedValue(null)
+    const mockedSetStoreRef = vi.mocked(setStore)
+    mockedSetStoreRef.mockResolvedValue(undefined)
+
+    function TestComp() {
+      const { exportBackup } = useBackup()
+      return <button onClick={() => exportBackup()}>Export</button>
+    }
+
+    const user = userEvent.setup()
+    render(
+      <BackupProvider>
+        <TestComp />
+      </BackupProvider>
+    )
+
+    await user.click(screen.getByText('Export'))
+    await waitFor(() => {
+      expect(mockedGetStoreRef).toHaveBeenCalledWith('tracker')
+    })
+    // Should not call setStore (no recordBackup) when data is empty
+    expect(mockedSetStoreRef).not.toHaveBeenCalled()
+  })
+
+  it('exportBackup downloads data and calls recordBackup when store has data', async () => {
+    const mockData = { sessions: [{ date: '2026-01-01' }] }
+    const mockedGetStoreRef = vi.mocked(getStore)
+    mockedGetStoreRef.mockResolvedValue(mockData)
+    const mockedSetStoreRef = vi.mocked(setStore)
+    mockedSetStoreRef.mockResolvedValue(undefined)
+
+    // Mock URL.createObjectURL and URL.revokeObjectURL
+    const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock')
+    const mockRevokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', {
+      createObjectURL: mockCreateObjectURL,
+      revokeObjectURL: mockRevokeObjectURL,
+    })
+
+    // Mock document.createElement and click
+    const mockClick = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName)
+      if (tagName === 'a') {
+        el.click = mockClick
+      }
+      return el
+    })
+
+    function TestComp() {
+      const { exportBackup } = useBackup()
+      return <button onClick={() => exportBackup()}>Export</button>
+    }
+
+    const user = userEvent.setup()
+    render(
+      <BackupProvider>
+        <TestComp />
+      </BackupProvider>
+    )
+
+    await user.click(screen.getByText('Export'))
+    await waitFor(() => {
+      expect(mockCreateObjectURL).toHaveBeenCalled()
+    })
+    expect(mockClick).toHaveBeenCalled()
+    expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock')
+    // recordBackup should have been called (setStore with backup-meta)
+    await waitFor(() => {
+      expect(mockedSetStoreRef).toHaveBeenCalledWith('backup-meta', expect.objectContaining({ sessionsSinceBackup: 0 }))
+    })
+
+    vi.restoreAllMocks()
+  })
+
   it('initializes with default meta when no stored data', async () => {
     const mockedGetStoreRef = vi.mocked(getStore)
     mockedGetStoreRef.mockResolvedValue(null)
