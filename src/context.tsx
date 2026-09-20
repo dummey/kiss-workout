@@ -244,14 +244,21 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
-  const reorderWorkoutExercises = useCallback((workoutName: string, newOrder: string[]) => {
+  const reorderWorkoutExercise = useCallback((workoutName: string, fromIndex: number, toIndex: number) => {
     if (!data) return
     const workout = data.workouts.find(w => w.name === workoutName)
     if (!workout) return
-    if (newOrder.length !== workout.exercises.length) return
-    if (!newOrder.every(id => workout.exercises.includes(id))) return
+    if (fromIndex < 0 || fromIndex >= workout.exercises.length) return
+    if (toIndex < 0 || toIndex >= workout.exercises.length) return
+    if (fromIndex === toIndex) return
+
+    const newExercises = [...workout.exercises]
+    const [removed] = newExercises.splice(fromIndex, 1)
+    newExercises.splice(toIndex, 0, removed)
+
     const newData = { ...data }
-    workout.exercises = newOrder
+    const target = newData.workouts.find(w => w.name === workoutName)!
+    target.exercises = newExercises
     saveData(newData)
   }, [data, saveData])
 
@@ -285,8 +292,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       newData.sessions = [session, ...data.sessions]
     }
     saveData(newData)
+    incrementBackupCounter()
     return true
-  }, [data, saveData])
+  }, [data, saveData, incrementBackupCounter])
 
   const addExerciseToSession = useCallback((sessionDate: string, exId: string) => {
     if (!data) return
@@ -435,8 +443,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     removeExerciseFromSession,
     duplicateExerciseInSession,
     cloneWorkout,
-    reorderWorkoutExercises
-  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercises])
+    reorderWorkoutExercise
+  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
 
   return (
     <TrackerContext.Provider value={value}>

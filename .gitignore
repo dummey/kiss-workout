@@ -38,4 +38,6 @@ next-env.d.ts
 
 # multica agent runtime
 .multica/
-AGENTS.md
+.context
+.agent_context/
+.claude/
