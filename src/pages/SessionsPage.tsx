@@ -171,9 +171,9 @@ export default function SessionsPage() {
             id="import-session-input"
             ref={fileInputRef}
           />
-          <label htmlFor="import-session-input" className="btn" style={{ cursor: 'pointer' }}>
+          <Button onClick={() => fileInputRef.current?.click()}>
             Import Session
-          </label>
+          </Button>
           <Button variant="primary" onClick={() => {
             showModal({
               title: 'Add Session',
