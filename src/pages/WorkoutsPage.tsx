@@ -6,7 +6,7 @@ import BodyMusclesChart from '../components/BodyMusclesChart'
 import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
-  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, deleteWorkout, cloneWorkout, updateWorkout, reorderWorkoutExercises } = useTracker()
+  const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, reorderWorkoutExercise, addWorkout, deleteWorkout, cloneWorkout, updateWorkout } = useTracker()
   const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
 
@@ -18,7 +18,6 @@ export default function WorkoutsPage() {
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [showAddWorkout, setShowAddWorkout] = useState(false)
-  const [reorderMode, setReorderMode] = useState(false)
   const [highlightedMuscles, setHighlightedMuscles] = useState<string[]>([])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
@@ -27,24 +26,6 @@ export default function WorkoutsPage() {
   const workout = data.workouts.find(w => w.name === selectedWorkout)
   const workoutExercises: Exercise[] = workout ? workout.exercises.map(id => getExercise(id)).filter((ex): ex is Exercise => ex !== undefined) : []
   const availableExercises = data.exercises.filter(ex => !workout?.exercises.includes(ex.id))
-
-  function handleMoveExercise(workoutName: string, exId: string, direction: 'up' | 'down') {
-    if (!workout) return
-    const ids = [...workout.exercises]
-    const idx = ids.indexOf(exId)
-    if (idx === -1) return
-    if (direction === 'up' && idx === 0) return
-    if (direction === 'down' && idx === ids.length - 1) return
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
-
-    // Prevent crossing tier boundaries
-    const currentEx = getExercise(exId)
-    const swapEx = getExercise(ids[swapIdx])
-    if (currentEx && swapEx && (currentEx.tier || '') !== (swapEx.tier || '')) return
-
-    ;[ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]]
-    reorderWorkoutExercises(workoutName, ids)
-  }
 
   function handleAddExercise(exId: string) {
     addExerciseToWorkout(selectedWorkout, exId)
@@ -93,27 +74,54 @@ export default function WorkoutsPage() {
     })
   }
 
+  const tierOrder = ['T1', 'T2', 'T3', '']
+  const tierLabels: Record<string, string> = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
+
+  function handleMoveExercise(exId: string, direction: 'up' | 'down') {
+    if (!workout) return
+    const ex = getExercise(exId)
+    if (!ex) return
+    const tier = ex.tier || ''
+    const tierExIds = workout.exercises.filter(id => {
+      const e = getExercise(id)
+      return e && (e.tier || '') === tier
+    })
+    const tierIdx = tierExIds.indexOf(exId)
+    if (direction === 'up' && tierIdx <= 0) return
+    if (direction === 'down' && tierIdx >= tierExIds.length - 1) return
+
+    const swapExId = direction === 'up' ? tierExIds[tierIdx - 1] : tierExIds[tierIdx + 1]
+    const globalIdx1 = workout.exercises.indexOf(exId)
+    const globalIdx2 = workout.exercises.indexOf(swapExId)
+    if (globalIdx1 === -1 || globalIdx2 === -1) return
+
+    reorderWorkoutExercise(selectedWorkout, globalIdx1, globalIdx2)
+  }
+
   function canMoveUp(exId: string): boolean {
     if (!workout) return false
-    const idx = workout.exercises.indexOf(exId)
-    if (idx <= 0) return false
-    const currentEx = getExercise(exId)
-    const prevEx = getExercise(workout.exercises[idx - 1])
-    if (!currentEx || !prevEx) return false
-    return (currentEx.tier || '') === (prevEx.tier || '')
+    const ex = getExercise(exId)
+    if (!ex) return false
+    const tier = ex.tier || ''
+    const tierExIds = workout.exercises.filter(id => {
+      const e = getExercise(id)
+      return e && (e.tier || '') === tier
+    })
+    return tierExIds.indexOf(exId) > 0
   }
 
   function canMoveDown(exId: string): boolean {
     if (!workout) return false
-    const idx = workout.exercises.indexOf(exId)
-    if (idx < 0 || idx >= workout.exercises.length - 1) return false
-    const currentEx = getExercise(exId)
-    const nextEx = getExercise(workout.exercises[idx + 1])
-    if (!currentEx || !nextEx) return false
-    return (currentEx.tier || '') === (nextEx.tier || '')
+    const ex = getExercise(exId)
+    if (!ex) return false
+    const tier = ex.tier || ''
+    const tierExIds = workout.exercises.filter(id => {
+      const e = getExercise(id)
+      return e && (e.tier || '') === tier
+    })
+    const idx = tierExIds.indexOf(exId)
+    return idx >= 0 && idx < tierExIds.length - 1
   }
-  const tierOrder = ['T1', 'T2', 'T3', '']
-  const tierLabels: Record<string, string> = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
 
   return (
     <div>
@@ -146,11 +154,6 @@ export default function WorkoutsPage() {
               {workout.name} — {workoutExercises.length} exercises
             </h2>
             <div style={{ display: 'flex', gap: 8 }}>
-              {reorderMode ? (
-                <Button size="sm" onClick={() => setReorderMode(false)}>Done</Button>
-              ) : (
-                <Button size="sm" onClick={() => setReorderMode(true)}>Reorder</Button>
-              )}
               <Button size="sm" variant="primary" onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
               <Button size="sm" onClick={async () => {
                 const result = await showModal({
@@ -202,74 +205,70 @@ export default function WorkoutsPage() {
                         {tierLabels[tier]}
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {tierExs.map((ex) => {
-                          return (
-                            <div key={ex.id} className="card" style={{ padding: 10 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                {reorderMode && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
-                                    <button
-                                      className="reorder-btn"
-                                      style={{ opacity: canMoveUp(ex.id) ? 1 : 0.3 }}
-                                      onClick={() => handleMoveExercise(workout.name, ex.id, 'up')}
-                                      aria-label={`Move ${ex.name} up`}
-                                      disabled={!canMoveUp(ex.id)}
-                                    >
-                                      ▲
-                                    </button>
-                                    <button
-                                      className="reorder-btn"
-                                      style={{ opacity: canMoveDown(ex.id) ? 1 : 0.3 }}
-                                      onClick={() => handleMoveExercise(workout.name, ex.id, 'down')}
-                                      aria-label={`Move ${ex.name} down`}
-                                      disabled={!canMoveDown(ex.id)}
-                                    >
-                                      ▼
-                                    </button>
+                        {tierExs.map(ex => (
+                          <div key={ex.id} className="card" style={{ padding: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }} aria-label="Reorder exercise">
+                                <button
+                                  className="btn btn-sm reorder-btn"
+                                  onClick={() => handleMoveExercise(ex.id, 'up')}
+                                  disabled={!canMoveUp(ex.id)}
+                                  style={{ opacity: canMoveUp(ex.id) ? 1 : 0.3 }}
+                                  aria-label={`Move ${ex.name} up`}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  className="btn btn-sm reorder-btn"
+                                  onClick={() => handleMoveExercise(ex.id, 'down')}
+                                  disabled={!canMoveDown(ex.id)}
+                                  style={{ opacity: canMoveDown(ex.id) ? 1 : 0.3 }}
+                                  aria-label={`Move ${ex.name} down`}
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
+                                  {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
+                                  {ex.setup && <span className="tag setup">{ex.setup}</span>}
+                                  {ex.superset && <span className="tag ss">{ex.superset}</span>}
+                                </div>
+                                {ex.muscles && ex.muscles.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                    {ex.muscles.map(m => (
+                                      <span key={m} className="tag muscle" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>{m}</span>
+                                    ))}
                                   </div>
                                 )}
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
-                                    {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
-                                    {ex.setup && <span className="tag setup">{ex.setup}</span>}
-                                    {ex.superset && <span className="tag ss">{ex.superset}</span>}
-                                  </div>
-                                  {ex.muscles && ex.muscles.length > 0 && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                      {ex.muscles.map(m => (
-                                        <span key={m} className="tag muscle" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>{m}</span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  style={{ fontSize: '0.65rem', padding: '3px 6px' }}
-                                  onClick={() => setHighlightedMuscles(
-                                    highlightedMuscles.length === ex.muscles?.length &&
-                                    highlightedMuscles.every(m => ex.muscles?.includes(m))
-                                      ? []
-                                      : (ex.muscles || [])
-                                  )}
-                                >
-                                  {highlightedMuscles.length === ex.muscles?.length &&
-                                   highlightedMuscles.every(m => ex.muscles?.includes(m))
-                                    ? 'Hide'
-                                    : 'Show'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  danger
-                                  style={{ fontSize: '0.65rem', padding: '3px 6px' }}
-                                  onClick={() => handleRemoveExercise(ex.id)}
-                                >
-                                  Remove
-                                </Button>
                               </div>
+                              <Button
+                                size="sm"
+                                style={{ fontSize: '0.65rem', padding: '3px 6px' }}
+                                onClick={() => setHighlightedMuscles(
+                                  highlightedMuscles.length === ex.muscles?.length &&
+                                  highlightedMuscles.every(m => ex.muscles?.includes(m))
+                                    ? []
+                                    : (ex.muscles || [])
+                                )}
+                              >
+                                {highlightedMuscles.length === ex.muscles?.length &&
+                                 highlightedMuscles.every(m => ex.muscles?.includes(m))
+                                  ? 'Hide'
+                                  : 'Show'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                danger
+                                style={{ fontSize: '0.65rem', padding: '3px 6px' }}
+                                onClick={() => handleRemoveExercise(ex.id)}
+                              >
+                                Remove
+                              </Button>
                             </div>
-                          )
-                        })}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )
