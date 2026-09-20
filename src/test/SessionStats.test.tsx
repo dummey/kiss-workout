@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import SessionStats from '../components/SessionStats'
 import type { Session } from '../types'
 
 describe('SessionStats', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   const createSession = (date: string, elapsedTime: number, exercises: Array<{weight?: string; reps?: string; sets?: number | null}> = []): Session => ({
     date,
     workoutName: 'Test Workout',
@@ -66,5 +70,18 @@ describe('SessionStats', () => {
     ]
     render(<SessionStats sessions={sessions} />)
     expect(screen.getByText('90 min')).toBeInTheDocument()
+  })
+
+  it('counts consecutive weeks with sessions for current streak', () => {
+    // Freeze time to Monday Sep 21, 2026 — current week is [Sep 20, Sep 27)
+    vi.setSystemTime(new Date('2026-09-21T12:00:00'))
+
+    const sessions = [
+      createSession('2026-09-21', 3600), // current week [Sep 20, Sep 27)
+      createSession('2026-09-20', 3600), // current week (same week, should not double-count)
+      createSession('2026-09-15', 3600), // previous week [Sep 13, Sep 20)
+    ]
+    render(<SessionStats sessions={sessions} />)
+    expect(screen.getByText('2 weeks')).toBeInTheDocument()
   })
 })

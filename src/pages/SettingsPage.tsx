@@ -4,6 +4,7 @@ import { setStore } from '../db'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useBackup } from '../context/BackupContext'
+import { validateTrackerData } from '../validation'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
@@ -56,10 +57,11 @@ export default function SettingsPage() {
       try {
         const text = await file.text()
         const importedData = JSON.parse(text) as TrackerData
-        if (!importedData || typeof importedData !== 'object' || !Array.isArray(importedData.exercises) || !Array.isArray(importedData.workouts) || !Array.isArray(importedData.sessions)) {
+        const validation = validateTrackerData(importedData)
+        if (!validation.valid) {
           showModal({
             title: 'Invalid File',
-            message: 'Invalid backup file: missing exercises, workouts, or sessions array.',
+            message: `Invalid backup file: ${validation.error}`,
             actions: [{ label: 'OK', value: null }]
           })
           return

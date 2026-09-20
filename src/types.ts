@@ -53,6 +53,8 @@ export interface PreviousPerformance {
 export interface TrackerContextValue {
   data: TrackerData | null
   loading: boolean
+  error: string | null
+  clearError: () => void
   getExercise: (id: string) => Exercise | undefined
   getWorkoutExercises: (workoutName: string) => Exercise[]
   addSession: (date: string, workoutType: string) => Session | null | undefined

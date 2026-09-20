@@ -25,31 +25,45 @@ export default function SessionDetailPage() {
   }
 
   useEffect(() => {
-    return () => {
-      if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+    if (!restIsRunning) {
+      if (restIntervalRef.current) {
+        clearInterval(restIntervalRef.current)
+        restIntervalRef.current = null
+      }
+      return
     }
-  }, [])
 
-  useEffect(() => {
-    if (restIsRunning) {
-      restIntervalRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - restStartTimeRef.current) / 1000)
-        const duration = tierRestDurations[restTierRef.current] || 120
-        const remaining = duration - elapsed
-        if (remaining <= 0) {
-          setRestTime(0)
-          setRestIsRunning(false)
-          if (restIntervalRef.current) clearInterval(restIntervalRef.current)
-          navigator.vibrate?.([200, 100, 200])
-        } else {
-          setRestTime(remaining)
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - restStartTimeRef.current) / 1000)
+      const duration = tierRestDurations[restTierRef.current] || 120
+      const remaining = duration - elapsed
+      if (remaining <= 0) {
+        setRestTime(0)
+        setRestIsRunning(false)
+        if (restIntervalRef.current) {
+          clearInterval(restIntervalRef.current)
+          restIntervalRef.current = null
         }
-      }, 1000)
-    } else {
-      if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+        navigator.vibrate?.([200, 100, 200])
+      } else {
+        setRestTime(remaining)
+      }
     }
+
+    tick()
+    restIntervalRef.current = setInterval(tick, 250)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
-      if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+      if (restIntervalRef.current) {
+        clearInterval(restIntervalRef.current)
+        restIntervalRef.current = null
+      }
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [restIsRunning])
 
@@ -119,7 +133,8 @@ export default function SessionDetailPage() {
 
   useEffect(() => {
     if (!isRunning || !date) return
-    const interval = setInterval(() => {
+
+    const tick = () => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
       setElapsedTime(elapsed)
       lastTimeRef.current = elapsed
@@ -127,8 +142,20 @@ export default function SessionDetailPage() {
         lastSaveRef.current = elapsed
         updateSessionTimeRef.current(date, elapsed)
       }
-    }, 1000)
-    return () => clearInterval(interval)
+    }
+
+    tick()
+    const interval = setInterval(tick, 250)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, date])
 

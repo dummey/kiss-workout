@@ -7,6 +7,7 @@ import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal, useModalControl } from '../components/ModalProvider'
 import { usePagination } from '../hooks/usePagination'
+import { validateSession } from '../validation'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -114,10 +115,11 @@ export default function SessionsPage() {
     const text = await file.text()
     try {
       const session = JSON.parse(text) as Session
-      if (!session || typeof session !== 'object' || !session.date || !session.workoutName || !Array.isArray(session.exercises)) {
+      const validation = validateSession(session)
+      if (!validation.valid) {
         showModal({
           title: 'Invalid File',
-          message: 'Invalid session file: missing date, workoutName, or exercises array.',
+          message: `Invalid session file: ${validation.error}`,
           actions: [{ label: 'OK', value: null }]
         })
         return

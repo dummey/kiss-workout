@@ -1,4 +1,4 @@
-import { useMemo, useState, memo } from 'react'
+import { useMemo, useState, memo, useRef } from 'react'
 import type { Session } from '../types'
 
 interface CalendarHeatmapProps {
@@ -32,6 +32,7 @@ const CELL = 14
 const GAP = 1
 
 function CalendarHeatmap({ sessions, months = 6 }: CalendarHeatmapProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredDate, setHoveredDate] = useState<{ date: string; x: number; y: number } | null>(null)
 
   const { weeks, monthLabels } = useMemo(() => {
@@ -88,7 +89,7 @@ function CalendarHeatmap({ sessions, months = 6 }: CalendarHeatmapProps) {
   const gridWidth = weeks.length * (CELL + GAP) - GAP
 
   return (
-    <div style={{ position: 'relative', width: 'fit-content' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: 'fit-content' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>
           Training Activity
@@ -111,7 +112,11 @@ function CalendarHeatmap({ sessions, months = 6 }: CalendarHeatmapProps) {
                 onMouseEnter={(e) => {
                   if (!day.date) return
                   const rect = e.currentTarget.getBoundingClientRect()
-                  setHoveredDate({ date: day.date, x: rect.left + rect.width / 2, y: rect.top - 8 })
+                  const containerRect = containerRef.current?.getBoundingClientRect()
+                  if (!containerRect) return
+                  const x = (rect.left + rect.width / 2) - containerRect.left
+                  const y = (rect.top - 8) - containerRect.top
+                  setHoveredDate({ date: day.date, x, y })
                 }}
                 onMouseLeave={() => setHoveredDate(null)}
                 style={{
@@ -141,11 +146,26 @@ function CalendarHeatmap({ sessions, months = 6 }: CalendarHeatmapProps) {
         const s = sessions.find(x => x.date === hoveredDate.date)
         if (!s) return null
         const logged = s.exercises.filter(ex => ex.weight || ex.reps).length
+        // Clamp tooltip position to stay within container bounds
+        const tooltipWidth = 180 // approximate width for clamping
+        const tooltipHeight = 28
+        const containerWidth = containerRef.current?.offsetWidth ?? gridWidth
+        const containerHeight = containerRef.current?.offsetHeight ?? 200
+        let left = hoveredDate.x
+        let top = hoveredDate.y
+        // Horizontal clamping: keep tooltip within container
+        const halfWidth = tooltipWidth / 2
+        if (left < halfWidth) left = halfWidth
+        if (left > containerWidth - halfWidth) left = containerWidth - halfWidth
+        // Vertical clamping: if tooltip would go above container, show below cell
+        if (top - tooltipHeight < 0) {
+          top = hoveredDate.y + tooltipHeight + 8
+        }
         return (
           <div style={{
-            position: 'fixed',
-            left: hoveredDate.x,
-            top: hoveredDate.y,
+            position: 'absolute',
+            left,
+            top,
             transform: 'translate(-50%, -100%)',
             padding: '4px 8px',
             background: 'var(--surface2)',
