@@ -156,9 +156,9 @@ describe('SettingsPage', () => {
       expect(screen.queryByText('Delete All Data?')).not.toBeInTheDocument()
     })
 
-    // Verify backup-meta was cleared
+    // Verify backup-meta was reset to defaults (not deleted)
     const backupMeta = await getStore('backup-meta')
-    expect(backupMeta).toBeNull()
+    expect(backupMeta).toEqual({ lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null })
   })
 
   it('cancels delete when clicking cancel in modal', async () => {

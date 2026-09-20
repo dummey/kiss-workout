@@ -44,14 +44,21 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
 
   const showModal = useCallback<ModalContextValue['showModal']>((config) => {
     return new Promise((resolve) => {
-      setModal({
-        isOpen: true,
-        title: config.title,
-        message: config.message,
-        input: config.input,
-        actions: config.actions,
-        children: config.children,
-        resolve
+      setModal(prev => {
+        // If a modal is already open, resolve the previous promise as cancelled
+        // so the first caller doesn't hang forever.
+        if (prev.resolve) {
+          prev.resolve({ action: null, input: undefined })
+        }
+        return {
+          isOpen: true,
+          title: config.title,
+          message: config.message,
+          input: config.input,
+          actions: config.actions,
+          children: config.children,
+          resolve
+        }
       })
     })
   }, [])

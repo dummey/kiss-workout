@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react'
-import { getStore, setStore, deleteStore } from '../db'
+import { getStore, setStore } from '../db'
 import type { TrackerData } from '../types'
 
 export interface BackupMeta {
@@ -10,10 +10,10 @@ export interface BackupMeta {
 
 interface BackupContextValue {
   meta: BackupMeta
-  incrementBackupCounter: () => Promise<void>
-  recordBackup: () => Promise<void>
+  incrementBackupCounter: () => void
+  recordBackup: () => void
   exportBackup: () => Promise<boolean>
-  resetBackupMeta: () => Promise<void>
+  resetBackupMeta: () => void
   dismissReminder: () => void
   shouldShowReminder: boolean
 }
@@ -32,33 +32,39 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
     sessionsSinceBackup: 0,
     dismissedAt: null
   })
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     getStore('backup-meta').then((stored) => {
       if (stored && typeof stored === 'object') {
         setMeta(stored as BackupMeta)
       }
+      setIsLoaded(true)
     }).catch(() => {
-      // No backup meta yet
+      setIsLoaded(true)
     })
   }, [])
 
-  const incrementBackupCounter = useCallback(async () => {
-    const stored = await getStore('backup-meta') as BackupMeta | null
-    const current = stored || { lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null }
-    const newMeta = { ...current, sessionsSinceBackup: current.sessionsSinceBackup + 1 }
-    await setStore('backup-meta', newMeta)
-    setMeta(newMeta)
+  // Sync meta to IndexedDB whenever it changes (after initial load)
+  useEffect(() => {
+    if (isLoaded) {
+      setStore('backup-meta', meta).catch(() => {})
+    }
+  }, [meta, isLoaded])
+
+  const incrementBackupCounter = useCallback(() => {
+    setMeta(prev => ({
+      ...prev,
+      sessionsSinceBackup: prev.sessionsSinceBackup + 1
+    }))
   }, [])
 
-  const recordBackup = useCallback(async () => {
-    const newMeta: BackupMeta = {
+  const recordBackup = useCallback(() => {
+    setMeta(() => ({
       lastBackupDate: new Date().toISOString(),
       sessionsSinceBackup: 0,
       dismissedAt: null
-    }
-    await setStore('backup-meta', newMeta)
-    setMeta(newMeta)
+    }))
   }, [])
 
   const exportBackup = useCallback(async (): Promise<boolean> => {
@@ -75,18 +81,15 @@ export function BackupProvider({ children }: { children: React.ReactNode }) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    await recordBackup()
+    recordBackup()
     return true
   }, [recordBackup])
 
   const dismissReminder = useCallback(() => {
-    const newMeta = { ...meta, sessionsSinceBackup: 0, dismissedAt: new Date().toISOString() }
-    setMeta(newMeta)
-    setStore('backup-meta', newMeta).catch(() => {})
-  }, [meta])
+    setMeta(prev => ({ ...prev, sessionsSinceBackup: 0, dismissedAt: new Date().toISOString() }))
+  }, [])
 
-  const resetBackupMeta = useCallback(async () => {
-    await deleteStore('backup-meta')
+  const resetBackupMeta = useCallback(() => {
     setMeta({ lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null })
   }, [])
 

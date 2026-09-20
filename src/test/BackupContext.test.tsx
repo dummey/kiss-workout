@@ -2,13 +2,12 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BackupProvider, useBackup } from '../context/BackupContext'
-import { getStore, setStore, deleteStore } from '../db'
+import { BackupProvider, useBackup, type BackupMeta } from '../context/BackupContext'
+import { getStore, setStore } from '../db'
 
 vi.mock('../db', () => ({
   getStore: vi.fn(),
   setStore: vi.fn().mockResolvedValue(undefined),
-  deleteStore: vi.fn().mockResolvedValue(undefined),
 }))
 
 describe('BackupContext', () => {
@@ -48,8 +47,12 @@ describe('BackupContext', () => {
     await waitFor(() => {
       expect(mockedGetStoreRef).toHaveBeenCalledWith('tracker')
     })
-    // Should not call setStore (no recordBackup) when data is empty
-    expect(mockedSetStoreRef).not.toHaveBeenCalled()
+    // Should not call setStore with recordBackup payload (no recordBackup) when data is empty
+    // Note: setStore IS called once on mount with default meta (lastBackupDate: null) via sync effect
+    const recordBackupCalls = mockedSetStoreRef.mock.calls.filter(
+      (call) => call[1] && (call[1] as BackupMeta).lastBackupDate !== null
+    )
+    expect(recordBackupCalls).toHaveLength(0)
   })
 
   it('exportBackup downloads data and calls recordBackup when store has data', async () => {
@@ -253,16 +256,14 @@ describe('BackupContext', () => {
       expect(screen.getByText('0')).toBeInTheDocument()
     })
 
-    mockedGetStoreRef.mockResolvedValue({ lastBackupDate: null, sessionsSinceBackup: 1 })
-
     await user.click(screen.getByText('Inc'))
 
     await waitFor(() => {
-      expect(mockedSetStoreRef).toHaveBeenCalledWith('backup-meta', { lastBackupDate: null, sessionsSinceBackup: 2 })
+      expect(mockedSetStoreRef).toHaveBeenCalledWith('backup-meta', { lastBackupDate: null, sessionsSinceBackup: 1, dismissedAt: null })
     })
 
     await waitFor(() => {
-      expect(screen.getByText('2')).toBeInTheDocument()
+      expect(screen.getByText('1')).toBeInTheDocument()
     })
   })
 
@@ -295,11 +296,11 @@ describe('BackupContext', () => {
     })
   })
 
-  it('resetBackupMeta clears the meta and deletes store', async () => {
+  it('resetBackupMeta clears the meta and syncs defaults to store', async () => {
     const mockedGetStoreRef = vi.mocked(getStore)
     mockedGetStoreRef.mockResolvedValue({ lastBackupDate: '2026-01-01', sessionsSinceBackup: 5 })
-    const mockedDeleteStoreRef = vi.mocked(deleteStore)
-    mockedDeleteStoreRef.mockResolvedValue(undefined)
+    const mockedSetStoreRef = vi.mocked(setStore)
+    mockedSetStoreRef.mockResolvedValue(undefined)
 
     function TestComp() {
       const { meta, resetBackupMeta } = useBackup()
@@ -318,9 +319,13 @@ describe('BackupContext', () => {
       </BackupProvider>
     )
 
+    await waitFor(() => {
+      expect(screen.getByText('5')).toBeInTheDocument()
+    })
+
     await user.click(screen.getByText('Reset'))
     await waitFor(() => {
-      expect(mockedDeleteStoreRef).toHaveBeenCalledWith('backup-meta')
+      expect(mockedSetStoreRef).toHaveBeenCalledWith('backup-meta', { lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null })
     })
   })
 

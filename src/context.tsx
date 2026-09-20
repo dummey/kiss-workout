@@ -37,10 +37,21 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const [error, setError] = useState<string | null>(null)
+
+  const clearError = useCallback(() => setError(null), [])
+
   const saveData = useCallback(async (newData: TrackerData) => {
+    const previousData = data
     setData(newData)
-    await setStore('tracker', newData)
-  }, [])
+    try {
+      await setStore('tracker', newData)
+    } catch (err) {
+      console.error('Failed to save data:', err)
+      setData(previousData)
+      setError('Failed to save changes. Your data has been reverted.')
+    }
+  }, [data])
 
   const getExercise = useCallback((id: string): Exercise | undefined => {
     return data?.exercises.find(ex => ex.id === id)
@@ -136,11 +147,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const addExercise = useCallback((exercise: Partial<Exercise> & { name: string }): string => {
     if (!data) return ''
     const baseId = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    let id = baseId
-    let counter = 2
-    while (data.exercises.some(ex => ex.id === id)) {
-      id = `${baseId}-${counter++}`
-    }
+    const id = `${baseId}-${crypto.randomUUID()}`
     const newEx: Exercise = {
       id,
       name: exercise.name || '',
@@ -330,7 +337,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     const original = session.exercises[exIdx]
     const copy: SessionExercise = {
       ...original,
-      id: `${original.id}-copy-${Date.now()}`,
+      id: `${original.id}-copy-${crypto.randomUUID()}`,
       originalId: original.id,
       name: `${original.name} (2)`,
       weight: '',
@@ -423,6 +430,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<TrackerContextValue>(() => ({
     data,
     loading,
+    error,
+    clearError,
     getExercise,
     getWorkoutExercises,
     addSession,
@@ -449,10 +458,42 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     duplicateExerciseInSession,
     cloneWorkout,
     reorderWorkoutExercise
-  }), [data, loading, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
+  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
 
   return (
     <TrackerContext.Provider value={value}>
+      {error && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          background: 'var(--t1)',
+          color: '#fff',
+          padding: '8px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '0.85rem'
+        }}>
+          <span>{error}</span>
+          <button
+            onClick={clearError}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              padding: '0 4px'
+            }}
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {children}
     </TrackerContext.Provider>
   )
