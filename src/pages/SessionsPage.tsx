@@ -1,13 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
-import { getStore } from '../db'
 import Button from '../components/Button'
 import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal, useModalControl } from '../components/ModalProvider'
-import { useBackup } from '../context/BackupContext'
 import { usePagination } from '../hooks/usePagination'
 import type { Session } from '../types'
 
@@ -69,7 +67,6 @@ function AddSessionForm() {
 export default function SessionsPage() {
   const { data, loading, importSession } = useTracker()
   const { showModal } = useModal()
-  const { recordBackup } = useBackup()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -193,20 +190,7 @@ export default function SessionsPage() {
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <BackupReminderBanner onExport={() => {
-          getStore('tracker').then((data) => {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `kiss-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`
-            document.body.appendChild(a)
-            a.click()
-            document.body.removeChild(a)
-            URL.revokeObjectURL(url)
-            recordBackup()
-          })
-        }} />
+        <BackupReminderBanner />
       </div>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>

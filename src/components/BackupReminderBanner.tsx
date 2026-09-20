@@ -2,12 +2,8 @@ import React from 'react'
 import { useBackup } from '../context/BackupContext'
 import Button from './Button'
 
-interface BackupReminderBannerProps {
-  onExport: () => void
-}
-
-export default function BackupReminderBanner({ onExport }: BackupReminderBannerProps) {
-  const { shouldShowReminder, dismissReminder, meta, recordBackup } = useBackup()
+export default function BackupReminderBanner() {
+  const { shouldShowReminder, dismissReminder, meta, exportBackup } = useBackup()
 
   if (!shouldShowReminder) return null
 
@@ -35,10 +31,7 @@ export default function BackupReminderBanner({ onExport }: BackupReminderBannerP
         {message}
       </span>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Button size="sm" variant="primary" onClick={async () => {
-          await onExport()
-          await recordBackup()
-        }}>Export</Button>
+        <Button size="sm" variant="primary" onClick={() => exportBackup()}>Export</Button>
         <Button size="sm" onClick={dismissReminder}>Remind me later</Button>
       </div>
     </div>

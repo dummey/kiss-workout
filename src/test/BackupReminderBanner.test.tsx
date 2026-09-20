@@ -21,10 +21,9 @@ describe('BackupReminderBanner', () => {
       shouldShowReminder: false,
       dismissReminder: vi.fn(),
       meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      recordBackup: vi.fn(),
+      exportBackup: vi.fn(),
     })
-    const onExport = vi.fn()
-    const { container } = render(<BackupReminderBanner onExport={onExport} />)
+    const { container } = render(<BackupReminderBanner />)
     expect(container.innerHTML).toBe('')
   })
 
@@ -33,10 +32,9 @@ describe('BackupReminderBanner', () => {
       shouldShowReminder: true,
       dismissReminder: vi.fn(),
       meta: { lastBackupDate: null, sessionsSinceBackup: 5 },
-      recordBackup: vi.fn(),
+      exportBackup: vi.fn(),
     })
-    const onExport = vi.fn()
-    render(<BackupReminderBanner onExport={onExport} />)
+    render(<BackupReminderBanner />)
     expect(screen.getByText(/5 sessions without a backup/i)).toBeInTheDocument()
   })
 
@@ -47,10 +45,9 @@ describe('BackupReminderBanner', () => {
       shouldShowReminder: true,
       dismissReminder: vi.fn(),
       meta: { lastBackupDate: twoDaysAgo.toISOString(), sessionsSinceBackup: 0 },
-      recordBackup: vi.fn(),
+      exportBackup: vi.fn(),
     })
-    const onExport = vi.fn()
-    render(<BackupReminderBanner onExport={onExport} />)
+    render(<BackupReminderBanner />)
     expect(screen.getByText(/2 days since your last backup/i)).toBeInTheDocument()
   })
 
@@ -61,31 +58,28 @@ describe('BackupReminderBanner', () => {
       shouldShowReminder: true,
       dismissReminder: vi.fn(),
       meta: { lastBackupDate: oneDayAgo.toISOString(), sessionsSinceBackup: 0 },
-      recordBackup: vi.fn(),
+      exportBackup: vi.fn(),
     })
-    const onExport = vi.fn()
-    render(<BackupReminderBanner onExport={onExport} />)
+    render(<BackupReminderBanner />)
     expect(screen.getByText(/1 days since your last backup/i)).toBeInTheDocument()
   })
 
-  it('calls onExport and recordBackup when Export is clicked', async () => {
+  it('calls exportBackup when Export is clicked', async () => {
     const user = userEvent.setup()
-    const recordBackup = vi.fn().mockResolvedValue(undefined)
+    const exportBackup = vi.fn().mockResolvedValue(true)
     mockedUseBackup.mockReturnValue({
       shouldShowReminder: true,
       dismissReminder: vi.fn(),
       meta: { lastBackupDate: null, sessionsSinceBackup: 5 },
-      recordBackup,
+      exportBackup,
     })
-    const onExport = vi.fn().mockResolvedValue(undefined)
-    render(<BackupReminderBanner onExport={onExport} />)
+    render(<BackupReminderBanner />)
 
     const buttons = screen.getAllByText('Export')
     await user.click(buttons[0])
     await waitFor(() => {
-      expect(onExport).toHaveBeenCalledTimes(1)
+      expect(exportBackup).toHaveBeenCalledTimes(1)
     })
-    expect(recordBackup).toHaveBeenCalledTimes(1)
   })
 
   it('calls dismissReminder when "Remind me later" is clicked', async () => {
@@ -95,10 +89,9 @@ describe('BackupReminderBanner', () => {
       shouldShowReminder: true,
       dismissReminder,
       meta: { lastBackupDate: null, sessionsSinceBackup: 5 },
-      recordBackup: vi.fn(),
+      exportBackup: vi.fn(),
     })
-    const onExport = vi.fn()
-    render(<BackupReminderBanner onExport={onExport} />)
+    render(<BackupReminderBanner />)
 
     await user.click(screen.getByText('Remind me later'))
     expect(dismissReminder).toHaveBeenCalledTimes(1)
