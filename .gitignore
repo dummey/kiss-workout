@@ -36,5 +36,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Agent comment artifacts
+# multica agent runtime
+.multica/
+.context
+.agent_context/
+.claude/
+AGENTS.md
+commit-msg.txt
+REPLY.md
+description.md
 comment.md
+
