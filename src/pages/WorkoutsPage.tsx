@@ -278,7 +278,7 @@ export default function WorkoutsPage() {
 
             <div style={{ flex: '1', minWidth: 340 }}>
               {workoutExercises.length > 0 && (
-                <BodyMusclesChart muscles={highlightedMuscles} allMuscles={workoutExercises.flatMap(ex => ex.muscles || [])} />
+                <BodyMusclesChart allMuscles={workoutExercises.flatMap(ex => ex.muscles || [])} />
               )}
             </div>
           </div>

@@ -38,12 +38,12 @@ function getMuscleIdsForMuscleName(name: string): string[] {
 
 function getIntensityForCount(count: number): number {
   if (count === 0) return 0
-  if (count === 1) return 8
+  if (count === 1) return 2
   if (count === 2) return 5
-  return 2
+  return 8
 }
 
-function buildBodyState(highlightedMuscles: string[], allMuscles: string[]): BodyState {
+function buildBodyState(allMuscles: string[]): BodyState {
   const state: BodyState = {}
   const muscleCounts: Record<string, number> = {}
 
@@ -127,16 +127,14 @@ function BodyChartView({ view, bodyState, label, idTooltipMap, onHover }: BodyCh
 }
 
 interface BodyMusclesChartProps {
-  muscles?: string[]
   allMuscles?: string[]
 }
 
-export default function BodyMusclesChart({ muscles = [], allMuscles = [] }: BodyMusclesChartProps) {
-  const musclesKey = muscles.join('|')
+export default function BodyMusclesChart({ allMuscles = [] }: BodyMusclesChartProps) {
   const allKey = allMuscles.join('|')
   const [hovered, setHovered] = useState<{ name: string; count: number; x: number; y: number } | null>(null)
 
-  const bodyState = useMemo(() => buildBodyState(muscles, allMuscles), [musclesKey, allKey])
+  const bodyState = useMemo(() => buildBodyState(allMuscles), [allKey])
 
   const idTooltipMap = useMemo(() => {
     const counts: Record<string, number> = {}
