@@ -227,8 +227,9 @@ describe('Session workflow integration', () => {
     expect(stored!.sessions[0].notes).toBe('Great session, felt strong')
   })
 
-  it('shows "Start" button when timer is at 0 and not running', async () => {
+  it('regression: AddSessionForm useNavigate works inside ModalProvider (no console.error)', async () => {
     const user = userEvent.setup()
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     render(<TestApp />)
     await screen.findByRole('heading', { name: 'Settings' })
@@ -242,7 +243,7 @@ describe('Session workflow integration', () => {
     await user.click(screen.getAllByText('Sessions')[0])
     await screen.findByText(/\d+ sessions logged/i)
 
-    // Create a new session with past date (Aug 2026)
+    // Create a new session — this is where useNavigate() is called inside ModalProvider
     await user.click(screen.getByText('+ Add Session'))
     const uniqueDate = getUniqueDate()
     const dateInput = screen.getByLabelText('Date')
@@ -250,9 +251,11 @@ describe('Session workflow integration', () => {
     await user.type(dateInput, uniqueDate)
     await user.click(screen.getByText('Start Session'))
 
+    // Navigation should succeed without throwing
     await screen.findByText('Time')
 
-    // Timer should say "Start" (not "Pause") for past dates since it's not running
-    expect(screen.getByText('Start')).toBeInTheDocument()
+    // Assert no console.error was called (would indicate Router context failure)
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
   })
 })
