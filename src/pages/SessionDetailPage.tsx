@@ -97,6 +97,23 @@ export default function SessionDetailPage() {
     setRestTime(0)
   }, [])
 
+  const handleCopyShareLink = useCallback(() => {
+    if (!date) return
+    const shareUrl = `${window.location.origin}/sessions/${date}`
+    navigator.clipboard.writeText(shareUrl)
+  }, [date])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault()
+        handleCopyShareLink()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleCopyShareLink])
+
   useEffect(() => {
     if (showAddExercise) setAddExerciseSearch('')
   }, [showAddExercise])
