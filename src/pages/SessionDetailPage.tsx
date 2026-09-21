@@ -222,7 +222,7 @@ export default function SessionDetailPage() {
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
           }}>Export</Button>
-          <Button danger onClick={() => {
+          <Button danger title="This will permanently delete the session" onClick={() => {
             if (date) deleteSession(date)
             navigate('/sessions')
           }}>Delete</Button>
