@@ -159,7 +159,10 @@ export default function SessionsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Sessions</h1>
-          <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{filteredSessions.length} sessions logged</p>
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem', display: 'flex', alignItems: 'center' }}>
+            <span className="count-badge">{filteredSessions.length}</span>
+            sessions logged
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input

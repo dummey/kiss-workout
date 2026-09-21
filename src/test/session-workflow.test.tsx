@@ -84,7 +84,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions via sidebar
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -102,7 +102,7 @@ describe('Session workflow integration', () => {
 
     // Navigate back to sessions via sidebar
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
   })
 
   it('persists session data to IndexedDB after creation', async () => {
@@ -118,7 +118,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -149,7 +149,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -206,7 +206,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create a new session
     await user.click(screen.getByText('+ Add Session'))
@@ -241,7 +241,7 @@ describe('Session workflow integration', () => {
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create a new session — this is where useNavigate() is called inside ModalProvider
     await user.click(screen.getByText('+ Add Session'))

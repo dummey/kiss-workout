@@ -82,7 +82,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
 
     // Navigate to sessions
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create a new session via the form
     await user.click(screen.getByText('+ Add Session'))
@@ -114,7 +114,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
     await waitFor(() => expect(screen.getByText('26')).toBeInTheDocument())
 
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Create 10 sessions via the UI
     for (let i = 0; i < 10; i++) {
@@ -130,7 +130,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
 
       if (i < 9) {
         await user.click(screen.getAllByText('Sessions')[0])
-        await screen.findByText(/\d+ sessions logged/i)
+        await screen.findByText('sessions logged')
       }
     }
 
@@ -142,7 +142,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
 
     // Navigate back to the sessions list — BackupReminderBanner is rendered there
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     // Reminder banner shows "10 sessions without a backup"
     await waitFor(() => {
@@ -159,7 +159,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
     await waitFor(() => expect(screen.getByText('26')).toBeInTheDocument())
 
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     const date = getUniqueDate()
 
@@ -180,7 +180,7 @@ describe('Backup counter E2E (incrementBackupCounter on session creation)', () =
 
     // Second: try to create the same date again
     await user.click(screen.getAllByText('Sessions')[0])
-    await screen.findByText(/\d+ sessions logged/i)
+    await screen.findByText('sessions logged')
 
     await user.click(screen.getByText('+ Add Session'))
     await screen.findByText('Add Session')
