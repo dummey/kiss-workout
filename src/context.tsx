@@ -269,6 +269,21 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
+  const resetSession = useCallback((date: string) => {
+    if (!data) return
+    const newData = { ...data }
+    const session = newData.sessions.find(s => s.date === date)
+    if (!session) return
+    session.elapsedTime = 0
+    session.notes = ''
+    session.exercises.forEach(ex => {
+      ex.weight = ''
+      ex.reps = ''
+      ex.sets = null
+    })
+    saveData(newData)
+  }, [data, saveData])
+
   const resetToSeedData = useCallback(async () => {
     await setStore('tracker', SEED_DATA)
     setData(SEED_DATA)
@@ -457,8 +472,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     canRemoveExerciseFromSession,
     duplicateExerciseInSession,
     cloneWorkout,
-    reorderWorkoutExercise
-  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
+    reorderWorkoutExercise,
+    resetSession
+  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise, resetSession])
 
   return (
     <TrackerContext.Provider value={value}>
