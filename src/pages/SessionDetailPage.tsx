@@ -8,10 +8,11 @@ import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession } = useTracker()
+  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, resetSession } = useTracker()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [restTime, setRestTime] = useState(0)
   const [restIsRunning, setRestIsRunning] = useState(false)
   const restStartTimeRef = useRef(Date.now())
@@ -194,6 +195,7 @@ export default function SessionDetailPage() {
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
           }}>Export</Button>
+          <Button onClick={() => setShowResetConfirm(true)}>Reset</Button>
           <Button danger onClick={() => {
             if (date) deleteSession(date)
             navigate('/sessions')
@@ -446,6 +448,34 @@ export default function SessionDetailPage() {
                   }}
                 >
                   Remove
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {showResetConfirm && (
+        <div className="modal-overlay show" onClick={() => setShowResetConfirm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Reset Session</h2>
+            <p className="modal-sub">
+              This will clear all weight, reps, and sets data, reset the timer to zero, and clear notes for this session. This cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <Button onClick={() => setShowResetConfirm(false)}>Cancel</Button>
+              {date && (
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    resetSession(date)
+                    setShowResetConfirm(false)
+                    setElapsedTime(0)
+                    setNotes('')
+                    startTimeRef.current = Date.now()
+                    setIsRunning(false)
+                  }}
+                >
+                  Reset
                 </Button>
               )}
             </div>

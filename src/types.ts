@@ -57,6 +57,7 @@ export interface TrackerContextValue {
   getWorkoutExercises: (workoutName: string) => Exercise[]
   addSession: (date: string, workoutType: string) => Session | null | undefined
   deleteSession: (date: string) => void
+  resetSession: (date: string) => void
   updateSessionNotes: (date: string, notes: string) => void
   updateSessionTime: (date: string, elapsedTime: number) => void
   updateExercise: (sessionDate: string, exIdx: number, field: 'weight' | 'reps' | 'sets', value: string) => void
