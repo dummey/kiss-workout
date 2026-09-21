@@ -74,6 +74,7 @@ export interface TrackerContextValue {
   dateCompare: (a: string, b: string) => number
   deleteAllData: () => Promise<void>
   resetToSeedData: () => Promise<void>
+  resetSession: (date: string) => void
   importSession: (session: Session, overwrite?: boolean) => boolean
   addExerciseToSession: (sessionDate: string, exId: string) => void
   removeExerciseFromSession: (sessionDate: string, exId: string) => void

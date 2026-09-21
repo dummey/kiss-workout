@@ -111,6 +111,23 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
+  const resetSession = useCallback((sessionDate: string) => {
+    if (!data) return
+    const session = data.sessions.find(s => s.date === sessionDate)
+    if (!session) return
+    const newData = { ...data }
+    const target = newData.sessions.find(s => s.date === sessionDate)!
+    target.elapsedTime = 0
+    target.notes = ''
+    target.exercises = target.exercises.map(ex => ({
+      ...ex,
+      weight: '',
+      reps: '',
+      sets: null
+    }))
+    saveData(newData)
+  }, [data, saveData])
+
   const updateSessionNotes = useCallback((date: string, notes: string) => {
     if (!data) return
     const newData = { ...data }
@@ -451,6 +468,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     dateCompare,
     deleteAllData,
     resetToSeedData,
+    resetSession,
     importSession,
     addExerciseToSession,
     removeExerciseFromSession,
@@ -458,7 +476,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     duplicateExerciseInSession,
     cloneWorkout,
     reorderWorkoutExercise
-  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
+  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, resetSession, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
 
   return (
     <TrackerContext.Provider value={value}>
