@@ -81,5 +81,4 @@ export interface TrackerContextValue {
   duplicateExerciseInSession: (sessionDate: string, exIdx: number) => void
   cloneWorkout: (sourceName: string, newName: string) => void
   reorderWorkoutExercise: (workoutName: string, fromIndex: number, toIndex: number) => void
-  resetSession: (date: string) => void
 }
