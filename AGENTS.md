@@ -60,20 +60,24 @@ This project uses a kanban board with a `code-reviewer` profile for pre-PR revie
 ### What the developer does
 
 1. Implement the change, run `npm run build` and `npm run test` locally, push the branch to remote.
-2. Call `kanban_request_review` with a summary and metadata (changed_files, tests_run).
+2. Call `kanban_request_review` with a summary and metadata (changed_files, tests_run) and `reviewer="code-reviewer"`.
    → The card enters `review` status; the implementation run closes with outcome `review_requested`.
-3. If the reviewer requests changes, apply them, re-run tests, push updates, and call `kanban_request_review` again, incrementing `review_iteration` in the metadata.
+3. If the reviewer requests code changes, apply them, re-run tests, push updates, and call `kanban_request_review` again, incrementing `review_iteration` in the metadata.
+4. If you receive a `changes_requested` from the reviewer with "Code approved" in the reason (this is the approval signal — the reviewer has approved and is sending you back to open the PR):
+   → Open the PR against main.
+   → Record the PR URL in `metadata.published_pr` via `kanban_attach_url`.
+   → Call `kanban_complete` to mark the task done.
 
 ### What the reviewer does
 
 1. Pick up the card from `review` status.
 2. Inspect the code on the pushed branch.
-3. If changes are needed, call `kanban_request_changes` with a concrete reason.
+3. If code changes are needed, call `kanban_request_changes` with a concrete reason.
    → The review run closes as outcome `changes_requested`; the card returns to the developer.
-4. If approved, **do NOT call `kanban_complete`**. Instead:
-   - Leave a comment: "APPROVED — developer, please open the PR and mark this task done."
-   - The card stays in `review` status.
-   → The developer will open the PR and mark the task done. If you call `kanban_complete` before the PR is open, the task transitions to `done` and the PR URL won't be recorded.
+4. If the code is approved, call `kanban_request_changes` with reason:
+   "Code approved. Change requested: open the PR against main and mark this task done."
+   → The review run closes as outcome `changes_requested`; the card returns to the developer.
+   → **Do NOT call `kanban_complete`.** The kanban system requires a terminal board call to exit; `kanban_request_changes` satisfies this. The task stays open so the developer can open the PR.
 
 ### Who opens the PR
 
@@ -82,7 +86,9 @@ The developer opens the PR after the reviewer approves. Once the PR is open, rec
 ### Review cycles
 
 - Expect 1–3 cycles for typical changes. More than 3 without convergence is a signal to escalate.
-- Each cycle is recorded in the run history: `review_requested → changes_requested → review_requested → completed`.
+- Each cycle is recorded in the run history:
+  - Code changes needed: `review_requested → changes_requested (code) → review_requested → …`
+  - Code approved: `review_requested → changes_requested (approved) → developer opens PR → completed`
 - `kanban_block` is for real external escalation (missing access, product decision), not normal review feedback.
 
 ### What the developer should NOT do
