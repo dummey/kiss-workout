@@ -12,6 +12,8 @@ export default function SessionDetailPage() {
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [restTime, setRestTime] = useState(0)
   const [restIsRunning, setRestIsRunning] = useState(false)
   const restStartTimeRef = useRef(Date.now())
@@ -188,6 +190,15 @@ export default function SessionDetailPage() {
       if (date) updateSessionNotes(date, value)
     }, 500)
   }
+
+  function handleCopyShareLink() {
+    const shareUrl = `${window.location.origin}/sessions/${date}`
+    navigator.clipboard.writeText(shareUrl)
+    setCopiedLink(true)
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
+    copiedTimeoutRef.current = setTimeout(() => setCopiedLink(false), 2000)
+  }
+
   const resolvedExercises = session?.exercises?.map((sessionEx, idx) => {
     const def = getExercise(sessionEx.id) || {}
     return {
@@ -210,6 +221,9 @@ export default function SessionDetailPage() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
+          <Button onClick={handleCopyShareLink}>
+            {copiedLink ? 'Copied!' : 'Share Link'}
+          </Button>
           <Button onClick={() => {
             const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' })
             const url = URL.createObjectURL(blob)
