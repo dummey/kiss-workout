@@ -55,25 +55,38 @@ Key files:
 
 ## Code review workflow
 
-This project uses a kanban board with a `code-reviewer` profile for pre-PR review. The flow is:
+This project uses a kanban board with a `code-reviewer` profile for pre-PR review, using the same-card review lifecycle from the Hermes Kanban tutorial (Story 3: Role pipeline with retry). The flow uses the first-class review tools: `kanban_request_review`, `kanban_request_changes`, and `kanban_complete`.
 
-1. **Developer finishes code** — implements the change, runs `npm run build` and `npm run test` locally, pushes the branch to remote.
-2. **Developer marks the kanban task `review`** — not `done`. No PR is opened yet.
-3. **Code reviewer picks up the task** — the dispatcher auto-routes `review` tasks to `code-reviewer` (review_dispatch is enabled on this board). Reviewer reads the code on the pushed branch.
-4. **Reviewer leaves feedback** — comments on the kanban task with specific findings: file names, what to change, why. Each finding is individual, not a lump sum.
-5. **If changes are needed** — reviewer states clearly what would satisfy the review. Developer addresses feedback, pushes updates, marks the task `review` again.
-6. **If approved** — reviewer comments "approved" or "LGTM, ready to PR." Developer then opens the PR against `main` and marks the task `done`.
+### What the developer does
+
+1. Implement the change, run `npm run build` and `npm run test` locally, push the branch to remote.
+2. Call `kanban_request_review` with a summary and metadata (changed_files, tests_run).
+   → The card enters `review` status; the implementation run closes with outcome `review_requested`.
+3. If the reviewer requests changes, apply them, re-run tests, push updates, and call `kanban_request_review` again, incrementing `review_iteration` in the metadata.
+
+### What the reviewer does
+
+1. Pick up the card from `review` status.
+2. Inspect the code on the pushed branch.
+3. If changes are needed, call `kanban_request_changes` with a concrete reason.
+   → The review run closes as outcome `changes_requested`; the card returns to the developer.
+4. If approved, call `kanban_complete(summary="review passed; …")`.
+   → The card transitions to `done`. **The reviewer does not open the PR.**
+
+### Who opens the PR
+
+The developer opens the PR after the reviewer approves. Once the PR is open, record the URL in `metadata.published_pr` via `kanban_attach_url`.
 
 ### Review cycles
 
-- Expect 1-3 review cycles for typical changes. More than 3 without convergence is a signal to escalate.
-- Each cycle's feedback and fixes are recorded in the kanban task's comment thread — that's the review log.
-- Reviewer does NOT open the PR. Developer opens the PR only after approval.
+- Expect 1–3 cycles for typical changes. More than 3 without convergence is a signal to escalate.
+- Each cycle is recorded in the run history: `review_requested → changes_requested → review_requested → completed`.
+- `kanban_block` is for real external escalation (missing access, product decision), not normal review feedback.
 
 ### What the developer should NOT do
 
 - Do not open a PR before review. The PR is the final step, not the handoff.
-- Do not mark the kanban task `done` until the reviewer has approved and the PR is open.
+- Do not mark the kanban task `done` before the reviewer approves.
 - Do not push to `main` — always push to the feature branch.
 
 ### Reviewer expectations
@@ -81,7 +94,7 @@ This project uses a kanban board with a `code-reviewer` profile for pre-PR revie
 - Review the actual code, not just whether build/tests pass.
 - Leave specific, actionable feedback — file name, what, why.
 - Distinguish blocking issues (must fix before PR) from suggestions (nice to have).
-- When approving, say so explicitly. Silence is not approval.
+- When approving, call `kanban_complete`. Silence is not approval.
 
 ## Local development
 
