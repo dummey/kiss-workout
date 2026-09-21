@@ -2,6 +2,7 @@ import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { useBackup } from '../context/BackupContext'
+import Footer from './Footer'
 
 export default function Layout() {
   const { shouldShowReminder } = useBackup()
@@ -33,6 +34,8 @@ export default function Layout() {
       <main className="main-content">
         <Outlet />
       </main>
+
+      <Footer />
 
       <nav className="bottom-tab-bar">
         <NavLink to="/sessions" className={({ isActive }) => 'tab-item' + (isActive ? ' active' : '')}>
