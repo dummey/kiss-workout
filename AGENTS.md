@@ -70,8 +70,10 @@ This project uses a kanban board with a `code-reviewer` profile for pre-PR revie
 2. Inspect the code on the pushed branch.
 3. If changes are needed, call `kanban_request_changes` with a concrete reason.
    → The review run closes as outcome `changes_requested`; the card returns to the developer.
-4. If approved, call `kanban_complete(summary="review passed; …")`.
-   → The card transitions to `done`. **The reviewer does not open the PR.**
+4. If approved, **do NOT call `kanban_complete`**. Instead:
+   - Leave a comment: "APPROVED — developer, please open the PR and mark this task done."
+   - The card stays in `review` status.
+   → The developer will open the PR and mark the task done. If you call `kanban_complete` before the PR is open, the task transitions to `done` and the PR URL won't be recorded.
 
 ### Who opens the PR
 
@@ -94,7 +96,8 @@ The developer opens the PR after the reviewer approves. Once the PR is open, rec
 - Review the actual code, not just whether build/tests pass.
 - Leave specific, actionable feedback — file name, what, why.
 - Distinguish blocking issues (must fix before PR) from suggestions (nice to have).
-- When approving, call `kanban_complete`. Silence is not approval.
+- When approving, **leave an "APPROVED" comment but do NOT call `kanban_complete`.** Silence is not approval; a comment without `kanban_complete` is the approval signal.
+- After leaving the APPROVED comment, the card stays in `review`. The developer will open the PR and mark the task done.
 
 ## Local development
 
