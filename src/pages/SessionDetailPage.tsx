@@ -97,6 +97,42 @@ export default function SessionDetailPage() {
     setRestTime(0)
   }, [])
 
+  // Session link sharing: copy the shareable URL to clipboard (Cmd+Shift+C / Ctrl+Shift+C)
+  // and paste it back into the URL input (Cmd+Shift+V / Ctrl+Shift+V).
+  const handleCopyShareLink = useCallback(() => {
+    if (!date) return
+    const shareUrl = `${window.location.origin}/sessions/${date}`
+    navigator.clipboard.writeText(shareUrl)
+  }, [date])
+
+  const handlePasteSessionLink = useCallback(() => {
+    if (!date) return
+    navigator.clipboard.readText().then(text => {
+      if (text) {
+        setSessionUrlInput(text)
+      }
+    }).catch(() => {
+      // Clipboard read denied or unavailable — no-op
+    })
+  }, [date])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault()
+        handleCopyShareLink()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault()
+        handlePasteSessionLink()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleCopyShareLink, handlePasteSessionLink])
+
+  const [sessionUrlInput, setSessionUrlInput] = useState('')
+
   useEffect(() => {
     if (showAddExercise) setAddExerciseSearch('')
   }, [showAddExercise])
@@ -210,6 +246,7 @@ export default function SessionDetailPage() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button onClick={() => setShowAddExercise(true)}>+ Add Exercise</Button>
+          <Button onClick={handleCopyShareLink}>Copy Link</Button>
           <Button onClick={() => {
             const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' })
             const url = URL.createObjectURL(blob)
@@ -226,6 +263,23 @@ export default function SessionDetailPage() {
             navigate('/sessions')
           }}>Delete</Button>
         </div>
+      </div>
+
+      {/* Session link sharing: paste a link into the input or copy the current one */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 24 }}>
+        <input
+          type="text"
+          placeholder="Paste session link..."
+          value={sessionUrlInput}
+          onChange={e => setSessionUrlInput(e.target.value)}
+          style={{
+            flex: 1, padding: '8px 12px', background: 'var(--surface2)',
+            border: '1px solid var(--border)', color: 'var(--text)',
+            borderRadius: 8, fontSize: '0.85rem', fontFamily: 'inherit',
+            boxSizing: 'border-box'
+          }}
+        />
+        <Button size="sm" onClick={handlePasteSessionLink}>Paste</Button>
       </div>
 
       <div className="timer-row" style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', padding: '8px 0' }}>
