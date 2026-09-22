@@ -2,6 +2,7 @@ import React from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import { useBackup } from '../context/BackupContext'
+import Footer from './Footer'
 
 export default function Layout() {
   const { shouldShowReminder } = useBackup()
@@ -55,6 +56,8 @@ export default function Layout() {
           )}
         </NavLink>
       </nav>
+
+      <Footer />
     </div>
   )
 }

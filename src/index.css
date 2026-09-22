@@ -159,7 +159,7 @@ body {
 .main-content {
   flex: 1;
   padding: 32px;
-  padding-bottom: 32px;
+  padding-bottom: 48px;
 }
 
 .bottom-tab-bar {
@@ -323,4 +323,38 @@ body {
   textarea {
     font-size: 16px;
   }
+
+  .footer {
+    padding: 16px;
+    padding-bottom: 80px; /* clear fixed bottom-tab-bar */
+    font-size: 0.7rem;
+  }
+}
+
+/* Footer */
+.footer {
+  flex-basis: 100%;
+  padding: 24px 32px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.footer-separator {
+  opacity: 0.5;
+}
+
+.footer-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
 }
