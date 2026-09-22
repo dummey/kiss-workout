@@ -6,6 +6,7 @@ import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal, useModalControl } from '../components/ModalProvider'
+import QuoteOfDay from '../components/QuoteOfDay'
 import { usePagination } from '../hooks/usePagination'
 import { validateSession } from '../validation'
 import type { Session } from '../types'
@@ -194,6 +195,8 @@ export default function SessionsPage() {
       <div style={{ marginBottom: 20 }}>
         <BackupReminderBanner />
       </div>
+
+      <QuoteOfDay />
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <input
