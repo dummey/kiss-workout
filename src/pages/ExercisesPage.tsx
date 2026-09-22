@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useTracker } from '../context'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
+import FunFactTooltip from '../components/FunFactTooltip'
 import type { Exercise } from '../types'
 
 export default function ExercisesPage() {
@@ -147,7 +148,7 @@ export default function ExercisesPage() {
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{ex.name}</div>
+                    <div style={{ fontWeight: 600 }}><FunFactTooltip>{ex.name}</FunFactTooltip></div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                       {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                       {ex.setup && <span className="tag setup">{ex.setup}</span>}
