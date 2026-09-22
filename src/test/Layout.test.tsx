@@ -116,6 +116,23 @@ describe('Layout', () => {
     expect(reminderDot).toBeInTheDocument()
   })
 
+  it('renders the footer globally', () => {
+    mockedUseBackup.mockReturnValue({
+      shouldShowReminder: false,
+      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
+      incrementBackupCounter: vi.fn(),
+      recordBackup: vi.fn(),
+      resetBackupMeta: vi.fn(),
+      dismissReminder: vi.fn(),
+    })
+    render(
+      <MemoryRouter>
+        <Layout />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument()
+  })
+
   it('does not show backup reminder badge when reminder is inactive', () => {
     mockedUseBackup.mockReturnValue({
       shouldShowReminder: false,
