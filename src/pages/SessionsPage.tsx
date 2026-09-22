@@ -5,6 +5,7 @@ import Button from '../components/Button'
 import CalendarHeatmap from '../components/CalendarHeatmap'
 import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
+import QuoteOfDay from '../components/QuoteOfDay'
 import { useModal, useModalControl } from '../components/ModalProvider'
 import { usePagination } from '../hooks/usePagination'
 import { validateSession } from '../validation'
@@ -181,6 +182,8 @@ export default function SessionsPage() {
           }}>+ Add Session</Button>
         </div>
       </div>
+
+      <QuoteOfDay />
 
       <div className="heatmap-stats-row" style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
         <div className="heatmap-card" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
