@@ -1,0 +1,28 @@
+.fun-fact-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.fun-fact-tooltip__bubble {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.8rem;
+  max-width: 240px;
+  border-radius: 6px;
+  padding: 6px 10px;
+  pointer-events: none;
+  white-space: normal;
+  z-index: 10;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.fun-fact-tooltip:hover .fun-fact-tooltip__bubble {
+  opacity: 1;
+}
