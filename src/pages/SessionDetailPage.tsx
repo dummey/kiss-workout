@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Button from '../components/Button'
+import Timer from '../components/Timer'
 import ProgressionInfo from '../components/ProgressionInfo'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
@@ -131,33 +132,18 @@ export default function SessionDetailPage() {
     }
   }, [date])
 
-  useEffect(() => {
-    if (!isRunning || !date) return
-
-    const tick = () => {
-      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
-      setElapsedTime(elapsed)
-      lastTimeRef.current = elapsed
-      if (elapsed - lastSaveRef.current >= 5) {
-        lastSaveRef.current = elapsed
-        updateSessionTimeRef.current(date, elapsed)
-      }
+  const handleElapsedChange = useCallback((seconds: number) => {
+    setElapsedTime(seconds)
+    lastTimeRef.current = seconds
+    if (seconds - lastSaveRef.current >= 5) {
+      lastSaveRef.current = seconds
+      if (date) updateSessionTimeRef.current(date, seconds)
     }
+  }, [date])
 
-    tick()
-    const interval = setInterval(tick, 250)
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') tick()
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    return () => {
-      clearInterval(interval)
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning, date])
+  const handleToggle = useCallback(() => {
+    setIsRunning(prev => !prev)
+  }, [])
 
   useEffect(() => {
     const existingSession = data?.sessions?.find(s => s.date === date)
@@ -233,16 +219,14 @@ export default function SessionDetailPage() {
           <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
             Time
           </h3>
-          <div style={{ fontSize: '2.8rem', fontWeight: 800, fontFamily: 'monospace', color: isRunning ? 'var(--t3)' : 'var(--muted)' }}>
-            {elapsedTime >= 3600 && <span>{Math.floor(elapsedTime / 3600)}:</span>}
-            {Math.floor((elapsedTime % 3600) / 60).toString().padStart(2, '0')}:
-            {(elapsedTime % 60).toString().padStart(2, '0')}
-          </div>
+          <Timer
+            elapsedTime={elapsedTime}
+            isRunning={isRunning}
+            onToggle={handleToggle}
+            onChange={handleElapsedChange}
+          />
           <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 8 }}>
-            <Button size="sm" onClick={() => { if (!isRunning) startTimeRef.current = Date.now() - elapsedTime * 1000; setIsRunning(!isRunning) }}>
-              {isRunning ? 'Pause' : (elapsedTime === 0 ? 'Start' : 'Resume')}
-            </Button>
-            <Button size="sm" danger onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); setIsRunning(false) }}>
+            <Button size="sm" danger onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); lastSaveRef.current = 0; setIsRunning(false) }}>
               Reset
             </Button>
           </div>
@@ -381,8 +365,6 @@ export default function SessionDetailPage() {
                               position: 'absolute',
                               right: 2,
                               top: 1,
-                              // top: '50%',
-                              // transform: 'translateY(-50%)',
                               padding: '6px',
                               minWidth: 36,
                               lineHeight: 1
