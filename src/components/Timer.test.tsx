@@ -106,4 +106,35 @@ describe('Timer', () => {
     render(<Timer elapsedTime={65} isRunning={false} onToggle={() => {}} onChange={() => {}} format="short" />)
     expect(screen.getByText('01:05')).toBeInTheDocument()
   })
+
+  it('calls onChange on visibilitychange when running', () => {
+    const onChange = vi.fn()
+    render(<Timer elapsedTime={0} isRunning={true} onToggle={() => {}} onChange={onChange} />)
+
+    expect(onChange).toHaveBeenCalledWith(0)
+
+    // Simulate tab becoming visible
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'hidden'
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    // onChange should still have been called once (initial tick), not again
+    expect(onChange).toHaveBeenCalledTimes(1)
+
+    // Now simulate tab becoming visible
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'visible'
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    // onChange should have been called again (visibility tick)
+    expect(onChange).toHaveBeenCalledTimes(2)
+  })
 })

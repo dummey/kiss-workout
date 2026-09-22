@@ -38,7 +38,15 @@ export default function Timer({
     tick()
     const interval = setInterval(tick, 1000)
 
-    return () => clearInterval(interval)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatTime = (totalSeconds: number): string => {

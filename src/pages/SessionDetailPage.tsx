@@ -109,7 +109,6 @@ export default function SessionDetailPage() {
   const isToday = date === todayStr
   const [isRunning, setIsRunning] = useState(isToday && !(session?.elapsedTime > 0))
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const startTimeRef = useRef(Date.now())
   const lastSaveRef = useRef(0)
 
   useEffect(() => {
@@ -149,7 +148,6 @@ export default function SessionDetailPage() {
     const existingSession = data?.sessions?.find(s => s.date === date)
     if (existingSession?.elapsedTime) {
       setElapsedTime(existingSession.elapsedTime)
-      startTimeRef.current = Date.now() - existingSession.elapsedTime * 1000
     }
     if (existingSession?.notes && notes === '') {
       setNotes(existingSession.notes)
@@ -226,7 +224,7 @@ export default function SessionDetailPage() {
             onChange={handleElapsedChange}
           />
           <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 8 }}>
-            <Button size="sm" danger onClick={() => { setElapsedTime(0); startTimeRef.current = Date.now(); lastSaveRef.current = 0; setIsRunning(false) }}>
+            <Button size="sm" danger onClick={() => { setElapsedTime(0); lastSaveRef.current = 0; setIsRunning(false) }}>
               Reset
             </Button>
           </div>
