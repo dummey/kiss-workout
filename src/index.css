@@ -159,7 +159,34 @@ body {
 .main-content {
   flex: 1;
   padding: 32px;
-  padding-bottom: 32px;
+  padding-bottom: 80px;
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.footer-dot {
+  color: var(--border);
 }
 
 .bottom-tab-bar {
@@ -266,7 +293,12 @@ body {
 
   .main-content {
     padding: 16px;
-    padding-bottom: 100px;
+    padding-bottom: 130px;
+  }
+
+  .footer {
+    padding: 16px;
+    font-size: 0.72rem;
   }
 
   .timer-row {
