@@ -159,7 +159,38 @@ body {
 .main-content {
   flex: 1;
   padding: 32px;
-  padding-bottom: 32px;
+  padding-bottom: 64px;
+}
+
+.footer {
+  padding: 16px 32px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.footer-app-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.footer-copy {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.footer-link {
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
 }
 
 .bottom-tab-bar {
@@ -267,6 +298,11 @@ body {
   .main-content {
     padding: 16px;
     padding-bottom: 100px;
+  }
+
+  .footer {
+    margin-bottom: 64px;
+    padding: 16px;
   }
 
   .timer-row {
