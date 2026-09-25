@@ -760,7 +760,8 @@ export const SEED_DATA: TrackerData = {
           "superset": "",
           "weight": "190",
           "reps": "4",
-          "sets": 4
+          "sets": 4,
+          "failed": true
         },
         {
           "id": "bulgarian-split-squats",
@@ -790,7 +791,8 @@ export const SEED_DATA: TrackerData = {
           "superset": "",
           "weight": "",
           "reps": "",
-          "sets": null
+          "sets": null,
+          "failed": true
         },
         {
           "id": "glute-kickbacks",
