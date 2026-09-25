@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
@@ -147,7 +148,9 @@ export default function ExercisesPage() {
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{ex.name}</div>
+                    <Link to={`/exercises/${encodeURIComponent(ex.id)}`} style={{ color: 'inherit', fontWeight: 600, textDecoration: 'none' }}>
+                      {ex.name}
+                    </Link>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                       {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                       {ex.setup && <span className="tag setup">{ex.setup}</span>}

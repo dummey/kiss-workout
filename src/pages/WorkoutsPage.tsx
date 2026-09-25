@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useTracker } from '../context'
@@ -229,7 +230,9 @@ export default function WorkoutsPage() {
                                 </button>
                               </div>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
+                                <Link to={`/exercises/${encodeURIComponent(ex.id)}`} style={{ color: 'inherit', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none' }}>
+                                  {ex.name}
+                                </Link>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 3 }}>
                                   {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                                   {ex.setup && <span className="tag setup">{ex.setup}</span>}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Button from '../components/Button'
 import ProgressionInfo from '../components/ProgressionInfo'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 
 export default function SessionDetailPage() {
@@ -312,7 +312,9 @@ export default function SessionDetailPage() {
                   <div key={ex.id || ex.idx} className={'card' + (ex.tier === 'T1' ? ' t1-highlight' : '')}>
                     <div className="card-head" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div className="card-name">{ex.name}</div>
+                        <Link to={`/exercises/${encodeURIComponent(ex.originalId || ex.id)}`} className="card-name" style={{ color: 'inherit', textDecoration: 'none' }}>
+                          {ex.name}
+                        </Link>
                         {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                       </div>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
