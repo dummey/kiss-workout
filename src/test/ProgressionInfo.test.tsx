@@ -88,6 +88,50 @@ describe('ProgressionInfo', () => {
     expect(nextStep.textContent).toContain('\n')
   })
 
+  it('renders Failed alongside recorded performance values', () => {
+    const prevInfo: PreviousPerformance[] = [{
+      weight: '225',
+      reps: '5',
+      sets: 3,
+      date: '2026-09-01',
+      failed: true
+    }]
+
+    render(<ProgressionInfo tier="T1" prevInfo={prevInfo} />)
+
+    expect(screen.getByText(/225 x 5 \(3\) — Failed/)).toBeInTheDocument()
+    expect(screen.getByText(/Add 5lbs \(bench\) or 10lbs \(squat and deadlift\)/)).toBeInTheDocument()
+  })
+
+  it('renders a readable Failed marker when performance values are blank', () => {
+    const prevInfo: PreviousPerformance[] = [{
+      weight: '—',
+      reps: '—',
+      sets: '—',
+      date: '2026-09-01',
+      failed: true
+    }]
+
+    const { container } = render(<ProgressionInfo tier="T1" prevInfo={prevInfo} />)
+
+    expect(screen.getByText(/Last time: Failed/)).toBeInTheDocument()
+    expect(container.textContent).not.toContain('— x —')
+  })
+
+  it('keeps legacy performances without failed as non-failed', () => {
+    const prevInfo: PreviousPerformance[] = [{
+      weight: '135',
+      reps: '8',
+      sets: 3,
+      date: '2026-09-01'
+    }]
+
+    render(<ProgressionInfo tier="T3" prevInfo={prevInfo} />)
+
+    expect(screen.getByText(/Last time: 135 x 8 \(3\)$/)).toBeInTheDocument()
+    expect(screen.queryByText(/Failed/)).not.toBeInTheDocument()
+  })
+
   it('renders comma-separated list when multiple performances on same date', () => {
     const prevInfo: PreviousPerformance[] = [
       { weight: '225', reps: '5', sets: 3, date: '2026-09-01' },

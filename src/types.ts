@@ -23,6 +23,7 @@ export interface SessionExercise {
   reps: string
   sets: number | null
   originalId?: string
+  failed?: boolean
 }
 
 export interface Session {
@@ -48,6 +49,7 @@ export interface PreviousPerformance {
   reps: string
   sets: number | string
   date: string
+  failed?: boolean
 }
 
 export interface TrackerContextValue {
@@ -62,6 +64,7 @@ export interface TrackerContextValue {
   updateSessionNotes: (date: string, notes: string) => void
   updateSessionTime: (date: string, elapsedTime: number) => void
   updateExercise: (sessionDate: string, exIdx: number, field: 'weight' | 'reps' | 'sets', value: string) => void
+  setExerciseFailed: (sessionDate: string, exIdx: number, failed: boolean) => void
   addExercise: (exercise: Partial<Exercise> & { name: string }) => string
   updateExerciseDef: (exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'muscles', value: string | string[]) => void
   deleteExercise: (exId: string) => void

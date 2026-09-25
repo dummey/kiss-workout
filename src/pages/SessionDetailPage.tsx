@@ -3,12 +3,11 @@ import Button from '../components/Button'
 import ProgressionInfo from '../components/ProgressionInfo'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
-import type { Exercise, SessionExercise, PreviousPerformance } from '../types'
 
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession } = useTracker()
+  const { data, loading, updateExercise, setExerciseFailed, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession } = useTracker()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
@@ -317,6 +316,17 @@ export default function SessionDetailPage() {
                         {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
                       </div>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
+                        <Button
+                          size="sm"
+                          aria-pressed={ex.failed === true}
+                          aria-label={ex.failed ? `Undo failed status for ${ex.name}` : `Mark ${ex.name} as failed`}
+                          danger={ex.failed}
+                          onClick={() => {
+                            if (date) setExerciseFailed(date, ex.idx, ex.failed !== true)
+                          }}
+                        >
+                          {ex.failed ? 'Failed' : 'Mark failed'}
+                        </Button>
                         <Button size="sm" title="Duplicate exercise" onClick={() => {
                           if (date) duplicateExerciseInSession(date, ex.idx)
                         }}>⧉</Button>
