@@ -61,7 +61,6 @@ body {
 .card-name { font-weight: 700; font-size: 1.05rem; flex: 1; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; flex-shrink: 0; }
 .card-footer { margin-top: auto; }
-.t1-highlight { border-color: var(--t1) !important; }
 
 /* Tier badges */
 .tier-badge { font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 6px; letter-spacing: 0.03em; text-transform: uppercase; flex-shrink: 0; }

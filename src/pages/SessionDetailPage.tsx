@@ -309,7 +309,7 @@ export default function SessionDetailPage() {
                 const prevInfo = getPreviousPerformances(ex.id, session.date)
 
                 return (
-                  <div key={ex.id || ex.idx} className={'card' + (ex.tier === 'T1' ? ' t1-highlight' : '')}>
+                  <div key={ex.id || ex.idx} className="card">
                     <div className="card-head" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Link to={`/exercises/${encodeURIComponent(ex.originalId || ex.id)}`} className="card-name" style={{ color: 'inherit', textDecoration: 'none' }}>
