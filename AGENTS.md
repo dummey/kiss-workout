@@ -51,6 +51,7 @@ Key files:
 - Types: `feat`, `fix`, `chore`, `test`, `refactor`, `docs`
 - PRs target `main`.
 - Description should include: what changed, why, how to test, any breaking changes.
+- **No AI-tool attribution footers** (e.g. "🤖 Generated with Claude Code", "Co-authored by Copilot") in PR descriptions or commit messages. Do not add one unless that tool actually produced the change. A description that names a tool which did not write the diff is a false statement and a reviewer cannot verify it from the code.
 - Build must pass before merging. Tests must pass.
 
 ### Reviewer expectations
