@@ -1,12 +1,11 @@
 import type { PreviousPerformance } from '../types'
-import { parseNumber } from '../utils'
 
 interface ProgressionInfoProps {
   tier?: string
   prevInfo: PreviousPerformance[]
 }
 
-function getNextProgression(tier: string, prevInfo: PreviousPerformance[]): string {
+function getNextProgression(tier: string, _prevInfo: PreviousPerformance[]): string {
   if (tier === 'T1') {
     // if (prevInfo.length > 0) {
     //   const first = prevInfo[0]
@@ -35,7 +34,12 @@ export default function ProgressionInfo({ tier, prevInfo }: ProgressionInfoProps
   if (!prevInfo || prevInfo.length === 0) return null
 
   const nextStep = getNextProgression(tier || '', prevInfo)
-  const lastTimeText = prevInfo.map(p => `${p.weight} x ${p.reps} (${p.sets})`).join(', ')
+  const lastTimeText = prevInfo.map(p => {
+    const performance = `${p.weight} x ${p.reps} (${p.sets})`
+    if (!p.failed) return performance
+    const hasRecordedValues = p.weight !== '—' || p.reps !== '—' || p.sets !== '—'
+    return hasRecordedValues ? `${performance} — Failed` : 'Failed'
+  }).join(', ')
 
   return (
     <div className="progression-info">

@@ -88,7 +88,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           superset: ex.superset || '',
           weight: '',
           reps: '',
-          sets: null
+          sets: null,
+          failed: false
         }
       })
     }
@@ -140,6 +141,26 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     else if (field === 'sets') {
       if (value === '') ex.sets = null
       else { const n = parseInt(value, 10); ex.sets = isNaN(n) ? null : n }
+    }
+    saveData(newData)
+  }, [data, saveData])
+
+  const setExerciseFailed = useCallback((sessionDate: string, exIdx: number, failed: boolean) => {
+    if (!data) return
+    const session = data.sessions.find(s => s.date === sessionDate)
+    if (!session?.exercises[exIdx]) return
+
+    const newData = {
+      ...data,
+      sessions: data.sessions.map(session => {
+        if (session.date !== sessionDate || !session.exercises[exIdx]) return session
+        return {
+          ...session,
+          exercises: session.exercises.map((ex, index) => index !== exIdx
+            ? ex
+            : { ...ex, failed })
+        }
+      })
     }
     saveData(newData)
   }, [data, saveData])
@@ -320,7 +341,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       superset: '',
       weight: '',
       reps: '',
-      sets: null
+      sets: null,
+      failed: false
     }
 
     const newData = { ...data }
@@ -342,7 +364,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       name: `${original.name} (2)`,
       weight: '',
       reps: '',
-      sets: null
+      sets: null,
+      failed: false
     }
 
     const newData = { ...data }
@@ -389,7 +412,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
         let hasMatch = false
         session.exercises.forEach(ex => {
           if (!hasMatch && ex.id !== exId && ex.originalId !== exId) return
-          if (!ex.weight && !ex.reps) return
+          if (!ex.weight && !ex.reps && !ex.failed) return
           if (!hasMatch) {
             hasMatch = true
             if (!bestSession || dateCompare(session.date, bestSession.date) > 0) {
@@ -402,7 +425,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
     if (!bestSession) return []
 
-    const exercises = bestSession.exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps))
+    const exercises = bestSession.exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps || ex.failed))
 
     if (exercises.length === 0) return []
 
@@ -410,7 +433,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       weight: ex.weight || '—',
       reps: ex.reps || '—',
       sets: ex.sets !== null && ex.sets !== undefined ? ex.sets : '—',
-      date: bestSession.date
+      date: bestSession.date,
+      failed: ex.failed === true
     }))
   }, [data])
 
@@ -439,6 +463,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     updateSessionNotes,
     updateSessionTime,
     updateExercise,
+    setExerciseFailed,
     addExercise,
     updateExerciseDef,
     deleteExercise,
@@ -458,7 +483,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     duplicateExerciseInSession,
     cloneWorkout,
     reorderWorkoutExercise
-  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
+  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, setExerciseFailed, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
 
   return (
     <TrackerContext.Provider value={value}>
