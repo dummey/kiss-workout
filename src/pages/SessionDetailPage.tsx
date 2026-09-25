@@ -320,14 +320,16 @@ export default function SessionDetailPage() {
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
                         <Button
                           size="sm"
+                          className="btn-icon btn-toggle"
                           aria-pressed={ex.failed === true}
                           aria-label={ex.failed ? `Undo failed status for ${ex.name}` : `Mark ${ex.name} as failed`}
+                          title={ex.failed ? `Undo failed status for ${ex.name}` : `Mark ${ex.name} as failed`}
                           danger={ex.failed}
                           onClick={() => {
                             if (date) setExerciseFailed(date, ex.idx, ex.failed !== true)
                           }}
                         >
-                          {ex.failed ? 'Failed' : 'Mark failed'}
+                          <span aria-hidden="true">↘</span>
                         </Button>
                         <Button size="sm" title="Duplicate exercise" onClick={() => {
                           if (date) duplicateExerciseInSession(date, ex.idx)

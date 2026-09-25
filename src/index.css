@@ -36,6 +36,9 @@ body {
 .btn-success:hover { background: #3db85f; border-color: #3db85f; }
 .btn-ghost { background: transparent; }
 .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+.btn-icon { padding: 6px 10px; font-size: 0.9rem; line-height: 1.1; }
+/* Failed toggle pressed state: fill + border + underline so the state is not conveyed by color alone. */
+.btn-toggle[aria-pressed="true"] { background: var(--surface2); border-color: var(--t1); text-decoration: underline; }
 
 /* Date tabs */
 .date-tabs { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
