@@ -80,12 +80,15 @@ describe('exercise failed marker', () => {
 
     const markFailed = await screen.findByRole('button', { name: 'Mark Bench Press as failed' })
     expect(markFailed).toHaveAttribute('aria-pressed', 'false')
+    expect(markFailed).toHaveAttribute('title', 'Mark Bench Press as failed')
+    expect(markFailed).toHaveTextContent('↘')
     expect(screen.getByText('Test Workout — 1 exercises')).toBeInTheDocument()
 
     await user.click(markFailed)
 
     const undo = await screen.findByRole('button', { name: 'Undo failed status for Bench Press' })
-    expect(undo).toHaveTextContent('Failed')
+    expect(undo).toHaveTextContent('↘')
+    expect(undo).toHaveAttribute('title', 'Undo failed status for Bench Press')
     expect(undo).toHaveAttribute('aria-pressed', 'true')
     await waitFor(async () => {
       const stored = await getStore('tracker') as TrackerData
@@ -114,7 +117,10 @@ describe('exercise failed marker', () => {
     renderPage()
 
     const markFailed = await screen.findByRole('button', { name: 'Mark Bench Press as failed' })
-    expect(markFailed).toHaveTextContent('Mark failed')
+    // The toggle is icon-only: the trend-down glyph is the visible affordance,
+    // the old "Mark failed" text label is gone but the accessible name is kept.
+    expect(markFailed).toHaveTextContent('↘')
+    expect(markFailed.textContent).not.toContain('Mark failed')
     expect(markFailed).toHaveAttribute('aria-pressed', 'false')
 
     await user.click(markFailed)
