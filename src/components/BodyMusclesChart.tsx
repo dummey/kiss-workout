@@ -38,9 +38,10 @@ function getMuscleIdsForMuscleName(name: string): string[] {
 
 function getIntensityForCount(count: number): number {
   if (count === 0) return 0
-  if (count === 1) return 8
-  if (count === 2) return 5
-  return 2
+  if (count === 1) return 1
+  if (count === 2) return 3
+  if (count === 3) return 5
+  return 8
 }
 
 function buildBodyState(highlightedMuscles: string[], allMuscles: string[]): BodyState {
