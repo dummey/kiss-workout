@@ -47,6 +47,7 @@ function getIntensityForCount(count: number): number {
 function buildBodyState(highlightedMuscles: string[], allMuscles: string[]): BodyState {
   const state: BodyState = {}
   const muscleCounts: Record<string, number> = {}
+  const highlightedIds = new Set(highlightedMuscles.flatMap(getMuscleIdsForMuscleName))
 
   ;(allMuscles || []).forEach(muscleName => {
     muscleCounts[muscleName] = (muscleCounts[muscleName] || 0) + 1
@@ -56,7 +57,7 @@ function buildBodyState(highlightedMuscles: string[], allMuscles: string[]): Bod
     const count = muscleCounts[muscleName] || 0
     const intensity = getIntensityForCount(count)
     getMuscleIdsForMuscleName(muscleName).forEach(id => {
-      state[id] = { intensity, selected: count > 0 }
+      state[id] = { intensity, selected: highlightedIds.has(id) }
     })
   })
 
