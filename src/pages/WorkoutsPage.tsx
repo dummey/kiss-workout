@@ -10,16 +10,17 @@ export default function WorkoutsPage() {
   const { data, loading, getExercise, addExerciseToWorkout, removeExerciseFromWorkout, reorderWorkoutExercise, addWorkout, deleteWorkout, cloneWorkout, updateWorkout } = useTracker()
   const { showModal } = useModal()
   const [selectedWorkout, setSelectedWorkout] = useState(data?.workouts[0]?.name || '')
+  const [highlightedMuscles, setHighlightedMuscles] = useState<string[]>([])
 
   useEffect(() => {
     if (data && !selectedWorkout && data.workouts.length > 0) {
       setSelectedWorkout(data.workouts[0].name)
     }
   }, [data, selectedWorkout])
+
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [showAddWorkout, setShowAddWorkout] = useState(false)
-  const [highlightedMuscles, setHighlightedMuscles] = useState<string[]>([])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
   if (!data) return <p style={{ color: 'var(--muted)' }}>No data available. Go to Settings → Load Seed to get started.</p>
@@ -27,6 +28,11 @@ export default function WorkoutsPage() {
   const workout = data.workouts.find(w => w.name === selectedWorkout)
   const workoutExercises: Exercise[] = workout ? workout.exercises.map(id => getExercise(id)).filter((ex): ex is Exercise => ex !== undefined) : []
   const availableExercises = data.exercises.filter(ex => !workout?.exercises.includes(ex.id))
+
+  function handleSelectWorkout(name: string) {
+    setSelectedWorkout(name)
+    setHighlightedMuscles([])
+  }
 
   function handleAddExercise(exId: string) {
     addExerciseToWorkout(selectedWorkout, exId)
@@ -140,7 +146,7 @@ export default function WorkoutsPage() {
             <button
               key={w.name}
               className={'date-tab' + (w.name === selectedWorkout ? ' active' : '')}
-              onClick={() => setSelectedWorkout(w.name)}
+              onClick={() => handleSelectWorkout(w.name)}
             >
               {w.name} ({w.exercises.length})
             </button>

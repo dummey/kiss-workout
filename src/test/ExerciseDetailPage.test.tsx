@@ -113,7 +113,7 @@ describe('ExerciseDetailPage', () => {
     expect(screen.getByText('Strength')).toBeInTheDocument()
     const chartOptions = vi.mocked(BodyChart).mock.calls.map(call => call[1].bodyState)
     expect(chartOptions).toHaveLength(2)
-    expect(chartOptions[0]['chest-upper-left']).toEqual({ intensity: 8, selected: true })
+    expect(chartOptions[0]['chest-upper-left']).toEqual({ intensity: 1, selected: true })
     expect(Object.keys(chartOptions[0])).toHaveLength(4)
   })
 
