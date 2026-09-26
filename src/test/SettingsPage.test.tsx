@@ -233,6 +233,9 @@ describe('SettingsPage — Customization display name', () => {
 
   afterEach(() => {
     cleanup()
+    // restoreAllMocks() only undoes vi.spyOn; stubGlobal needs its own counterpart,
+    // otherwise the export test's fake URL object leaks into every later test.
+    vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
 
