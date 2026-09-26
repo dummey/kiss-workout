@@ -25,6 +25,12 @@ function toPreviousPerformance(exercise: SessionExercise): PreviousPerformance {
   }
 }
 
+describe('seed meta', () => {
+  it('names the seed data exactly "Seed Data"', () => {
+    expect(SEED_DATA.meta.name).toBe('Seed Data')
+  })
+})
+
 describe('failed exercise seed data', () => {
   it('includes recorded and blank failed examples with valid exercise definitions', () => {
     const exerciseIds = new Set(SEED_DATA.exercises.map(exercise => exercise.id))

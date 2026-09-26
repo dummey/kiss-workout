@@ -3,7 +3,8 @@ import type { TrackerData } from './types'
 export const SEED_DATA: TrackerData = {
   "meta": {
     "method": "GZCL",
-    "created": "2026-09-01T00:00:00.000Z"
+    "created": "2026-09-01T00:00:00.000Z",
+    "name": "Seed Data"
   },
   "exercises": [
     {
