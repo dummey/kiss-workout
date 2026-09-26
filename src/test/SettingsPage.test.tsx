@@ -1,16 +1,44 @@
 import React from 'react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { TrackerProvider } from '../context'
 import { BackupProvider } from '../context/BackupContext'
 import { ModalProvider } from '../components/ModalProvider'
 import SettingsPage from '../pages/SettingsPage'
-import { getStore, deleteStore } from '../db'
+import { getStore, setStore, deleteStore } from '../db'
 import type { TrackerData } from '../types'
 
 vi.stubGlobal('alert', vi.fn())
+
+const NAME_LABEL = 'What should we call you?'
+
+function baseTracker(): TrackerData {
+  return {
+    meta: { method: 'GZCL', created: '2026-01-01T00:00:00.000Z' },
+    exercises: [],
+    workouts: [],
+    sessions: []
+  }
+}
+
+function trackerWithSession(): TrackerData {
+  return {
+    ...baseTracker(),
+    sessions: [
+      {
+        date: '2026-02-01',
+        workoutName: 'Upper A',
+        elapsedTime: 0,
+        notes: '',
+        exercises: [
+          { id: 'bench', name: 'Bench Press', muscles: ['Chest'], setup: '', tier: 'T1', superset: '', weight: '', reps: '', sets: null }
+        ]
+      }
+    ]
+  }
+}
 
 function TestApp() {
   return (
@@ -26,6 +54,23 @@ function TestApp() {
       </BackupProvider>
     </MemoryRouter>
   )
+}
+
+/** Uploads a JSON backup through the real Import input and confirms the modal. */
+async function importBackup(user: ReturnType<typeof userEvent.setup>, json: string) {
+  const file = new File([json], 'backup.json', { type: 'application/json' })
+  const input = document.getElementById('import-input') as HTMLInputElement
+  fireEvent.change(input, { target: { files: [file] } })
+
+  await waitFor(() => {
+    expect(screen.getByText('This will replace all existing data. Continue?')).toBeInTheDocument()
+  })
+  const importButtons = screen.getAllByRole('button', { name: 'Import' })
+  await user.click(importButtons[importButtons.length - 1])
+
+  await waitFor(() => {
+    expect(screen.getByText('Import Successful')).toBeInTheDocument()
+  })
 }
 
 async function loadSeed(user: ReturnType<typeof userEvent.setup>) {
@@ -172,5 +217,153 @@ describe('SettingsPage', () => {
 
     await user.click(screen.getByText('Cancel'))
     expect(screen.queryByText('Delete All Data?')).not.toBeInTheDocument()
+  })
+})
+
+describe('SettingsPage — Customization display name', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    try {
+      await deleteStore('tracker')
+      await deleteStore('backup-meta')
+    } catch {
+      // ignore
+    }
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
+
+  it('renders the Customization section with the display name label', async () => {
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    expect(screen.getByRole('heading', { name: 'Customization' })).toBeInTheDocument()
+    expect(screen.getByLabelText(NAME_LABEL)).toBeInTheDocument()
+    expect(screen.getByLabelText(NAME_LABEL)).toHaveValue('')
+  })
+
+  it('persists a typed name to the IndexedDB tracker key on blur', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const input = screen.getByLabelText(NAME_LABEL)
+    await user.type(input, 'Ricky')
+    await user.tab() // blur
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.name).toBe('Ricky')
+    })
+
+    // The rest of the tracker payload must survive the meta update.
+    const stored = await getStore('tracker') as TrackerData
+    expect(stored.meta.method).toBe('GZCL')
+    expect(stored.sessions).toEqual([])
+  })
+
+  it('stores an empty string when the name is cleared, not undefined', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', { ...baseTracker(), meta: { ...baseTracker().meta, name: 'Ricky' } })
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const input = screen.getByLabelText(NAME_LABEL)
+    // The stored name is adopted only after the async tracker read resolves.
+    await waitFor(() => {
+      expect(input).toHaveValue('Ricky')
+    })
+
+    await user.clear(input)
+    await user.tab() // blur
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.name).toBe('')
+    })
+  })
+
+  it('writes the name into the exported backup JSON', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', { ...trackerWithSession(), meta: { ...trackerWithSession().meta, name: 'Ricky' } })
+
+    // Capture the Blob handed to createObjectURL so we can read the real JSON bytes.
+    const mockCreateObjectURL = vi.fn(() => 'blob:mock')
+    const mockRevokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL: mockCreateObjectURL, revokeObjectURL: mockRevokeObjectURL })
+    const originalCreateElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName)
+      if (tagName === 'a') el.click = vi.fn()
+      return el
+    })
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await user.click(screen.getByRole('button', { name: 'Export' }))
+    await waitFor(() => {
+      expect(mockCreateObjectURL).toHaveBeenCalled()
+    })
+
+    const blob = mockCreateObjectURL.mock.calls[0][0] as unknown as Blob
+    const parsed = JSON.parse(await blob.text()) as TrackerData
+
+    // The field must actually be present in the produced JSON, not merely assumed.
+    expect(parsed.meta.name).toBe('Ricky')
+    expect(parsed.sessions).toHaveLength(1)
+  })
+
+  it('round-trips a backup containing meta.name through import', async () => {
+    const user = userEvent.setup()
+    const backup = { ...trackerWithSession(), meta: { ...trackerWithSession().meta, name: 'Ricky' } }
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await importBackup(user, JSON.stringify(backup))
+
+    // Re-mount so the provider re-reads the freshly imported store.
+    cleanup()
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(NAME_LABEL)).toHaveValue('Ricky')
+    })
+    const stored = await getStore('tracker') as TrackerData
+    expect(stored.meta.name).toBe('Ricky')
+  })
+
+  it('imports a backup without meta.name cleanly and shows an empty field', async () => {
+    const user = userEvent.setup()
+    const legacyBackup = baseTracker() // no name key at all — the pre-field format
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await importBackup(user, JSON.stringify(legacyBackup))
+
+    // Import must not have produced an "Invalid File" modal.
+    expect(screen.queryByText('Invalid File')).not.toBeInTheDocument()
+
+    cleanup()
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(NAME_LABEL)).toHaveValue('')
+    })
+    const stored = await getStore('tracker') as TrackerData
+    expect(stored.meta.name).toBeUndefined()
+    expect(stored.meta.method).toBe('GZCL')
   })
 })

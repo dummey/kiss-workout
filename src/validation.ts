@@ -119,6 +119,10 @@ export function validateTrackerData(data: unknown): { valid: boolean; error?: st
   const meta = d.meta as Record<string, unknown>
   if (!isString(meta.method)) return { valid: false, error: `meta.method must be a string` }
   if (!isString(meta.created)) return { valid: false, error: `meta.created must be a string` }
+  // Optional: absent in every backup written before the display-name field existed.
+  if (meta.name !== undefined && !isString(meta.name)) {
+    return { valid: false, error: `meta.name must be a string` }
+  }
 
   // Validate exercises array
   if (!Array.isArray(d.exercises)) {

@@ -290,6 +290,16 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
+  const setDisplayName = useCallback((name: string) => {
+    if (!data) return
+    // Copy meta so we never mutate the object held by the previous state.
+    const newData: TrackerData = {
+      ...data,
+      meta: { ...data.meta, name }
+    }
+    saveData(newData)
+  }, [data, saveData])
+
   const resetToSeedData = useCallback(async () => {
     await setStore('tracker', SEED_DATA)
     setData(SEED_DATA)
@@ -482,8 +492,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     canRemoveExerciseFromSession,
     duplicateExerciseInSession,
     cloneWorkout,
-    reorderWorkoutExercise
-  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, setExerciseFailed, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise])
+    reorderWorkoutExercise,
+    setDisplayName
+  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, setExerciseFailed, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise, setDisplayName])
 
   return (
     <TrackerContext.Provider value={value}>
