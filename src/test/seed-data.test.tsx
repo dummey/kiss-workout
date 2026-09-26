@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { SEED_DATA } from '../data'
+import { validateTrackerData } from '../validation'
 import ProgressionInfo from '../components/ProgressionInfo'
 import type { PreviousPerformance, SessionExercise } from '../types'
 
@@ -28,6 +29,24 @@ function toPreviousPerformance(exercise: SessionExercise): PreviousPerformance {
 describe('seed meta', () => {
   it('names the seed data exactly "Seed Data"', () => {
     expect(SEED_DATA.meta.name).toBe('Seed Data')
+  })
+})
+
+describe('seed import validity', () => {
+  // resetToSeedData writes SEED_DATA straight to IndexedDB without re-validating,
+  // so nothing else would catch an invalid seed: it would only surface when a user
+  // tried to import a backup exported from a freshly-seeded app.
+  it('passes validateTrackerData so an exported seed can be re-imported', () => {
+    expect(validateTrackerData(SEED_DATA)).toEqual({ valid: true })
+  })
+
+  it('gives every exercise definition a string superset, including empty ones', () => {
+    for (const exercise of SEED_DATA.exercises) {
+      expect(typeof exercise.superset).toBe('string')
+    }
+    // The seed defines no superset pairings, so every value is the empty string —
+    // the key must be present, not merely undefined.
+    expect(SEED_DATA.exercises.filter(ex => ex.superset !== '')).toEqual([])
   })
 })
 
