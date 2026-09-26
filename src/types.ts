@@ -38,6 +38,8 @@ export interface TrackerData {
   meta: {
     method: string
     created: string
+    /** Optional display name. Absent in backups created before this field existed. */
+    name?: string
   }
   exercises: Exercise[]
   workouts: Workout[]
@@ -84,4 +86,5 @@ export interface TrackerContextValue {
   duplicateExerciseInSession: (sessionDate: string, exIdx: number) => void
   cloneWorkout: (sourceName: string, newName: string) => void
   reorderWorkoutExercise: (workoutName: string, fromIndex: number, toIndex: number) => void
+  setDisplayName: (name: string) => void
 }

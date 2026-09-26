@@ -3,7 +3,8 @@ import type { TrackerData } from './types'
 export const SEED_DATA: TrackerData = {
   "meta": {
     "method": "GZCL",
-    "created": "2026-09-01T00:00:00.000Z"
+    "created": "2026-09-01T00:00:00.000Z",
+    "name": "Seed Data"
   },
   "exercises": [
     {
@@ -17,6 +18,7 @@ export const SEED_DATA: TrackerData = {
         "Erector Spinae"
       ],
       "setup": "Spotter at 18/2",
+      "superset": "",
       "tier": "T1"
     },
     {
@@ -28,6 +30,7 @@ export const SEED_DATA: TrackerData = {
         "Triceps"
       ],
       "setup": "Spotter at 8/-3",
+      "superset": "",
       "tier": "T1"
     },
     {
@@ -41,6 +44,7 @@ export const SEED_DATA: TrackerData = {
         "Traps"
       ],
       "setup": "",
+      "superset": "",
       "tier": "T1"
     },
     {
@@ -52,6 +56,7 @@ export const SEED_DATA: TrackerData = {
         "Adductors"
       ],
       "setup": "",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -63,6 +68,7 @@ export const SEED_DATA: TrackerData = {
         "Triceps"
       ],
       "setup": "DB, Bench",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -75,6 +81,7 @@ export const SEED_DATA: TrackerData = {
         "Core"
       ],
       "setup": "DB",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -87,6 +94,7 @@ export const SEED_DATA: TrackerData = {
         "Adductors"
       ],
       "setup": "Place at -3",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -97,6 +105,7 @@ export const SEED_DATA: TrackerData = {
         "Glutes"
       ],
       "setup": "Lowest 5/8\"",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -110,6 +119,7 @@ export const SEED_DATA: TrackerData = {
         "Erector Spinae"
       ],
       "setup": "BB, Spotters",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -122,6 +132,7 @@ export const SEED_DATA: TrackerData = {
         "Upper Traps"
       ],
       "setup": "DB, Bench",
+      "superset": "",
       "tier": "T2"
     },
     {
@@ -134,6 +145,7 @@ export const SEED_DATA: TrackerData = {
         "Rhomboids"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -149,6 +161,7 @@ export const SEED_DATA: TrackerData = {
         "Triceps"
       ],
       "setup": "Bands",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -162,6 +175,7 @@ export const SEED_DATA: TrackerData = {
         "Biceps Brachii"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -173,6 +187,7 @@ export const SEED_DATA: TrackerData = {
         "Obliques"
       ],
       "setup": "Bench",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -185,6 +200,7 @@ export const SEED_DATA: TrackerData = {
         "Rear Delts"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -194,6 +210,7 @@ export const SEED_DATA: TrackerData = {
         "Gluteus minimus / medius"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -203,6 +220,7 @@ export const SEED_DATA: TrackerData = {
         "Tibialis anterior"
       ],
       "setup": "Tib Bar, Bench",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -213,6 +231,7 @@ export const SEED_DATA: TrackerData = {
         "Soleus"
       ],
       "setup": "DB",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -224,6 +243,7 @@ export const SEED_DATA: TrackerData = {
         "Rectus Abdominis"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -233,6 +253,7 @@ export const SEED_DATA: TrackerData = {
         "Hamstrings"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -243,6 +264,7 @@ export const SEED_DATA: TrackerData = {
         "Quads"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -254,6 +276,7 @@ export const SEED_DATA: TrackerData = {
         "Forearms"
       ],
       "setup": "DB",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -263,6 +286,7 @@ export const SEED_DATA: TrackerData = {
         "Side Delts"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -275,6 +299,7 @@ export const SEED_DATA: TrackerData = {
         "Hip Flexors"
       ],
       "setup": "",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -284,6 +309,7 @@ export const SEED_DATA: TrackerData = {
         "Triceps"
       ],
       "setup": "Cable",
+      "superset": "",
       "tier": "T3"
     },
     {
@@ -297,6 +323,7 @@ export const SEED_DATA: TrackerData = {
         "Grip"
       ],
       "setup": "DB",
+      "superset": "",
       "tier": "T3"
     }
   ],

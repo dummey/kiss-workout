@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useTracker } from '../context'
 import { setStore } from '../db'
 import Button from '../components/Button'
@@ -8,12 +8,55 @@ import { validateTrackerData } from '../validation'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
-  const { data, deleteAllData, resetToSeedData } = useTracker()
+  const { data, deleteAllData, resetToSeedData, setDisplayName } = useTracker()
   const { showModal } = useModal()
   const { meta, recordBackup, exportBackup } = useBackup()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Display name edits are local until flushed, so typing never writes to IndexedDB
+  // per keystroke. Flush happens on blur, on Enter, and ~500ms after the last keystroke.
+  const [displayNameInput, setDisplayNameInput] = useState('')
+  const nameSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nameDirtyRef = useRef(false)
+  // The debounce timer must read the latest keystrokes, not the value captured when
+  // the timer was scheduled — hence a ref rather than closing over the state var.
+  const nameValueRef = useRef('')
+
+  useEffect(() => {
+    // Adopt the stored name, but never stomp an edit that has not been flushed yet.
+    if (nameDirtyRef.current) return
+    nameValueRef.current = data?.meta?.name ?? ''
+    setDisplayNameInput(nameValueRef.current)
+  }, [data?.meta?.name])
+
+  useEffect(() => () => {
+    if (nameSaveTimeoutRef.current) clearTimeout(nameSaveTimeoutRef.current)
+  }, [])
+
+  function flushDisplayName() {
+    if (nameSaveTimeoutRef.current) {
+      clearTimeout(nameSaveTimeoutRef.current)
+      nameSaveTimeoutRef.current = null
+    }
+    if (!nameDirtyRef.current) return
+    nameDirtyRef.current = false
+    setDisplayName(nameValueRef.current)
+  }
+
+  function handleDisplayNameChange(value: string) {
+    nameValueRef.current = value
+    setDisplayNameInput(value)
+    nameDirtyRef.current = true
+    if (nameSaveTimeoutRef.current) clearTimeout(nameSaveTimeoutRef.current)
+    nameSaveTimeoutRef.current = setTimeout(() => {
+      nameSaveTimeoutRef.current = null
+      if (!nameDirtyRef.current) return
+      nameDirtyRef.current = false
+      setDisplayName(nameValueRef.current)
+    }, 500)
+  }
 
   async function handleExport() {
     setExporting(true)
@@ -142,6 +185,36 @@ export default function SettingsPage() {
                 : 'No backup yet'}
             </span>
             <span>{meta.sessionsSinceBackup} sessions since backup</span>
+          </div>
+        </div>
+
+        {/* Customization */}
+        <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: 24 }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 16 }}>Customization</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div>
+              <label
+                htmlFor="display-name-input"
+                style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}
+              >
+                What should we call you?
+              </label>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                Used to personalize the app
+              </div>
+            </div>
+            <input
+              id="display-name-input"
+              type="text"
+              value={displayNameInput}
+              onChange={e => handleDisplayNameChange(e.target.value)}
+              onBlur={flushDisplayName}
+              onKeyDown={e => {
+                if (e.key === 'Enter') flushDisplayName()
+              }}
+              placeholder="Your name"
+              style={{ minWidth: 200 }}
+            />
           </div>
         </div>
 
