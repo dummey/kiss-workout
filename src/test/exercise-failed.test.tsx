@@ -208,7 +208,7 @@ describe('exercise failed marker', () => {
 
   it('supports marking a duplicated exercise as failed independently', async () => {
     const user = userEvent.setup()
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('duplicated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('duplicated-0000-0000-0000-000000000000')
     await setStore('tracker', makeData())
 
     renderPage()

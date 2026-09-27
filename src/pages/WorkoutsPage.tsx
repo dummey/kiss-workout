@@ -73,7 +73,7 @@ export default function WorkoutsPage() {
         { label: 'Delete', value: 'confirm', variant: 'danger' }
       ]
     }).then(result => {
-      if (result.action === 'confirm') {
+      if (result.action === 'confirm' && data) {
         const nextWorkout = data.workouts.find(w => w.name !== workout.name)
         deleteWorkout(workout.name)
         setSelectedWorkout(nextWorkout?.name || '')

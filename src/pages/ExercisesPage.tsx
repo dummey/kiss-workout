@@ -12,7 +12,14 @@ export default function ExercisesPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{ name: string; muscles: string; setup: string; superset: string; tier: string; equipment: string }>({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
-  const [newEx, setNewEx] = useState({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
+  const [newEx, setNewEx] = useState<{
+    name: string
+    muscles: string
+    setup: string
+    superset: string
+    tier: Exercise['tier']
+    equipment: Exercise['equipment']
+  }>({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
   const [workoutToAdd, setWorkoutToAdd] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -223,14 +230,14 @@ export default function ExercisesPage() {
             </div>
             <div className="form-group">
               <label htmlFor="new-ex-equipment">Equipment</label>
-              <select id="new-ex-equipment" value={newEx.equipment} onChange={e => setNewEx({ ...newEx, equipment: e.target.value })}>
+              <select id="new-ex-equipment" value={newEx.equipment} onChange={e => setNewEx({ ...newEx, equipment: e.target.value as Exercise['equipment'] })}>
                 <option value="">None</option>
                 <option value="barbell">Barbell</option>
               </select>
             </div>
             <div className="form-group">
               <label>Tier</label>
-              <select value={newEx.tier} onChange={e => setNewEx({ ...newEx, tier: e.target.value })}>
+              <select value={newEx.tier} onChange={e => setNewEx({ ...newEx, tier: e.target.value as Exercise['tier'] })}>
                 <option value="">None</option>
                 <option value="T1">T1</option>
                 <option value="T2">T2</option>

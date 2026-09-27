@@ -11,6 +11,20 @@ vi.mock('../context/BackupContext', () => ({
 
 const mockedUseBackup = vi.mocked(useBackup)
 
+/** Complete BackupContextValue; individual tests override only what they assert on. */
+function backupMock(overrides: Partial<ReturnType<typeof useBackup>> = {}): ReturnType<typeof useBackup> {
+  return {
+    meta: { lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null },
+    incrementBackupCounter: vi.fn(),
+    recordBackup: vi.fn(),
+    exportBackup: vi.fn(),
+    resetBackupMeta: vi.fn(),
+    dismissReminder: vi.fn(),
+    shouldShowReminder: false,
+    ...overrides,
+  }
+}
+
 vi.mock('../assets/logo.png', () => ({
   default: 'logo-mock.png',
 }))
@@ -21,14 +35,7 @@ describe('Layout', () => {
   })
 
   it('renders navigation links', () => {
-    mockedUseBackup.mockReturnValue({
-      shouldShowReminder: false,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      incrementBackupCounter: vi.fn(),
-      recordBackup: vi.fn(),
-      resetBackupMeta: vi.fn(),
-      dismissReminder: vi.fn(),
-    })
+    mockedUseBackup.mockReturnValue(backupMock())
     render(
       <MemoryRouter>
         <Layout />
@@ -42,14 +49,7 @@ describe('Layout', () => {
   })
 
   it('renders the main content area', () => {
-    mockedUseBackup.mockReturnValue({
-      shouldShowReminder: false,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      incrementBackupCounter: vi.fn(),
-      recordBackup: vi.fn(),
-      resetBackupMeta: vi.fn(),
-      dismissReminder: vi.fn(),
-    })
+    mockedUseBackup.mockReturnValue(backupMock())
     render(
       <MemoryRouter>
         <Layout />
@@ -59,14 +59,7 @@ describe('Layout', () => {
   })
 
   it('renders bottom tab bar', () => {
-    mockedUseBackup.mockReturnValue({
-      shouldShowReminder: false,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      incrementBackupCounter: vi.fn(),
-      recordBackup: vi.fn(),
-      resetBackupMeta: vi.fn(),
-      dismissReminder: vi.fn(),
-    })
+    mockedUseBackup.mockReturnValue(backupMock())
     render(
       <MemoryRouter>
         <Layout />
@@ -78,14 +71,7 @@ describe('Layout', () => {
   })
 
   it('renders the logo image', () => {
-    mockedUseBackup.mockReturnValue({
-      shouldShowReminder: false,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      incrementBackupCounter: vi.fn(),
-      recordBackup: vi.fn(),
-      resetBackupMeta: vi.fn(),
-      dismissReminder: vi.fn(),
-    })
+    mockedUseBackup.mockReturnValue(backupMock())
     render(
       <MemoryRouter>
         <Layout />
@@ -96,14 +82,10 @@ describe('Layout', () => {
   })
 
   it('shows backup reminder badge on Settings when reminder is active', () => {
-    mockedUseBackup.mockReturnValue({
+    mockedUseBackup.mockReturnValue(backupMock({
       shouldShowReminder: true,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 15 },
-      incrementBackupCounter: vi.fn(),
-      recordBackup: vi.fn(),
-      resetBackupMeta: vi.fn(),
-      dismissReminder: vi.fn(),
-    })
+      meta: { lastBackupDate: null, sessionsSinceBackup: 15, dismissedAt: null },
+    }))
     render(
       <MemoryRouter>
         <Layout />
@@ -117,14 +99,7 @@ describe('Layout', () => {
   })
 
   it('does not show backup reminder badge when reminder is inactive', () => {
-    mockedUseBackup.mockReturnValue({
-      shouldShowReminder: false,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      incrementBackupCounter: vi.fn(),
-      recordBackup: vi.fn(),
-      resetBackupMeta: vi.fn(),
-      dismissReminder: vi.fn(),
-    })
+    mockedUseBackup.mockReturnValue(backupMock())
     render(
       <MemoryRouter>
         <Layout />

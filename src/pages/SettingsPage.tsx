@@ -387,7 +387,7 @@ export default function SettingsPage() {
                     <span style={{ color: 'var(--muted)' }}>lb</span>
                     <Button
                       size="sm"
-                      variant="danger"
+                      danger
                       aria-label={`Remove plate ${plate.weight}`}
                       onClick={() => handleRemovePlate(i)}
                     >×</Button>
@@ -477,7 +477,7 @@ export default function SettingsPage() {
             <p className="modal-sub">This action cannot be undone. All your exercises, workouts, and sessions will be permanently deleted and replaced with default seed data.</p>
             <div className="modal-actions">
               <Button onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-              <Button variant="danger" onClick={handleDeleteAll}>Delete Everything</Button>
+              <Button danger onClick={handleDeleteAll}>Delete Everything</Button>
             </div>
           </div>
         </div>
