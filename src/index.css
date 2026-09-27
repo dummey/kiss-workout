@@ -107,6 +107,13 @@ body {
 .form-group input, .form-group select {
   width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
   padding: 10px 14px; border-radius: 8px; font-size: 0.95rem; font-family: inherit;
+  /* Without this the UA resolves the light color scheme, and a hovered/focused
+     <input type="number"> paints its spin button with light chrome — a solid
+     near-white rgb(252,252,252) block on the dark --surface2 field. Measured in
+     headed Chrome: 220 near-white px, max luma delta 217 vs the field. With
+     `dark` the arrows render as dark glyphs on a dark track (rgb(44,44,44)),
+     max luma delta 124. `select` is included so the dropdown popup matches. */
+  color-scheme: dark;
 }
 .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
