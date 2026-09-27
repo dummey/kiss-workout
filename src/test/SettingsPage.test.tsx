@@ -560,6 +560,67 @@ describe('SettingsPage — barbell setup', () => {
     expect(stored.meta.plates).toEqual(storedKit)
   })
 
+  it('renders the bar weight and every plate input inside the shared .form-group convention', async () => {
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    // Durable style contract: these fields inherit the app-wide stylesheet rule via a
+    // .form-group ancestor, exactly like the text fields in the Add Exercise modal.
+    // Asserting computed px/hex would churn; asserting the shared hook cannot.
+    const fields = [
+      screen.getByLabelText(BAR_LABEL),
+      ...screen.getAllByLabelText(/^Plate \d+ count$/),
+      ...screen.getAllByLabelText(/^Plate \d+ weight$/),
+    ]
+    expect(fields.length).toBeGreaterThan(1)
+    for (const field of fields) {
+      const group = field.closest('.form-group')
+      expect(group, `${field.getAttribute('aria-label') ?? field.id} is not inside a .form-group`).not.toBeNull()
+      expect(group!.querySelector('input')).toBe(field)
+    }
+  })
+
+  it('keeps the plate count/weight wiring on the right plate row and key', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', {
+      ...baseTracker(),
+      // A single-row kit, so index 0 is unambiguous and cannot pass by luck.
+      meta: { ...baseTracker().meta, barbellWeight: 45, plates: [{ count: 2, weight: 45 }] },
+    })
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+    // Wait on the ROW COUNT, not the row's values: the default kit's first row is
+    // also 2 x 45, so a value-based wait passes against the pre-adopt default state
+    // and lets the flush write defaults over the stored kit. One row can only mean
+    // the stored single-plate kit has actually been adopted.
+    await waitFor(() => {
+      expect(screen.getAllByLabelText(/^Plate \d+ count$/)).toHaveLength(1)
+    })
+
+    // The two fields of a row are siblings in the SAME .form-group row, i.e. they
+    // must not have been cross-wired while being wrapped. A refactor that swapped
+    // the count/weight wiring would still pass per-field style assertions.
+    const count = screen.getByLabelText('Plate 1 count')
+    const weight = screen.getByLabelText('Plate 1 weight')
+    expect(count).toHaveValue(2)
+    expect(weight).toHaveValue(45)
+    expect(count.closest('div[style*="gap"]')).toBe(weight.closest('div[style*="gap"]'))
+
+    // Edit weight only: the stored count must survive, and the row must not grow.
+    await user.clear(weight)
+    await user.type(weight, '35')
+    await user.tab()
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.plates).toEqual([{ count: 2, weight: 35 }])
+    })
+    expect(screen.getAllByLabelText(/^Plate \d+ count$/)).toHaveLength(1)
+  })
+
   it('imports a legacy backup with neither barbell key without an error', async () => {
     const user = userEvent.setup()
 
