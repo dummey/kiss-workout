@@ -3,6 +3,7 @@ import {
   calculatePlates,
   formatPlateBreakdown,
   parseWeightInput,
+  clonePlates,
   DEFAULT_BARBELL_WEIGHT,
   DEFAULT_PLATES,
   type PlateInventory,
@@ -147,6 +148,46 @@ describe('calculatePlates', () => {
     expect(r.plateCount).toBe(2)
   })
 
+  // The core correctness contract, independent of any particular kit: every
+  // answer must be physically loadable from the plates the user owns. A
+  // reconstruction bug can produce a self-consistent — the numbers add up, the
+  // total is right — but impossible breakdown, so this is asserted on a kit
+  // shape the default does not have rather than only on the default.
+  it('never asks for more plates of a weight than the user owns', () => {
+    const kit: PlateInventory[] = [
+      { count: 2, weight: 2.5 },
+      { count: 4, weight: 5 },
+      { count: 2, weight: 10 },
+    ]
+    const stock: Record<number, number> = { 2.5: 1, 5: 2, 10: 1 }
+    for (let t = 36; t <= 100; t += 0.25) {
+      const r = calculatePlates(35, kit, t)!
+      for (const p of r.perSide) {
+        expect(p.count).toBeLessThanOrEqual(stock[p.weight] ?? 0)
+      }
+    }
+  })
+
+  it('holds the owned-stock limit across a sweep on a plate-heavy kit', () => {
+    // Deliberately awkward: many plates per weight, and an odd count on two
+    // weights so the per-side floor is exercised alongside the stock limit.
+    const kit: PlateInventory[] = [
+      { count: 5, weight: 15 },
+      { count: 10, weight: 2.5 },
+      { count: 9, weight: 10 },
+      { count: 8, weight: 35 },
+      { count: 7, weight: 2.5 },
+    ]
+    const stock: Record<number, number> = {}
+    for (const p of kit) stock[p.weight] = (stock[p.weight] ?? 0) + Math.floor(p.count / 2)
+    for (let t = 46; t <= 700; t += 0.5) {
+      const r = calculatePlates(45, kit, t)!
+      for (const p of r.perSide) {
+        expect(p.count).toBeLessThanOrEqual(stock[p.weight] ?? 0)
+      }
+    }
+  })
+
   it('never exceeds the target across a wide sweep', () => {
     for (let t = 1; t <= 400; t += 0.5) {
       const r = calculatePlates(BAR, SEED, t)
@@ -188,6 +229,32 @@ describe('formatPlateBreakdown', () => {
     expect(text).toContain('135 (2)')
   })
 
+  // The rendered list is instructions, not decoration: if it omits a plate the
+  // user follows it and under-loads the bar. Assert the shown weights sum to
+  // the real per-side load, over the whole range where the seed kit needs more
+  // than one plate of the same weight.
+  it('renders every plate, so the list sums to the per-side load', () => {
+    for (let t = 36; t <= MAX_LOADABLE; t += 0.25) {
+      const r = calculatePlates(BAR, SEED, t)!
+      const text = formatPlateBreakdown(r)
+      // A bar-only load (nothing loadable yet) renders just "35 (2.75)" with no
+      // per-side list at all; there is nothing to sum in that case.
+      if (!text || !text.includes(' per side')) continue
+      const shown = text
+        .split(' per side')[0]
+        .split(' + ')
+        .map(Number)
+        .reduce((a, b) => a + b, 0)
+      expect(shown).toBe(perSideSum(r.perSide))
+    }
+  })
+
+  it('lists a repeated plate as many times as it is actually used', () => {
+    // 75 needs two 10s per side; rendering one would tell the user to load 55.
+    const text = formatPlateBreakdown(calculatePlates(BAR, SEED, 75))!
+    expect(text).toContain('10 + 10 per side')
+  })
+
   it('omits the parenthetical when the target is hit exactly', () => {
     const text = formatPlateBreakdown(calculatePlates(BAR, SEED, 135))!
     expect(text).toBe('45 + 5 per side')
@@ -208,5 +275,22 @@ describe('defaults', () => {
     expect(DEFAULT_BARBELL_WEIGHT).toBe(45)
     expect(DEFAULT_PLATES.length).toBeGreaterThan(0)
     expect(DEFAULT_PLATES.every(p => p.count >= 2 && p.weight > 0)).toBe(true)
+  })
+
+  // DEFAULT_PLATES is persisted straight into meta.plates, so a shared mutable
+  // reference would let one in-place edit corrupt the default for every user
+  // who has no stored value — and the corruption is invisible because both
+  // sides are "the same object".
+  it('cannot be mutated in place', () => {
+    expect(Object.isFrozen(DEFAULT_PLATES)).toBe(true)
+    expect(DEFAULT_PLATES.every(p => Object.isFrozen(p))).toBe(true)
+  })
+
+  it('clones to a fresh writable copy, so editing a copy leaves the default intact', () => {
+    const copy = clonePlates(DEFAULT_PLATES)
+    expect(copy).not.toBe(DEFAULT_PLATES as unknown as PlateInventory[])
+    expect(copy[0]).not.toBe(DEFAULT_PLATES[0])
+    copy[0].count = 99
+    expect(DEFAULT_PLATES[0].count).toBe(2)
   })
 })

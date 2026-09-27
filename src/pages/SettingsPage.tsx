@@ -5,7 +5,7 @@ import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useBackup } from '../context/BackupContext'
 import { validateTrackerData } from '../validation'
-import { DEFAULT_BARBELL_WEIGHT, DEFAULT_PLATES, type PlateInventory } from '../utils/plates'
+import { DEFAULT_BARBELL_WEIGHT, DEFAULT_PLATES, clonePlates, type PlateInventory } from '../utils/plates'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
@@ -47,7 +47,7 @@ export default function SettingsPage() {
   const barbellDirtyRef = useRef(false)
   const barbellTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [platesInput, setPlatesInput] = useState<PlateInventory[]>(DEFAULT_PLATES)
+  const [platesInput, setPlatesInput] = useState<PlateInventory[]>(clonePlates(DEFAULT_PLATES))
   const platesDirtyRef = useRef(false)
   const platesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -59,7 +59,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (platesDirtyRef.current) return
-    setPlatesInput(data?.meta?.plates ?? DEFAULT_PLATES)
+    setPlatesInput(data?.meta?.plates ? clonePlates(data.meta.plates) : clonePlates(DEFAULT_PLATES))
   }, [data?.meta?.plates])
 
   useEffect(() => () => {
@@ -69,7 +69,7 @@ export default function SettingsPage() {
 
   // Read the live input values at flush time rather than closing over state.
   const barbellValueRef = useRef(String(DEFAULT_BARBELL_WEIGHT))
-  const platesValueRef = useRef<PlateInventory[]>(DEFAULT_PLATES)
+  const platesValueRef = useRef<PlateInventory[]>(clonePlates(DEFAULT_PLATES))
 
   function flushBarbellSetup() {
     if (barbellTimeoutRef.current) {

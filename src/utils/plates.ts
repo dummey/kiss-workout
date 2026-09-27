@@ -47,14 +47,26 @@ const UNITS_PER_LB = 4
 
 export const DEFAULT_BARBELL_WEIGHT = 45
 
-/** The default kit, used to seed the Settings inputs. */
-export const DEFAULT_PLATES: PlateInventory[] = [
-  { count: 2, weight: 45 },
-  { count: 2, weight: 25 },
-  { count: 4, weight: 10 },
-  { count: 2, weight: 5 },
-  { count: 2, weight: 2.5 },
-]
+/**
+ * The default kit, used to seed the Settings inputs.
+ *
+ * Frozen and `readonly` deliberately: callers persist this straight into
+ * `meta.plates`, so a shared mutable module constant would let one in-place
+ * write corrupt the default for every user who has no stored value. Use
+ * `clonePlates()` to get a writable copy.
+ */
+export const DEFAULT_PLATES: readonly PlateInventory[] = Object.freeze([
+  Object.freeze({ count: 2, weight: 45 }),
+  Object.freeze({ count: 2, weight: 25 }),
+  Object.freeze({ count: 4, weight: 10 }),
+  Object.freeze({ count: 2, weight: 5 }),
+  Object.freeze({ count: 2, weight: 2.5 }),
+]) as readonly PlateInventory[]
+
+/** A fresh, writable copy of a plate list. Used at every persistence boundary. */
+export function clonePlates(plates: readonly PlateInventory[]): PlateInventory[] {
+  return plates.map(p => ({ ...p }))
+}
 
 function toUnits(lb: number): number {
   return Math.round(lb * UNITS_PER_LB)
@@ -86,7 +98,7 @@ export function parseWeightInput(value: string): number | null {
  * is floored rather than rejected — that is a misconfiguration, not an error.
  * Zero-stock and unparseable rows are dropped.
  */
-function perSideStock(inventory: PlateInventory[]): number[] {
+function perSideStock(inventory: readonly PlateInventory[]): number[] {
   const items: number[] = []
   for (const plate of inventory ?? []) {
     if (!plate || typeof plate.count !== 'number' || typeof plate.weight !== 'number') continue
@@ -100,29 +112,50 @@ function perSideStock(inventory: PlateInventory[]): number[] {
 }
 
 /**
- * Fewest plates for every exactly-reachable sum, plus the plate index used to
- * get there so the combination can be reconstructed.
+ * Fewest plates needed for every exactly-reachable sum up to `budget`.
  *
- * `dp[s]` is the minimum plate count summing to exactly `s`, so a larger sum is
- * always the better answer and `dp[s]` is already its fewest-plates form.
+ * Returns a 2-D table where `dp[i][s]` is the minimum number of plates drawn
+ * from `items[0..i)` that sum to exactly `s` (Infinity if unreachable).
+ *
+ * The second dimension is what makes this correct. A 0/1 knapsack can only be
+ * reconstructed from a table that remembers the *prefix* of items considered at
+ * each sum: a single-slot `pick[s]` gets overwritten by later items, so walking
+ * it back can consume the same physical plate more than once. Keeping the
+ * prefix index lets the walk-back consume each item at most once, which is what
+ * enforces the per-side stock limit.
  */
-function minPlatesPerSum(items: number[], budget: number): { dp: number[]; pick: number[] } {
-  const dp = new Array<number>(budget + 1).fill(Infinity)
-  const pick = new Array<number>(budget + 1).fill(-1)
-  dp[0] = 0
-  // 0/1 knapsack: each physical plate is one item, used at most once, which is
-  // what enforces the per-side stock limit.
-  for (let i = 0; i < items.length; i++) {
+function minPlatesPerSum(items: number[], budget: number): number[][] {
+  const n = items.length
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(budget + 1).fill(Infinity))
+  dp[0][0] = 0
+  for (let i = 0; i < n; i++) {
     const w = items[i]
-    if (w > budget) continue
-    for (let s = budget; s >= w; s--) {
-      if (dp[s - w] + 1 < dp[s]) {
-        dp[s] = dp[s - w] + 1
-        pick[s] = i
-      }
+    const prev = dp[i]
+    const next = dp[i + 1]
+    for (let s = 0; s <= budget; s++) {
+      next[s] = prev[s] // skip items[i]
+      if (s >= w && prev[s - w] + 1 < next[s]) next[s] = prev[s - w] + 1 // take items[i]
     }
   }
-  return { dp, pick }
+  return dp
+}
+
+/**
+ * Reconstruct the physical plates behind `bestSum` by walking the 2-D table
+ * forward, consuming each item at most once.
+ */
+function reconstruct(dp: number[][], items: number[], bestSum: number): Map<number, number> {
+  const counts = new Map<number, number>()
+  let remaining = bestSum
+  for (let i = items.length - 1; i >= 0; i--) {
+    const w = items[i]
+    // Take items[i] only if that is the transition that produced the optimum.
+    if (remaining >= w && dp[i][remaining - w] + 1 === dp[i + 1][remaining]) {
+      counts.set(w, (counts.get(w) ?? 0) + 1)
+      remaining -= w
+    }
+  }
+  return counts
 }
 
 /**
@@ -134,7 +167,7 @@ function minPlatesPerSum(items: number[], budget: number): { dp: number[]; pick:
  */
 export function calculatePlates(
   barbellWeight: number,
-  inventory: PlateInventory[],
+  inventory: readonly PlateInventory[],
   target: number
 ): PlateBreakdown | null {
   if (typeof target !== 'number' || !Number.isFinite(target) || target <= 0) return null
@@ -160,28 +193,21 @@ export function calculatePlates(
     return { total: bar, leftover: 0, perSide: [], plateCount: 0 }
   }
 
-  const { dp, pick } = minPlatesPerSum(items, budget)
+  const dp = minPlatesPerSum(items, budget)
+  const last = dp[items.length]
 
   // Largest reachable sum <= budget. Scanning down and stopping at the first
-  // reachable sum yields the max sum, and dp[s] is already the fewest plates
-  // for it — continuing the scan would let a lighter total win on plate count.
+  // reachable sum yields the max sum, and the table entry is already the fewest
+  // plates for it — continuing the scan would let a lighter total win on count.
   let bestSum = 0
   for (let s = budget; s >= 0; s--) {
-    if (dp[s] !== Infinity) {
+    if (last[s] !== Infinity) {
       bestSum = s
       break
     }
   }
 
-  // Walk the picks back to the physical plates that make up that sum.
-  const counts = new Map<number, number>()
-  let remaining = bestSum
-  while (remaining > 0) {
-    const index = pick[remaining]
-    if (index < 0) break
-    counts.set(items[index], (counts.get(items[index]) ?? 0) + 1)
-    remaining -= items[index]
-  }
+  const counts = reconstruct(dp, items, bestSum)
 
   const perSide: PerSidePlate[] = [...counts.entries()]
     .map(([weight, count]) => ({ weight: fromUnits(weight), count }))
@@ -212,7 +238,14 @@ export function formatPlateBreakdown(breakdown: PlateBreakdown | null): string |
 
   const parts: string[] = []
   if (breakdown.perSide.length > 0) {
-    parts.push(`${breakdown.perSide.map(p => p.weight).join(' + ')} per side`)
+    // Every physical plate is listed, not one entry per weight: `perSide` is
+    // grouped by weight, and rendering `weight` alone would show one plate where
+    // `count` of them are actually needed — telling the user to under-load the
+    // bar, which is the one thing this line must never do.
+    const list = breakdown.perSide
+      .flatMap(p => Array.from({ length: p.count }, () => p.weight))
+      .join(' + ')
+    parts.push(`${list} per side`)
   }
   if (breakdown.leftover > 0) {
     parts.push(`${breakdown.total} (${breakdown.leftover})`)
