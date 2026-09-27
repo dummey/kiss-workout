@@ -10,6 +10,49 @@ import {
   DEFAULT_BARBELL_WEIGHT,
   DEFAULT_PLATES,
 } from '../utils/plates'
+import type { Exercise, SessionExercise } from '../types'
+
+/**
+ * The equipment to render for a session exercise.
+ *
+ * `equipment` is snapshotted onto a session record when the session is created,
+ * so the record — not the current definition — is the source of truth for what
+ * was actually lifted that day. But two things complicate reading it back:
+ *
+ *  1. Records predating the field carry no `equipment` key at all, so the
+ *     definition is the only thing that can answer the question.
+ *  2. A duplicated exercise's id is synthetic (`<id>-copy-<uuid>`) and matches
+ *     no definition, so its definition has to be reached through `originalId`.
+ *     `duplicateExerciseInSession` normalises a missing snapshot to `''`, which
+ *     makes a copy of a pre-equipment record indistinguishable from a record
+ *     explicitly marked "None" — the empty string on a copy is an artefact of
+ *     copying, not a recorded choice, so it must not win.
+ *
+ * So the rule is: take the recorded value only when the record is not a copy;
+ * for a copy, follow it to the record it was duplicated from and, failing
+ * that, to the definition. Returns undefined when nothing is known, which
+ * reads as "not barbell" and renders no breakdown.
+ */
+function resolveEquipment(
+  sessionEx: SessionExercise,
+  siblings: SessionExercise[],
+  getExercise: (id: string) => Exercise | undefined
+): 'barbell' | '' | undefined {
+  // Only a copy's own `equipment` is unreliable — the normaliser rewrote it.
+  // A non-copy record is read as written, including an explicit ''.
+  if (sessionEx.originalId) {
+    // Prefer the record the copy was duplicated from: it is the closest thing
+    // to an original reading, and it preserves the snapshot of a modern
+    // session even when the definition has since been reclassified.
+    const source = siblings.find(e => e.id === sessionEx.originalId)
+    if (source) return source.equipment ?? getExercise(source.id)?.equipment
+    // The source is gone (removed, or from a different session). Fall back to
+    // the definition the copy points at.
+    return getExercise(sessionEx.originalId)?.equipment
+  }
+  if ('equipment' in sessionEx) return sessionEx.equipment
+  return getExercise(sessionEx.id)?.equipment
+}
 
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
@@ -195,10 +238,15 @@ export default function SessionDetailPage() {
     }, 500)
   }
   const resolvedExercises = session?.exercises?.map((sessionEx, idx) => {
-    const def = getExercise(sessionEx.id) || {}
+    // A duplicated exercise carries a synthetic id (`<id>-copy-<uuid>`) that
+    // matches no definition; `originalId` points at the real one.
+    const def = getExercise(sessionEx.originalId ?? sessionEx.id) || {}
     return {
       ...def,
       ...sessionEx,
+      // `def.equipment` must not simply be shadowed by the record's own value,
+      // so equipment is resolved explicitly — see resolveEquipment above.
+      equipment: resolveEquipment(sessionEx, session.exercises, getExercise),
       idx
     }
   }) || []
