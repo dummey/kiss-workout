@@ -15,7 +15,7 @@ import { deleteStore, setStore } from '../db'
 import type { SessionExercise, TrackerData } from '../types'
 
 vi.mock('body-muscles', () => ({
-  BodyChart: vi.fn(function () {
+  BodyChart: vi.fn(function (this: { destroy: () => void; update: () => void }) {
     this.destroy = vi.fn()
     this.update = vi.fn()
   }),

@@ -11,29 +11,36 @@ vi.mock('../context/BackupContext', () => ({
 
 const mockedUseBackup = vi.mocked(useBackup)
 
+/** Complete BackupContextValue; individual tests override only what they assert on. */
+function backupMock(overrides: Partial<ReturnType<typeof useBackup>> = {}): ReturnType<typeof useBackup> {
+  return {
+    meta: { lastBackupDate: null, sessionsSinceBackup: 0, dismissedAt: null },
+    incrementBackupCounter: vi.fn(),
+    recordBackup: vi.fn(),
+    exportBackup: vi.fn(),
+    resetBackupMeta: vi.fn(),
+    dismissReminder: vi.fn(),
+    shouldShowReminder: false,
+    ...overrides,
+  }
+}
+
 describe('BackupReminderBanner', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('renders null when shouldShowReminder is false', () => {
-    mockedUseBackup.mockReturnValue({
-      shouldShowReminder: false,
-      dismissReminder: vi.fn(),
-      meta: { lastBackupDate: null, sessionsSinceBackup: 0 },
-      exportBackup: vi.fn(),
-    })
+    mockedUseBackup.mockReturnValue(backupMock())
     const { container } = render(<BackupReminderBanner />)
     expect(container.innerHTML).toBe('')
   })
 
   it('renders the banner when shouldShowReminder is true', () => {
-    mockedUseBackup.mockReturnValue({
+    mockedUseBackup.mockReturnValue(backupMock({
       shouldShowReminder: true,
-      dismissReminder: vi.fn(),
-      meta: { lastBackupDate: null, sessionsSinceBackup: 5 },
-      exportBackup: vi.fn(),
-    })
+      meta: { lastBackupDate: null, sessionsSinceBackup: 5, dismissedAt: null },
+    }))
     render(<BackupReminderBanner />)
     expect(screen.getByText(/5 sessions without a backup/i)).toBeInTheDocument()
   })
@@ -41,12 +48,10 @@ describe('BackupReminderBanner', () => {
   it('renders days-since-backup message when lastBackupDate is set', () => {
     const twoDaysAgo = new Date()
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-    mockedUseBackup.mockReturnValue({
+    mockedUseBackup.mockReturnValue(backupMock({
       shouldShowReminder: true,
-      dismissReminder: vi.fn(),
-      meta: { lastBackupDate: twoDaysAgo.toISOString(), sessionsSinceBackup: 0 },
-      exportBackup: vi.fn(),
-    })
+      meta: { lastBackupDate: twoDaysAgo.toISOString(), sessionsSinceBackup: 0, dismissedAt: null },
+    }))
     render(<BackupReminderBanner />)
     expect(screen.getByText(/2 days since your last backup/i)).toBeInTheDocument()
   })
@@ -54,12 +59,10 @@ describe('BackupReminderBanner', () => {
   it('renders singular day message for 1 day', () => {
     const oneDayAgo = new Date()
     oneDayAgo.setDate(oneDayAgo.getDate() - 1)
-    mockedUseBackup.mockReturnValue({
+    mockedUseBackup.mockReturnValue(backupMock({
       shouldShowReminder: true,
-      dismissReminder: vi.fn(),
-      meta: { lastBackupDate: oneDayAgo.toISOString(), sessionsSinceBackup: 0 },
-      exportBackup: vi.fn(),
-    })
+      meta: { lastBackupDate: oneDayAgo.toISOString(), sessionsSinceBackup: 0, dismissedAt: null },
+    }))
     render(<BackupReminderBanner />)
     expect(screen.getByText(/1 days since your last backup/i)).toBeInTheDocument()
   })
@@ -67,12 +70,11 @@ describe('BackupReminderBanner', () => {
   it('calls exportBackup when Export is clicked', async () => {
     const user = userEvent.setup()
     const exportBackup = vi.fn().mockResolvedValue(true)
-    mockedUseBackup.mockReturnValue({
+    mockedUseBackup.mockReturnValue(backupMock({
       shouldShowReminder: true,
-      dismissReminder: vi.fn(),
-      meta: { lastBackupDate: null, sessionsSinceBackup: 5 },
+      meta: { lastBackupDate: null, sessionsSinceBackup: 5, dismissedAt: null },
       exportBackup,
-    })
+    }))
     render(<BackupReminderBanner />)
 
     const buttons = screen.getAllByText('Export')
@@ -85,12 +87,11 @@ describe('BackupReminderBanner', () => {
   it('calls dismissReminder when "Remind me later" is clicked', async () => {
     const user = userEvent.setup()
     const dismissReminder = vi.fn()
-    mockedUseBackup.mockReturnValue({
+    mockedUseBackup.mockReturnValue(backupMock({
       shouldShowReminder: true,
+      meta: { lastBackupDate: null, sessionsSinceBackup: 5, dismissedAt: null },
       dismissReminder,
-      meta: { lastBackupDate: null, sessionsSinceBackup: 5 },
-      exportBackup: vi.fn(),
-    })
+    }))
     render(<BackupReminderBanner />)
 
     await user.click(screen.getByText('Remind me later'))

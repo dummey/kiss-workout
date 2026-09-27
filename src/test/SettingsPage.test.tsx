@@ -299,7 +299,7 @@ describe('SettingsPage — Customization display name', () => {
     await setStore('tracker', { ...trackerWithSession(), meta: { ...trackerWithSession().meta, name: 'Ricky' } })
 
     // Capture the Blob handed to createObjectURL so we can read the real JSON bytes.
-    const mockCreateObjectURL = vi.fn(() => 'blob:mock')
+    const mockCreateObjectURL = vi.fn((_blob: Blob) => 'blob:mock')
     const mockRevokeObjectURL = vi.fn()
     vi.stubGlobal('URL', { createObjectURL: mockCreateObjectURL, revokeObjectURL: mockRevokeObjectURL })
     const originalCreateElement = document.createElement.bind(document)

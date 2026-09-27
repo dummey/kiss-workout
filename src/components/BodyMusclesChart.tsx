@@ -65,7 +65,7 @@ function buildBodyState(highlightedMuscles: string[], allMuscles: string[]): Bod
 }
 
 interface BodyChartViewProps {
-  view: ViewSide | string
+  view: ViewSide
   bodyState: BodyState
   label: string
   idTooltipMap: Record<string, { name: string; count: number }>

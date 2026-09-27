@@ -42,7 +42,7 @@ function renderPage() {
 
 async function waitForExercises() {
   // Wait for tier header to render (indicates exercises are loaded)
-  await screen.findByText(/Main Lift/, { timeout: 5000 })
+  await screen.findByText(/Main Lift/, undefined, { timeout: 5000 })
 }
 
 describe('WorkoutsPage exercise reordering', () => {
@@ -73,7 +73,7 @@ describe('WorkoutsPage exercise reordering', () => {
     renderPage()
     await waitForExercises()
 
-    const upButtons = screen.getAllByLabelText(/Move .+ up/).filter(b => !b.disabled)
+    const upButtons = screen.getAllByRole('button', { name: /Move .+ up/ }).filter(b => !(b as HTMLButtonElement).disabled)
     expect(upButtons.length).toBeGreaterThan(0)
 
     await userEvent.click(upButtons[0])
@@ -86,8 +86,8 @@ describe('WorkoutsPage exercise reordering', () => {
     renderPage()
     await waitForExercises()
 
-    const squatCard = screen.getByText('Barbell Back Squat').closest('.card')
-    const altSquatCard = screen.getByText('Alt: Belt Squat').closest('.card')
+    const squatCard = screen.getByText('Barbell Back Squat').closest('.card') as HTMLElement
+    const altSquatCard = screen.getByText('Alt: Belt Squat').closest('.card') as HTMLElement
     expect(squatCard).not.toBeNull()
     expect(altSquatCard).not.toBeNull()
     if (!squatCard || !altSquatCard) return
@@ -115,7 +115,7 @@ describe('WorkoutsPage exercise reordering', () => {
     renderPage()
     await waitForExercises()
 
-    const squatCard = screen.getByText('Barbell Back Squat').closest('.card')
+    const squatCard = screen.getByText('Barbell Back Squat').closest('.card') as HTMLElement
     expect(squatCard).not.toBeNull()
     if (!squatCard) return
 

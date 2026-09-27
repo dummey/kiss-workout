@@ -422,6 +422,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   }, [data])
 
   const removeExerciseFromSession = useCallback((sessionDate: string, exId: string) => {
+    if (!data) return
     if (!canRemoveExerciseFromSession(sessionDate, exId)) return
 
     const newData = { ...data }
@@ -431,28 +432,29 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   }, [data, saveData, canRemoveExerciseFromSession])
 
   const getPreviousPerformances = useCallback((exId: string, currentDate: string): PreviousPerformance[] => {
-    let bestSession: typeof data.sessions[number] | null = null
+    let bestSession: Session | null = null
 
     if (data?.sessions) {
-      data.sessions.forEach(session => {
-        if (dateCompare(session.date, currentDate) >= 0) return
+      for (const session of data.sessions) {
+        if (dateCompare(session.date, currentDate) >= 0) continue
         let hasMatch = false
-        session.exercises.forEach(ex => {
-          if (!hasMatch && ex.id !== exId && ex.originalId !== exId) return
-          if (!ex.weight && !ex.reps && !ex.failed) return
+        for (const ex of session.exercises) {
+          if (!hasMatch && ex.id !== exId && ex.originalId !== exId) continue
+          if (!ex.weight && !ex.reps && !ex.failed) continue
           if (!hasMatch) {
             hasMatch = true
             if (!bestSession || dateCompare(session.date, bestSession.date) > 0) {
               bestSession = session
             }
           }
-        })
-      })
+        }
+      }
     }
 
     if (!bestSession) return []
 
-    const exercises = bestSession.exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps || ex.failed))
+    const best = bestSession
+    const exercises = best.exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps || ex.failed))
 
     if (exercises.length === 0) return []
 
@@ -460,7 +462,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       weight: ex.weight || '—',
       reps: ex.reps || '—',
       sets: ex.sets !== null && ex.sets !== undefined ? ex.sets : '—',
-      date: bestSession.date,
+      date: best.date,
       failed: ex.failed === true
     }))
   }, [data])
