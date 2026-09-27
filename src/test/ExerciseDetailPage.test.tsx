@@ -118,8 +118,12 @@ describe('ExerciseDetailPage', () => {
       chartOptions = vi.mocked(BodyChart).mock.calls.map(call => call[1].bodyState)
       expect(chartOptions).toHaveLength(2)
     })
-    expect(chartOptions[0]['chest-upper-left']).toEqual({ intensity: 1, selected: true })
-    expect(Object.keys(chartOptions[0])).toHaveLength(4)
+    // waitFor above guarantees two calls, but the array's element type is
+    // `BodyState | undefined`, so narrow explicitly before indexing.
+    const firstChart = chartOptions[0]
+    expect(firstChart).toBeDefined()
+    expect(firstChart?.['chest-upper-left']).toEqual({ intensity: 1, selected: true })
+    expect(Object.keys(firstChart ?? {})).toHaveLength(4)
   })
 
   it('limits history to the latest 12 records, newest first, and preserves duplicates and originalId', async () => {
