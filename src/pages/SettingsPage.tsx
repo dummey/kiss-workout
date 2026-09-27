@@ -51,25 +51,32 @@ export default function SettingsPage() {
   const platesDirtyRef = useRef(false)
   const platesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Read the live input values at flush time rather than closing over state.
+  // Declared before the adopting effects below so both write and read the same ref.
+  const barbellValueRef = useRef(String(DEFAULT_BARBELL_WEIGHT))
+  const platesValueRef = useRef<PlateInventory[]>(clonePlates(DEFAULT_PLATES))
+
   // Adopt stored values, but never stomp an edit that has not been flushed yet.
+  // Each ref is synced alongside its state: a flush persists BOTH fields, so a
+  // ref left at its initialiser would write the default kit over a stored one
+  // the moment an unrelated field was edited.
   useEffect(() => {
     if (barbellDirtyRef.current) return
-    setBarbellWeightInput(String(data?.meta?.barbellWeight ?? DEFAULT_BARBELL_WEIGHT))
+    barbellValueRef.current = String(data?.meta?.barbellWeight ?? DEFAULT_BARBELL_WEIGHT)
+    setBarbellWeightInput(barbellValueRef.current)
   }, [data?.meta?.barbellWeight])
 
   useEffect(() => {
     if (platesDirtyRef.current) return
-    setPlatesInput(data?.meta?.plates ? clonePlates(data.meta.plates) : clonePlates(DEFAULT_PLATES))
+    const next = data?.meta?.plates ? clonePlates(data.meta.plates) : clonePlates(DEFAULT_PLATES)
+    platesValueRef.current = next
+    setPlatesInput(next)
   }, [data?.meta?.plates])
 
   useEffect(() => () => {
     if (barbellTimeoutRef.current) clearTimeout(barbellTimeoutRef.current)
     if (platesTimeoutRef.current) clearTimeout(platesTimeoutRef.current)
   }, [])
-
-  // Read the live input values at flush time rather than closing over state.
-  const barbellValueRef = useRef(String(DEFAULT_BARBELL_WEIGHT))
-  const platesValueRef = useRef<PlateInventory[]>(clonePlates(DEFAULT_PLATES))
 
   function flushBarbellSetup() {
     if (barbellTimeoutRef.current) {

@@ -499,6 +499,38 @@ describe('SettingsPage — barbell setup', () => {
     })
   })
 
+  it('does not overwrite a stored plate list when only the bar weight is edited', async () => {
+    // The stored kit is deliberately a single plate, so it cannot be confused
+    // with the default seed kit at any point in the test.
+    const storedKit = [{ count: 2, weight: 45 }]
+    const user = userEvent.setup()
+    await setStore('tracker', {
+      ...baseTracker(),
+      meta: { ...baseTracker().meta, barbellWeight: 35, plates: storedKit },
+    })
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+    await waitFor(() => {
+      expect(screen.getByLabelText(BAR_LABEL)).toHaveValue(35)
+    })
+
+    // Touch the bar weight and nothing else, then blur to flush.
+    const input = screen.getByLabelText(BAR_LABEL)
+    await user.clear(input)
+    await user.type(input, '45')
+    await user.tab()
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.barbellWeight).toBe(45)
+    })
+    // The flush also carries the plate list, so an out-of-sync ref here would
+    // silently replace the user's kit with the defaults.
+    const stored = await getStore('tracker') as TrackerData
+    expect(stored.meta.plates).toEqual(storedKit)
+  })
+
   it('imports a legacy backup with neither barbell key without an error', async () => {
     const user = userEvent.setup()
 
