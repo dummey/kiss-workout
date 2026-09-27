@@ -19,7 +19,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Spotter at 18/2",
       "superset": "",
-      "tier": "T1"
+      "tier": "T1",
+      "equipment": "barbell"
     },
     {
       "id": "barbell-bench",
@@ -31,7 +32,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Spotter at 8/-3",
       "superset": "",
-      "tier": "T1"
+      "tier": "T1",
+      "equipment": "barbell"
     },
     {
       "id": "deadlift",
@@ -45,7 +47,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "",
       "superset": "",
-      "tier": "T1"
+      "tier": "T1",
+      "equipment": "barbell"
     },
     {
       "id": "alt-belt-squat",
@@ -57,7 +60,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": ""
     },
     {
       "id": "db-bench",
@@ -69,7 +73,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "DB, Bench",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": ""
     },
     {
       "id": "single-leg-rdl",
@@ -82,7 +87,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "DB",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": ""
     },
     {
       "id": "bulgarian-split-squats",
@@ -95,7 +101,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Place at -3",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": ""
     },
     {
       "id": "nordics",
@@ -106,7 +113,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Lowest 5/8\"",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": ""
     },
     {
       "id": "bent-over-rows",
@@ -120,7 +128,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "BB, Spotters",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": "barbell"
     },
     {
       "id": "db-overhead-press",
@@ -133,7 +142,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "DB, Bench",
       "superset": "",
-      "tier": "T2"
+      "tier": "T2",
+      "equipment": ""
     },
     {
       "id": "lat-pulldown",
@@ -146,7 +156,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "pallof-press",
@@ -162,7 +173,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Bands",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "face-pulls",
@@ -176,7 +188,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "copenhagen-planks",
@@ -188,7 +201,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Bench",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "single-arm-rows",
@@ -201,7 +215,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "glute-kickbacks",
@@ -211,7 +226,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "tib-raises",
@@ -221,7 +237,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Tib Bar, Bench",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "calf-raises",
@@ -232,7 +249,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "DB",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "cable-rotations",
@@ -244,7 +262,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "cable-leg-curls",
@@ -254,7 +273,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "cable-hip-flexion-leg-extension",
@@ -265,7 +285,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "db-curls",
@@ -277,7 +298,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "DB",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "lat-raises",
@@ -287,7 +309,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "ab-wheel",
@@ -300,7 +323,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "triceps-pull-down",
@@ -310,7 +334,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "Cable",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     },
     {
       "id": "farmer-carry",
@@ -324,7 +349,8 @@ export const SEED_DATA: TrackerData = {
       ],
       "setup": "DB",
       "superset": "",
-      "tier": "T3"
+      "tier": "T3",
+      "equipment": ""
     }
   ],
   "workouts": [

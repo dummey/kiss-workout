@@ -5,6 +5,8 @@ export interface Exercise {
   setup: string
   superset: string
   tier: 'T1' | 'T2' | 'T3' | ''
+  /** Equipment the exercise is performed with. Only 'barbell' drives behaviour today. */
+  equipment: 'barbell' | ''
 }
 
 export interface Workout {
@@ -22,6 +24,12 @@ export interface SessionExercise {
   weight: string
   reps: string
   sets: number | null
+  /**
+   * Equipment snapshotted from the exercise definition at session-creation time, so a
+   * session keeps recording what was actually used even after the definition is edited.
+   * Optional because sessions recorded before this field existed have no such key.
+   */
+  equipment?: 'barbell' | ''
   originalId?: string
   failed?: boolean
 }
@@ -68,7 +76,7 @@ export interface TrackerContextValue {
   updateExercise: (sessionDate: string, exIdx: number, field: 'weight' | 'reps' | 'sets', value: string) => void
   setExerciseFailed: (sessionDate: string, exIdx: number, failed: boolean) => void
   addExercise: (exercise: Partial<Exercise> & { name: string }) => string
-  updateExerciseDef: (exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'muscles', value: string | string[]) => void
+  updateExerciseDef: (exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'equipment' | 'muscles', value: string | string[]) => void
   deleteExercise: (exId: string) => void
   addExerciseToWorkout: (workoutName: string, exId: string) => void
   removeExerciseFromWorkout: (workoutName: string, exId: string) => void

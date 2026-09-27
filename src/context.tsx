@@ -86,6 +86,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
           setup: ex.setup || '',
           tier: ex.tier || '',
           superset: ex.superset || '',
+          equipment: ex.equipment || '',
           weight: '',
           reps: '',
           sets: null,
@@ -175,7 +176,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       muscles: exercise.muscles || [],
       setup: exercise.setup || '',
       superset: exercise.superset || '',
-      tier: exercise.tier || ''
+      tier: exercise.tier || '',
+      equipment: exercise.equipment || ''
     }
     const newData: TrackerData = {
       ...data,
@@ -185,7 +187,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     return id
   }, [data, saveData])
 
-  const updateExerciseDef = useCallback((exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'muscles', value: string | string[]) => {
+  const updateExerciseDef = useCallback((exId: string, field: 'name' | 'setup' | 'superset' | 'tier' | 'equipment' | 'muscles', value: string | string[]) => {
     if (!data) return
     const newData = { ...data }
     const ex = newData.exercises.find(e => e.id === exId)
@@ -194,6 +196,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     else if (field === 'setup') ex.setup = value as string
     else if (field === 'superset') ex.superset = value as string
     else if (field === 'tier') ex.tier = value as Exercise['tier']
+    else if (field === 'equipment') ex.equipment = value as Exercise['equipment']
     else if (field === 'muscles') ex.muscles = value as string[]
     saveData(newData)
   }, [data, saveData])
@@ -349,6 +352,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       setup: ex.setup || '',
       tier: ex.tier || '',
       superset: '',
+      equipment: ex.equipment || '',
       weight: '',
       reps: '',
       sets: null,
@@ -372,6 +376,9 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       id: `${original.id}-copy-${crypto.randomUUID()}`,
       originalId: original.id,
       name: `${original.name} (2)`,
+      // The spread above already carries the snapshot; this normalises sessions
+      // recorded before the field existed (undefined -> '').
+      equipment: original.equipment || '',
       weight: '',
       reps: '',
       sets: null,
