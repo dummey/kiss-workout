@@ -48,6 +48,16 @@ export interface TrackerData {
     created: string
     /** Optional display name. Absent in backups created before this field existed. */
     name?: string
+    /**
+     * Barbell weight in pounds. Absent in backups created before this field
+     * existed; fall back to DEFAULT_BARBELL_WEIGHT when reading.
+     */
+    barbellWeight?: number
+    /**
+     * The plates the user owns, as TOTAL counts (2x45 means two 45s, one per
+     * side). Absent in backups created before this field existed.
+     */
+    plates?: { count: number; weight: number }[]
   }
   exercises: Exercise[]
   workouts: Workout[]
@@ -95,4 +105,5 @@ export interface TrackerContextValue {
   cloneWorkout: (sourceName: string, newName: string) => void
   reorderWorkoutExercise: (workoutName: string, fromIndex: number, toIndex: number) => void
   setDisplayName: (name: string) => void
+  setBarbellSetup: (barbellWeight: number, plates: { count: number; weight: number }[]) => void
 }

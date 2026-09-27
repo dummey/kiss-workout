@@ -85,6 +85,7 @@ body {
 .edit-input:focus { outline: none; border-color: var(--accent); }
 .edit-input:not(:placeholder-shown) { border-color: var(--t3); }
 .edit-lbl { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; text-align: center; margin-top: 2px; }
+.plate-breakdown { font-size: 0.68rem; color: var(--muted); text-align: center; margin-top: 3px; font-family: 'SF Mono', 'Cascadia Code', monospace; }
 
 /* Modal */
 .modal-overlay {

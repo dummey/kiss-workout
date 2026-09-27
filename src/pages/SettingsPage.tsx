@@ -5,10 +5,11 @@ import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useBackup } from '../context/BackupContext'
 import { validateTrackerData } from '../validation'
+import { DEFAULT_BARBELL_WEIGHT, DEFAULT_PLATES, clonePlates, type PlateInventory } from '../utils/plates'
 import type { TrackerData } from '../types'
 
 export default function SettingsPage() {
-  const { data, deleteAllData, resetToSeedData, setDisplayName } = useTracker()
+  const { data, deleteAllData, resetToSeedData, setDisplayName, setBarbellSetup } = useTracker()
   const { showModal } = useModal()
   const { meta, recordBackup, exportBackup } = useBackup()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -34,6 +35,109 @@ export default function SettingsPage() {
   useEffect(() => () => {
     if (nameSaveTimeoutRef.current) clearTimeout(nameSaveTimeoutRef.current)
   }, [])
+
+  // ── Barbell setup ─────────────────────────────────────────────────────────
+  // Same debounced-write pattern as the display name: edits stay local and are
+  // flushed on blur, on Enter, and ~500ms after the last keystroke, so typing
+  // never writes to IndexedDB per character.
+
+  // Kept as a string while editing so a partially-typed number ("4", "45")
+  // is not clobbered by a number round-trip. Parsed only at flush time.
+  const [barbellWeightInput, setBarbellWeightInput] = useState(String(DEFAULT_BARBELL_WEIGHT))
+  const barbellDirtyRef = useRef(false)
+  const barbellTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [platesInput, setPlatesInput] = useState<PlateInventory[]>(clonePlates(DEFAULT_PLATES))
+  const platesDirtyRef = useRef(false)
+  const platesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Read the live input values at flush time rather than closing over state.
+  // Declared before the adopting effects below so both write and read the same ref.
+  const barbellValueRef = useRef(String(DEFAULT_BARBELL_WEIGHT))
+  const platesValueRef = useRef<PlateInventory[]>(clonePlates(DEFAULT_PLATES))
+
+  // Adopt stored values, but never stomp an edit that has not been flushed yet.
+  // Each ref is synced alongside its state: a flush persists BOTH fields, so a
+  // ref left at its initialiser would write the default kit over a stored one
+  // the moment an unrelated field was edited.
+  useEffect(() => {
+    if (barbellDirtyRef.current) return
+    barbellValueRef.current = String(data?.meta?.barbellWeight ?? DEFAULT_BARBELL_WEIGHT)
+    setBarbellWeightInput(barbellValueRef.current)
+  }, [data?.meta?.barbellWeight])
+
+  useEffect(() => {
+    if (platesDirtyRef.current) return
+    const next = data?.meta?.plates ? clonePlates(data.meta.plates) : clonePlates(DEFAULT_PLATES)
+    platesValueRef.current = next
+    setPlatesInput(next)
+  }, [data?.meta?.plates])
+
+  useEffect(() => () => {
+    if (barbellTimeoutRef.current) clearTimeout(barbellTimeoutRef.current)
+    if (platesTimeoutRef.current) clearTimeout(platesTimeoutRef.current)
+  }, [])
+
+  function flushBarbellSetup() {
+    if (barbellTimeoutRef.current) {
+      clearTimeout(barbellTimeoutRef.current)
+      barbellTimeoutRef.current = null
+    }
+    if (platesTimeoutRef.current) {
+      clearTimeout(platesTimeoutRef.current)
+      platesTimeoutRef.current = null
+    }
+    const barDirty = barbellDirtyRef.current
+    const plateDirty = platesDirtyRef.current
+    if (!barDirty && !plateDirty) return
+    barbellDirtyRef.current = false
+    platesDirtyRef.current = false
+
+    // A blank or unparseable bar weight falls back to the default rather than
+    // persisting NaN, which would make every breakdown silently disappear.
+    const parsed = Number(barbellValueRef.current)
+    const barWeight = barDirty && barbellValueRef.current.trim() !== '' && isFinite(parsed) && parsed > 0
+      ? parsed
+      : (data?.meta?.barbellWeight ?? DEFAULT_BARBELL_WEIGHT)
+
+    setBarbellSetup(barWeight, platesValueRef.current)
+  }
+
+  function handleBarbellWeightChange(value: string) {
+    barbellValueRef.current = value
+    setBarbellWeightInput(value)
+    barbellDirtyRef.current = true
+    if (barbellTimeoutRef.current) clearTimeout(barbellTimeoutRef.current)
+    barbellTimeoutRef.current = setTimeout(flushBarbellSetup, 500)
+  }
+
+  function handlePlateChange(index: number, field: 'count' | 'weight', value: string) {
+    const parsed = value === '' ? 0 : Number(value)
+    const next = platesValueRef.current.map((p, i) =>
+      i === index ? { ...p, [field]: isFinite(parsed) ? parsed : 0 } : p
+    )
+    platesValueRef.current = next
+    setPlatesInput(next)
+    platesDirtyRef.current = true
+    if (platesTimeoutRef.current) clearTimeout(platesTimeoutRef.current)
+    platesTimeoutRef.current = setTimeout(flushBarbellSetup, 500)
+  }
+
+  function handleAddPlate() {
+    const next = [...platesValueRef.current, { count: 2, weight: 5 }]
+    platesValueRef.current = next
+    setPlatesInput(next)
+    platesDirtyRef.current = true
+    flushBarbellSetup()
+  }
+
+  function handleRemovePlate(index: number) {
+    const next = platesValueRef.current.filter((_, i) => i !== index)
+    platesValueRef.current = next
+    setPlatesInput(next)
+    platesDirtyRef.current = true
+    flushBarbellSetup()
+  }
 
   function flushDisplayName() {
     if (nameSaveTimeoutRef.current) {
@@ -215,6 +319,83 @@ export default function SettingsPage() {
               placeholder="Your name"
               style={{ minWidth: 200 }}
             />
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: 24, paddingTop: 24 }}>
+            <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 12, fontWeight: 700 }}>
+              Barbell
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+              <div>
+                <label
+                  htmlFor="barbell-weight-input"
+                  style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}
+                >
+                  Barbell weight
+                </label>
+                <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                  The empty bar, in pounds
+                </div>
+              </div>
+              <input
+                id="barbell-weight-input"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={barbellWeightInput}
+                onChange={e => handleBarbellWeightChange(e.target.value)}
+                onBlur={flushBarbellSetup}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') flushBarbellSetup()
+                }}
+                style={{ minWidth: 120 }}
+              />
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Plates you own</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginBottom: 12 }}>
+                Total plates, not per side — 2 means one on each side
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {platesInput.map((plate, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      aria-label={`Plate ${i + 1} count`}
+                      value={plate.count}
+                      onChange={e => handlePlateChange(i, 'count', e.target.value)}
+                      style={{ width: 80 }}
+                    />
+                    <span style={{ color: 'var(--muted)' }}>×</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      aria-label={`Plate ${i + 1} weight`}
+                      value={plate.weight}
+                      onChange={e => handlePlateChange(i, 'weight', e.target.value)}
+                      style={{ width: 100 }}
+                    />
+                    <span style={{ color: 'var(--muted)' }}>lb</span>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      aria-label={`Remove plate ${plate.weight}`}
+                      onClick={() => handleRemovePlate(i)}
+                    >×</Button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <Button size="sm" onClick={handleAddPlate}>Add Plate</Button>
+              </div>
+            </div>
           </div>
         </div>
 
