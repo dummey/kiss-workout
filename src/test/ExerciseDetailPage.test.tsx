@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { BackupProvider } from '../context/BackupContext'
@@ -11,6 +11,7 @@ import ExercisesPage from '../pages/ExercisesPage'
 import WorkoutsPage from '../pages/WorkoutsPage'
 import SessionDetailPage from '../pages/SessionDetailPage'
 import { BodyChart } from 'body-muscles'
+import type { BodyState } from 'body-muscles'
 import { deleteStore, setStore } from '../db'
 import type { SessionExercise, TrackerData } from '../types'
 
@@ -112,8 +113,11 @@ describe('ExerciseDetailPage', () => {
     expect(screen.getByText('Future Muscle')).toBeInTheDocument()
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText('Strength')).toBeInTheDocument()
-    const chartOptions = vi.mocked(BodyChart).mock.calls.map(call => call[1].bodyState)
-    expect(chartOptions).toHaveLength(2)
+    let chartOptions: (BodyState | undefined)[] = []
+    await waitFor(() => {
+      chartOptions = vi.mocked(BodyChart).mock.calls.map(call => call[1].bodyState)
+      expect(chartOptions).toHaveLength(2)
+    })
     expect(chartOptions[0]['chest-upper-left']).toEqual({ intensity: 1, selected: true })
     expect(Object.keys(chartOptions[0])).toHaveLength(4)
   })
