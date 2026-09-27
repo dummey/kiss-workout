@@ -619,6 +619,19 @@ describe('SettingsPage — barbell setup', () => {
       expect(stored.meta.plates).toEqual([{ count: 2, weight: 35 }])
     })
     expect(screen.getAllByLabelText(/^Plate \d+ count$/)).toHaveLength(1)
+
+    // Now drive the COUNT field too. While only the weight input is ever typed
+    // into, a count -> weight key miswire is invisible: it writes the count into
+    // the weight slot and the assertion above still holds.
+    await user.clear(count)
+    await user.type(count, '6')
+    await user.tab()
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.plates).toEqual([{ count: 6, weight: 35 }])
+    })
+    expect(screen.getAllByLabelText(/^Plate \d+ count$/)).toHaveLength(1)
   })
 
   it('imports a legacy backup with neither barbell key without an error', async () => {
