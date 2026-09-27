@@ -25,6 +25,19 @@ function isEquipment(v: unknown): v is Exercise['equipment'] {
   return isString(v) && EQUIPMENT_VALUES.includes(v)
 }
 
+function isPlateInventory(v: unknown): v is { count: number; weight: number }[] {
+  return (
+    Array.isArray(v) &&
+    v.every(
+      p =>
+        !!p &&
+        typeof p === 'object' &&
+        isNumber((p as Record<string, unknown>).count) &&
+        isNumber((p as Record<string, unknown>).weight)
+    )
+  )
+}
+
 // ── SessionExercise validation ──────────────────────────────────────────────
 
 function validateSessionExercise(ex: unknown, index: number): string | null {
@@ -138,6 +151,13 @@ export function validateTrackerData(data: unknown): { valid: boolean; error?: st
   // Optional: absent in every backup written before the display-name field existed.
   if (meta.name !== undefined && !isString(meta.name)) {
     return { valid: false, error: `meta.name must be a string` }
+  }
+  // Optional: absent in every backup written before the barbell-setup fields existed.
+  if (meta.barbellWeight !== undefined && !isNumber(meta.barbellWeight)) {
+    return { valid: false, error: `meta.barbellWeight must be a number` }
+  }
+  if (meta.plates !== undefined && !isPlateInventory(meta.plates)) {
+    return { valid: false, error: `meta.plates must be an array of { count, weight } numbers` }
   }
 
   // Validate exercises array

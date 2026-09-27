@@ -3,6 +3,13 @@ import Button from '../components/Button'
 import ProgressionInfo from '../components/ProgressionInfo'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
+import {
+  calculatePlates,
+  formatPlateBreakdown,
+  parseWeightInput,
+  DEFAULT_BARBELL_WEIGHT,
+  DEFAULT_PLATES,
+} from '../utils/plates'
 
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
@@ -308,6 +315,18 @@ export default function SessionDetailPage() {
               {tierExs.map((ex) => {
                 const prevInfo = getPreviousPerformances(ex.id, session.date)
 
+                // Recalculated on every render, so it tracks the input live.
+                // `equipment` is optional on historical session exercises, so
+                // read it defensively rather than assuming the key is present.
+                const target = ex.equipment === 'barbell' ? parseWeightInput(ex.weight) : null
+                const plateBreakdown = target === null
+                  ? null
+                  : formatPlateBreakdown(calculatePlates(
+                      data?.meta?.barbellWeight ?? DEFAULT_BARBELL_WEIGHT,
+                      data?.meta?.plates ?? DEFAULT_PLATES,
+                      target
+                    ))
+
                 return (
                   <div key={ex.id || ex.idx} className="card">
                     <div className="card-head" style={{ justifyContent: 'space-between' }}>
@@ -363,6 +382,15 @@ export default function SessionDetailPage() {
                             onChange={e => date && updateExercise(date, ex.idx, 'weight', e.target.value)}
                           />
                           <div className="edit-lbl">Weight</div>
+                          {/* Plate breakdown, only for barbell moves and only when the
+                              weight is a plain number. A non-numeric weight ("BW",
+                              empty) renders nothing at all — no placeholder, no error.
+                              The user's own total is not echoed; it is in the input above. */}
+                          {plateBreakdown && (
+                            <div className="plate-breakdown" data-testid="plate-breakdown">
+                              {plateBreakdown}
+                            </div>
+                          )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <input

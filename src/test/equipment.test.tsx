@@ -256,6 +256,33 @@ describe('equipment snapshot onto SessionExercise', () => {
     expect(session!.exercises[0].equipment).toBe('')
   })
 
+  // The whole point of snapshotting is that a session records what was actually
+  // used. A live reference to the definition would silently rewrite history the
+  // moment the exercise is later edited — which matters now that `equipment`
+  // drives the plate breakdown.
+  it('keeps the snapshot when the definition is edited afterwards', async () => {
+    const ctx = await mountWith(baseData())
+
+    const session = ctx().addSession(SESSION_DATE, 'Squat Workout')
+    expect(session!.exercises[0].equipment).toBe('barbell')
+    await waitFor(() => {
+      expect(ctx().data!.sessions).toHaveLength(1)
+    })
+
+    // The user reclassifies the exercise as bodyweight-only.
+    ctx().updateExerciseDef(BARBELL_ID, 'equipment', '')
+
+    await waitFor(() => {
+      expect(ctx().data!.exercises.find(e => e.id === BARBELL_ID)!.equipment).toBe('')
+    })
+    // The session must still say what was lifted that day.
+    expect(ctx().data!.sessions[0].exercises[0].equipment).toBe('barbell')
+
+    const stored = await getStore('tracker') as TrackerData
+    expect(stored.exercises.find(e => e.id === BARBELL_ID)!.equipment).toBe('')
+    expect(stored.sessions[0].exercises[0].equipment).toBe('barbell')
+  })
+
   it('duplicateExerciseInSession keeps the barbell snapshot', async () => {
     const ctx = await mountWith(baseData())
 

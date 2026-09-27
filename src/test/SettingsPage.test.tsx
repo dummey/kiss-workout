@@ -370,3 +370,146 @@ describe('SettingsPage — Customization display name', () => {
     expect(stored.meta.method).toBe('GZCL')
   })
 })
+
+describe('SettingsPage — barbell setup', () => {
+  const BAR_LABEL = 'Barbell weight'
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    try {
+      await deleteStore('tracker')
+      await deleteStore('backup-meta')
+    } catch {
+      // ignore
+    }
+  })
+
+  afterEach(() => {
+    // The export test stubs URL; unstub so the leak cannot reach other files.
+    vi.unstubAllGlobals()
+    vi.stubGlobal('alert', vi.fn())
+    cleanup()
+  })
+
+  it('falls back to the defaults when meta has neither barbell key', async () => {
+    await setStore('tracker', baseTracker()) // pre-field backup shape
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(BAR_LABEL)).toHaveValue(45)
+    })
+    // The seed kit: 2x45, 2x25, 4x10, 2x5, 2x2.5.
+    expect(screen.getByLabelText('Plate 1 count')).toHaveValue(2)
+    expect(screen.getByLabelText('Plate 1 weight')).toHaveValue(45)
+    expect(screen.getByLabelText('Plate 2 count')).toHaveValue(2)
+    expect(screen.getByLabelText('Plate 2 weight')).toHaveValue(25)
+    expect(screen.getByLabelText('Plate 3 count')).toHaveValue(4)
+    expect(screen.getByLabelText('Plate 3 weight')).toHaveValue(10)
+    expect(screen.getByLabelText('Plate 4 count')).toHaveValue(2)
+    expect(screen.getByLabelText('Plate 4 weight')).toHaveValue(5)
+    expect(screen.getByLabelText('Plate 5 count')).toHaveValue(2)
+    expect(screen.getByLabelText('Plate 5 weight')).toHaveValue(2.5)
+  })
+
+  it('adopts stored barbell values when they are present', async () => {
+    await setStore('tracker', {
+      ...baseTracker(),
+      meta: {
+        ...baseTracker().meta,
+        // Deliberately not the 45 default, so the wait below cannot pass
+        // against the pre-load default state.
+        barbellWeight: 35,
+        plates: [{ count: 2, weight: 45 }],
+      },
+    })
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(BAR_LABEL)).toHaveValue(35)
+    })
+    expect(screen.getAllByLabelText(/^Plate \d+ count$/)).toHaveLength(1)
+    expect(screen.queryByLabelText('Plate 2 weight')).not.toBeInTheDocument()
+  })
+
+  it('persists an edited bar weight to IndexedDB on blur', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const input = screen.getByLabelText(BAR_LABEL)
+    await user.clear(input)
+    await user.type(input, '45')
+    await user.tab()
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.barbellWeight).toBe(45)
+    })
+  })
+
+  it('persists an edited plate count on blur', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const input = screen.getByLabelText('Plate 1 count')
+    await user.clear(input)
+    await user.type(input, '6')
+    await user.tab()
+
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.plates?.[0]).toEqual({ count: 6, weight: 45 })
+    })
+  })
+
+  it('adds and removes plate rows, persisting both', async () => {
+    const user = userEvent.setup()
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const before = screen.getAllByLabelText(/^Plate \d+ count$/).length
+
+    await user.click(screen.getByRole('button', { name: 'Add Plate' }))
+    await waitFor(() => {
+      expect(screen.getAllByLabelText(/^Plate \d+ count$/).length).toBe(before + 1)
+    })
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.plates).toHaveLength(before + 1)
+    })
+
+    await user.click(screen.getAllByRole('button', { name: /^Remove plate/ })[0])
+    await waitFor(() => {
+      expect(screen.getAllByLabelText(/^Plate \d+ count$/).length).toBe(before)
+    })
+    await waitFor(async () => {
+      const stored = await getStore('tracker') as TrackerData
+      expect(stored.meta.plates).toHaveLength(before)
+    })
+  })
+
+  it('imports a legacy backup with neither barbell key without an error', async () => {
+    const user = userEvent.setup()
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    await importBackup(user, JSON.stringify(baseTracker()))
+
+    expect(screen.queryByText('Invalid File')).not.toBeInTheDocument()
+    const stored = await getStore('tracker') as TrackerData
+    expect(stored.meta.barbellWeight).toBeUndefined()
+    expect(stored.meta.plates).toBeUndefined()
+  })
+})
