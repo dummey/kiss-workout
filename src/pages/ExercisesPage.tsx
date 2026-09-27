@@ -10,8 +10,8 @@ export default function ExercisesPage() {
   const { showModal } = useModal()
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<{ name: string; muscles: string; setup: string; superset: string; tier: string }>({ name: '', muscles: '', setup: '', superset: '', tier: '' })
-  const [newEx, setNewEx] = useState({ name: '', muscles: '', setup: '', superset: '', tier: '' })
+  const [editValues, setEditValues] = useState<{ name: string; muscles: string; setup: string; superset: string; tier: string; equipment: string }>({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
+  const [newEx, setNewEx] = useState({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
   const [workoutToAdd, setWorkoutToAdd] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -38,12 +38,13 @@ export default function ExercisesPage() {
       muscles: newEx.muscles.split(',').map(m => m.trim()).filter(Boolean),
       setup: newEx.setup,
       superset: newEx.superset,
-      tier: newEx.tier
+      tier: newEx.tier,
+      equipment: newEx.equipment as Exercise['equipment']
     })
     Object.entries(workoutToAdd).forEach(([workoutName, checked]) => {
       if (checked) addExerciseToWorkout(workoutName, id)
     })
-    setNewEx({ name: '', muscles: '', setup: '', superset: '', tier: '' })
+    setNewEx({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
     setWorkoutToAdd({})
     setShowAdd(false)
   }
@@ -55,17 +56,18 @@ export default function ExercisesPage() {
       muscles: (ex.muscles || []).join(', '),
       setup: ex.setup || '',
       superset: ex.superset || '',
-      tier: ex.tier || ''
+      tier: ex.tier || '',
+      equipment: ex.equipment || ''
     })
   }
 
   function saveEdit(exId: string) {
     Object.entries(editValues).forEach(([field, value]) => {
       const val = field === 'muscles' ? value.split(',').map(m => m.trim()).filter(Boolean) : value
-      updateExerciseDef(exId, field as 'name' | 'setup' | 'superset' | 'tier' | 'muscles', val)
+      updateExerciseDef(exId, field as 'name' | 'setup' | 'superset' | 'tier' | 'equipment' | 'muscles', val)
     })
     setEditingId(null)
-    setEditValues({ name: '', muscles: '', setup: '', superset: '', tier: '' })
+    setEditValues({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
   }
 
   function getWorkoutNamesForExercise(exId: string): string[] {
@@ -105,7 +107,7 @@ export default function ExercisesPage() {
             <div key={ex.id} className="card" style={{ padding: 16 }}>
               {isEditing ? (
                 <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.8fr 0.8fr 0.8fr auto', gap: 8, alignItems: 'end', marginBottom: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr auto', gap: 8, alignItems: 'end', marginBottom: 12 }}>
                     <div>
                       <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>Name</label>
                       <input type="text" value={editValues.name} onChange={e => setEditValues({ ...editValues, name: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }} />
@@ -129,6 +131,13 @@ export default function ExercisesPage() {
                         <option value="T1">T1</option>
                         <option value="T2">T2</option>
                         <option value="T3">T3</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>Equipment</label>
+                      <select aria-label="Equipment" value={editValues.equipment} onChange={e => setEditValues({ ...editValues, equipment: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }}>
+                        <option value="">None</option>
+                        <option value="barbell">Barbell</option>
                       </select>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -207,6 +216,13 @@ export default function ExercisesPage() {
                 <label>Superset</label>
                 <input type="text" value={newEx.superset} onChange={e => setNewEx({ ...newEx, superset: e.target.value })} placeholder="e.g. SS1" />
               </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="new-ex-equipment">Equipment</label>
+              <select id="new-ex-equipment" value={newEx.equipment} onChange={e => setNewEx({ ...newEx, equipment: e.target.value })}>
+                <option value="">None</option>
+                <option value="barbell">Barbell</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Tier</label>

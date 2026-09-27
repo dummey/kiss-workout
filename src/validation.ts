@@ -18,6 +18,13 @@ function isNumber(v: unknown): v is number {
   return typeof v === 'number' && !isNaN(v)
 }
 
+/** The only equipment values the app understands. '' means "None". */
+const EQUIPMENT_VALUES: readonly string[] = ['', 'barbell']
+
+function isEquipment(v: unknown): v is Exercise['equipment'] {
+  return isString(v) && EQUIPMENT_VALUES.includes(v)
+}
+
 // ── SessionExercise validation ──────────────────────────────────────────────
 
 function validateSessionExercise(ex: unknown, index: number): string | null {
@@ -29,6 +36,10 @@ function validateSessionExercise(ex: unknown, index: number): string | null {
   if (!isString(e.name)) return `Exercise #${index + 1}: missing or invalid 'name'`
   if (!isArrayOfStrings(e.muscles)) return `Exercise #${index + 1}: 'muscles' must be an array of strings`
   if (!isString(e.tier)) return `Exercise #${index + 1}: missing or invalid 'tier'`
+  // Optional: absent in every session recorded before the equipment field existed.
+  if (e.equipment !== undefined && !isEquipment(e.equipment)) {
+    return `Exercise #${index + 1}: 'equipment' must be '' or 'barbell'`
+  }
   return null
 }
 
@@ -89,6 +100,11 @@ function validateExercise(ex: unknown, index: number): string | null {
   if (!isString(e.setup)) return `Exercise #${index + 1}: missing or invalid 'setup'`
   if (!isString(e.superset)) return `Exercise #${index + 1}: missing or invalid 'superset'`
   if (!isString(e.tier)) return `Exercise #${index + 1}: missing or invalid 'tier'`
+  // Optional: absent in every backup written before the equipment field existed.
+  // Absent is valid; present-but-wrong-typed is not — same rule as meta.name.
+  if (e.equipment !== undefined && !isEquipment(e.equipment)) {
+    return `Exercise #${index + 1}: 'equipment' must be '' or 'barbell'`
+  }
   return null
 }
 

@@ -43,7 +43,8 @@ function makeData(): TrackerData {
       muscles: ['Chest'],
       setup: 'Barbell',
       superset: '',
-      tier: 'T1'
+      tier: 'T1',
+      equipment: 'barbell'
     }],
     workouts: [{ name: 'Test Workout', exercises: ['bench'] }],
     sessions: [makeSession(CURRENT_DATE), makeSession(LEGACY_DATE)]
@@ -178,7 +179,8 @@ describe('exercise failed marker', () => {
       muscles: ['Legs'],
       setup: 'Barbell',
       superset: '',
-      tier: 'T1'
+      tier: 'T1',
+      equipment: 'barbell'
     })
     await setStore('tracker', data)
 

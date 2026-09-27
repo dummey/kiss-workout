@@ -63,7 +63,8 @@ function makeData(): TrackerData {
       muscles: ['Chest', 'Future Muscle'],
       setup: 'Barbell',
       superset: 'SS1',
-      tier: 'T1'
+      tier: 'T1',
+      equipment: 'barbell'
     }],
     workouts: [
       { name: 'Push', exercises: ['bench'] },
