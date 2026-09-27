@@ -142,14 +142,52 @@ describe('ExercisesPage — equipment dropdown', () => {
     })
   })
 
-  it('does not render an equipment badge on the exercise card', async () => {
+  it('renders an Equipment pill on the card for a barbell exercise', async () => {
     renderPage()
     await screen.findByText('Barbell Back Squat')
 
     const card = screen.getByText('Barbell Back Squat').closest('.card') as HTMLElement
-    // The card shows name/tier/setup/superset/muscle tags; equipment is edit-only for now.
-    expect(card.textContent).not.toContain('Barbell Barbell')
+    const pill = card.querySelector('.tag.equipment')
+    expect(pill).not.toBeNull()
+    expect(pill!.textContent).toBe('Barbell')
+  })
+
+  it('renders no Equipment pill when equipment is empty', async () => {
+    renderPage()
+    await screen.findByText('Lat Pulldown')
+
+    const card = screen.getByText('Lat Pulldown').closest('.card') as HTMLElement
+    // '' means nothing was declared — no pill, and no "None" placeholder.
     expect(card.querySelector('.tag.equipment')).toBeNull()
+    expect(card.textContent).not.toContain('None')
+  })
+
+  it('orders the Equipment pill after tier and before setup', async () => {
+    renderPage()
+    await screen.findByText('Barbell Back Squat')
+
+    const card = screen.getByText('Barbell Back Squat').closest('.card') as HTMLElement
+    const text = card.textContent ?? ''
+    const tierAt = text.indexOf('T1')
+    const equipmentAt = text.indexOf('Barbell', text.indexOf('Barbell Back Squat') + 'Barbell Back Squat'.length)
+    const setupAt = text.indexOf('Spotter at 18/2')
+
+    expect(tierAt).toBeGreaterThanOrEqual(0)
+    expect(equipmentAt).toBeGreaterThan(tierAt)
+    expect(setupAt).toBeGreaterThan(equipmentAt)
+  })
+
+  it('renders Equipment before Setup in the edit form', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Lat Pulldown')
+
+    const { card } = await openEditForm(user, 'Lat Pulldown')
+    const labels = Array.from(card.querySelectorAll('label')).map(l => l.textContent)
+    const equipmentIndex = labels.indexOf('Equipment')
+    const setupIndex = labels.indexOf('Setup')
+    expect(equipmentIndex).toBeGreaterThanOrEqual(0)
+    expect(equipmentIndex).toBeLessThan(setupIndex)
   })
 
   it('leaves the four seeded barbell definitions untouched by merely rendering', async () => {
