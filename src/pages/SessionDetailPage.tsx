@@ -10,6 +10,7 @@ import {
   DEFAULT_BARBELL_WEIGHT,
   DEFAULT_PLATES,
 } from '../utils/plates'
+import { EQUIPMENT_LABELS } from '../constants'
 import type { Exercise, SessionExercise } from '../types'
 
 /**
@@ -383,6 +384,14 @@ export default function SessionDetailPage() {
                           {ex.name}
                         </Link>
                         {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
+                        {/* `ex.equipment` here is the value resolved by
+                            `resolveEquipment` on the way into `resolvedExercises`
+                            — the same field the plate calculation reads. Reading
+                            the raw record instead would render a copy's
+                            normalised `''` and the pill would lie. */}
+                        {ex.equipment && EQUIPMENT_LABELS[ex.equipment] && (
+                          <span className="tag equipment">{EQUIPMENT_LABELS[ex.equipment]}</span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
                         <Button

@@ -3,16 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
+import { EQUIPMENT_LABELS } from '../constants'
 import type { Exercise } from '../types'
-
-/**
- * Display labels for the `equipment` field. `''` means nothing was declared and
- * is deliberately absent — it renders no pill. Adding a future equipment value
- * is a data change here, not a structural change to the card markup.
- */
-const EQUIPMENT_LABELS: Record<string, string> = {
-  barbell: 'Barbell'
-}
 
 export default function ExercisesPage() {
   const { data, loading, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout } = useTracker()
