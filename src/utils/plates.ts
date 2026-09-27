@@ -7,8 +7,14 @@
 //
 // * The search is a bounded subset search over PER-SIDE sums, not a
 //   "largest plate first" greedy loop. Greedy strands remainders it cannot
-//   fill: against the seed inventory (bar 35, 2x45 2x25 4x10 2x5 2x2.5) it
-//   disagrees with the correct answer on 8 of 24 targets, e.g. 137 and 250.
+//   fill whenever the largest plate does not fit the remaining budget.
+//   Measured: on the seed inventory (bar 35, 2x45 2x25 4x10 2x5 2x2.5) a
+//   skip-and-continue greedy happens to agree on every reachable target, so
+//   the seed kit does not by itself prove the search is needed. It is needed
+//   for other inventories: across 300 randomly generated kits, 107 of them
+//   had at least one target where greedy under-loads, 13153 of 179400 targets
+//   (7.3%) overall, and a single kit shape accounted for 33% of its targets.
+//   Users type their own plate counts, so the non-seed kits are the norm.
 //
 // * The objective is the LARGEST reachable per-side sum that does not push the
 //   total past the target. Within a given sum, the fewest plates wins. Note the
