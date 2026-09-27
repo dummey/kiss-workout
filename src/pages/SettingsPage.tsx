@@ -307,18 +307,21 @@ export default function SettingsPage() {
                 Used to personalize the app
               </div>
             </div>
-            <input
-              id="display-name-input"
-              type="text"
-              value={displayNameInput}
-              onChange={e => handleDisplayNameChange(e.target.value)}
-              onBlur={flushDisplayName}
-              onKeyDown={e => {
-                if (e.key === 'Enter') flushDisplayName()
-              }}
-              placeholder="Your name"
-              style={{ minWidth: 200 }}
-            />
+            {/* Wrapped in .form-group so this field picks up the same stylesheet rule
+                as every other text field in the app, instead of rendering unstyled. */}
+            <div className="form-group" style={{ width: 240, marginBottom: 0, flexShrink: 0 }}>
+              <input
+                id="display-name-input"
+                type="text"
+                value={displayNameInput}
+                onChange={e => handleDisplayNameChange(e.target.value)}
+                onBlur={flushDisplayName}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') flushDisplayName()
+                }}
+                placeholder="Your name"
+              />
+            </div>
           </div>
 
           <div style={{ borderTop: '1px solid var(--border)', marginTop: 24, paddingTop: 24 }}>

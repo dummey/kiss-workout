@@ -250,6 +250,35 @@ describe('SettingsPage — Customization display name', () => {
     expect(screen.getByLabelText(NAME_LABEL)).toHaveValue('')
   })
 
+  it('renders the display name input inside the shared .form-group convention', async () => {
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const input = screen.getByLabelText(NAME_LABEL)
+
+    // Durable style contract: the field inherits the app-wide stylesheet rule via the
+    // .form-group ancestor, exactly like the text fields in the Add Exercise modal.
+    // Asserting computed px/hex would churn; asserting the shared hook cannot.
+    expect(input.closest('.form-group')).not.toBeNull()
+    expect(input.closest('.form-group')!.querySelector('input')).toBe(input)
+  })
+
+  it('keeps the display name accessible name and id wiring intact', async () => {
+    await setStore('tracker', baseTracker())
+
+    render(<TestApp />)
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    const input = screen.getByLabelText(NAME_LABEL) as HTMLInputElement
+    // The <label htmlFor> -> id association is what getByLabelText resolves; the restyle
+    // must not have moved the input out from under its label.
+    expect(input.id).toBe('display-name-input')
+    expect(input.type).toBe('text')
+    expect(input).toHaveAttribute('placeholder', 'Your name')
+  })
+
   it('persists a typed name to the IndexedDB tracker key on blur', async () => {
     const user = userEvent.setup()
     await setStore('tracker', baseTracker())
