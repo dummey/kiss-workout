@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { BackupProvider } from '../context/BackupContext'
@@ -11,11 +11,12 @@ import ExercisesPage from '../pages/ExercisesPage'
 import WorkoutsPage from '../pages/WorkoutsPage'
 import SessionDetailPage from '../pages/SessionDetailPage'
 import { BodyChart } from 'body-muscles'
+import type { BodyState } from 'body-muscles'
 import { deleteStore, setStore } from '../db'
 import type { SessionExercise, TrackerData } from '../types'
 
 vi.mock('body-muscles', () => ({
-  BodyChart: vi.fn(function () {
+  BodyChart: vi.fn(function (this: { destroy: () => void; update: () => void }) {
     this.destroy = vi.fn()
     this.update = vi.fn()
   }),
@@ -112,10 +113,17 @@ describe('ExerciseDetailPage', () => {
     expect(screen.getByText('Future Muscle')).toBeInTheDocument()
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText('Strength')).toBeInTheDocument()
-    const chartOptions = vi.mocked(BodyChart).mock.calls.map(call => call[1].bodyState)
-    expect(chartOptions).toHaveLength(2)
-    expect(chartOptions[0]['chest-upper-left']).toEqual({ intensity: 1, selected: true })
-    expect(Object.keys(chartOptions[0])).toHaveLength(4)
+    let chartOptions: (BodyState | undefined)[] = []
+    await waitFor(() => {
+      chartOptions = vi.mocked(BodyChart).mock.calls.map(call => call[1].bodyState)
+      expect(chartOptions).toHaveLength(2)
+    })
+    // waitFor above guarantees two calls, but the array's element type is
+    // `BodyState | undefined`, so narrow explicitly before indexing.
+    const firstChart = chartOptions[0]
+    expect(firstChart).toBeDefined()
+    expect(firstChart?.['chest-upper-left']).toEqual({ intensity: 1, selected: true })
+    expect(Object.keys(firstChart ?? {})).toHaveLength(4)
   })
 
   it('limits history to the latest 12 records, newest first, and preserves duplicates and originalId', async () => {

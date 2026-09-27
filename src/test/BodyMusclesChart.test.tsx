@@ -10,7 +10,10 @@ const { bodyChartUpdates } = vi.hoisted(() => ({
 
 vi.mock('body-muscles', () => {
   return {
-    BodyChart: vi.fn(function (this: { update: (options: { bodyState?: BodyState }) => void }) {
+    BodyChart: vi.fn(function (this: {
+      destroy: () => void
+      update: (options: { bodyState?: BodyState }) => void
+    }) {
       this.destroy = vi.fn()
       this.update = vi.fn(({ bodyState }: { bodyState?: BodyState }) => {
         if (bodyState) bodyChartUpdates.push(bodyState)

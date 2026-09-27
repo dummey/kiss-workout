@@ -156,7 +156,7 @@ export default function SessionDetailPage() {
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const isToday = date === todayStr
-  const [isRunning, setIsRunning] = useState(isToday && !(session?.elapsedTime > 0))
+  const [isRunning, setIsRunning] = useState(isToday && !((session?.elapsedTime ?? 0) > 0))
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startTimeRef = useRef(Date.now())
   const lastSaveRef = useRef(0)
@@ -565,7 +565,7 @@ export default function SessionDetailPage() {
               <Button onClick={() => setRemoveConfirm(null)}>Cancel</Button>
               {removeConfirm.canRemove && date && (
                 <Button
-                  variant="danger"
+                  danger
                   onClick={() => {
                     removeExerciseFromSession(date, removeConfirm.exId)
                     setRemoveConfirm(null)

@@ -96,7 +96,8 @@ export default function Modal({
               {actions.map(action => (
                 <Button
                   key={action.label}
-                  variant={action.variant || 'default'}
+                  variant={action.variant === 'danger' ? 'default' : action.variant || 'default'}
+                  danger={action.variant === 'danger'}
                   onClick={() => {
                     onAction(action.value, input ? getInputValue() : undefined)
                   }}
