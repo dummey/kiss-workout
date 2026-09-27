@@ -73,6 +73,7 @@ body {
 .tag.setup { color: #b8c0d0; }
 .tag.ss { color: #c8a0ff; }
 .tag.muscle { color: #6cc7ff; }
+.tag.equipment { color: #5fd4c4; }
 
 /* Edit inputs */
 .edit-row { display: flex; gap: 6px; margin-top: 10px; }

@@ -5,6 +5,15 @@ import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import type { Exercise } from '../types'
 
+/**
+ * Display labels for the `equipment` field. `''` means nothing was declared and
+ * is deliberately absent — it renders no pill. Adding a future equipment value
+ * is a data change here, not a structural change to the card markup.
+ */
+const EQUIPMENT_LABELS: Record<string, string> = {
+  barbell: 'Barbell'
+}
+
 export default function ExercisesPage() {
   const { data, loading, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout } = useTracker()
   const { showModal } = useModal()
@@ -117,6 +126,13 @@ export default function ExercisesPage() {
                       <input type="text" value={editValues.muscles} onChange={e => setEditValues({ ...editValues, muscles: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }} />
                     </div>
                     <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>Equipment</label>
+                      <select aria-label="Equipment" value={editValues.equipment} onChange={e => setEditValues({ ...editValues, equipment: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }}>
+                        <option value="">None</option>
+                        <option value="barbell">Barbell</option>
+                      </select>
+                    </div>
+                    <div>
                       <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>Setup</label>
                       <input type="text" value={editValues.setup} onChange={e => setEditValues({ ...editValues, setup: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }} />
                     </div>
@@ -131,13 +147,6 @@ export default function ExercisesPage() {
                         <option value="T1">T1</option>
                         <option value="T2">T2</option>
                         <option value="T3">T3</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>Equipment</label>
-                      <select aria-label="Equipment" value={editValues.equipment} onChange={e => setEditValues({ ...editValues, equipment: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }}>
-                        <option value="">None</option>
-                        <option value="barbell">Barbell</option>
                       </select>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -162,6 +171,9 @@ export default function ExercisesPage() {
                     </Link>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                       {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
+                      {ex.equipment && EQUIPMENT_LABELS[ex.equipment] && (
+                        <span className="tag equipment">{EQUIPMENT_LABELS[ex.equipment]}</span>
+                      )}
                       {ex.setup && <span className="tag setup">{ex.setup}</span>}
                       {ex.superset && <span className="tag ss">{ex.superset}</span>}
                       {ex.muscles && ex.muscles.map(m => (
