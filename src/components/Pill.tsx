@@ -2,14 +2,34 @@ import React from 'react'
 
 type PillTone = 'default' | 't1' | 't2' | 't3'
 
-interface PillProps extends React.HTMLAttributes<HTMLElement> {
+interface PillOwnProps {
   tone?: PillTone
   active?: boolean
   /** Trailing count badge, e.g. "T1 (57)". */
   count?: number
-  /** Supplied for interactive (filter) pills; omitted for read-only badges. */
-  onClick?: React.MouseEventHandler<HTMLElement>
+  className?: string
+  children?: React.ReactNode
 }
+
+/**
+ * Interactive branch: renders a real <button>, so button-only attributes
+ * (type, disabled, form, ...) are legal alongside onClick.
+ * aria-pressed is owned by `active` and is deliberately not overridable.
+ */
+type InteractivePillProps = PillOwnProps &
+  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof PillOwnProps | 'onClick' | 'aria-pressed'> & {
+    /** Supplied for interactive (filter) pills. */
+    onClick: React.MouseEventHandler<HTMLButtonElement>
+  }
+
+/** Read-only branch: renders a <span>, so only generic HTML attributes apply. */
+type StaticPillProps = PillOwnProps &
+  Omit<React.HTMLAttributes<HTMLElement>, keyof PillOwnProps> & {
+    /** Omitted for read-only badges. */
+    onClick?: never
+  }
+
+type PillProps = InteractivePillProps | StaticPillProps
 
 export default function Pill({
   tone = 'default',
@@ -17,9 +37,12 @@ export default function Pill({
   count,
   className,
   children,
-  onClick,
   ...props
 }: PillProps) {
+  const { onClick, ...rest } = props as React.HTMLAttributes<HTMLElement> & {
+    onClick?: React.MouseEventHandler<HTMLElement>
+  }
+
   const classes = [
     'pill',
     `pill-${tone}`,
@@ -36,15 +59,15 @@ export default function Pill({
     return (
       <button
         type="button"
+        {...rest}
         className={classes}
         aria-pressed={active}
         onClick={onClick}
-        {...props}
       >
         {content}
       </button>
     )
   }
 
-  return <span className={classes} {...props}>{content}</span>
+  return <span className={classes} {...rest}>{content}</span>
 }
