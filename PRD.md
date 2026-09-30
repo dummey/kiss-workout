@@ -493,3 +493,296 @@ Run: `npm run test` (single run) or `npm run test:watch` (watch mode)
 - CSV export
 - Re-enable the rep-milestone branches in `getNextProgression()` so guidance adapts to the actual previous set
 - Extract the Session Detail workout timer and rest timer into a reusable `Timer` component
+
+### Exercise substitution ("I did belt squats instead of barbell squats")
+
+**Motivation.** Injury, soreness, or accumulated fatigue makes a programmed movement
+unavailable on a given day. The motivating case is substituting a **belt squat** for a
+**barbell squat** in the Squat workout. The set is still logged; only the implement changes.
+
+**Shape of the feature.** Declare which exercises may stand in for which, then offer a
+swap on the Session Detail page that substitutes the implement on the card.
+
+#### Open questions — unresolved, and they gate the design
+
+1. **Where does the relationship live?** Authoring it on the Workouts tab is the obvious
+   *surface*, but the underlying data probably belongs on the `Exercise` definition. A
+   belt squat is a valid stand-in for a barbell squat on any day that programs one, so
+   a per-workout map would mean re-declaring the same pair on every workout that needs it.
+   Open: one library-level `Exercise.alternatives` list (reusable, symmetric authoring,
+   loses per-day control) vs a per-workout map (precise, does not travel) vs both
+   (library-level, with a workout allowed to restrict it).
+
+2. **"Same movement" or "same muscles"?** These are different claims and the difference
+   decides whether progression history carries over.
+   - *Same movement, different implement* (barbell squat → belt squat). Arguably one
+     progression history, with a caveat that belt-squat load is **not** numerically
+     comparable to barbell load.
+   - *Different movement, same muscles* (barbell squat → hack squat). Should **not**
+     share a progression history.
+   A symmetric "alternatives" list silently conflates these. Direction matters, and the
+   UI probably needs to say which kind of swap it is.
+
+3. **What should "Last time" show after a swap?** Today `getPreviousPerformances()` keys
+   on the session record's own `id` and returns the most recent prior session for it.
+   After a swap the card's `id` is the *substitute*, so "Last time" would show the
+   substitute's own history — probably correct, since the substitute should progress on
+   its own merits. Open: whether the card should additionally surface "last time you did
+   the *programmed* exercise" as secondary context, especially when the substitute has
+   little or no history yet.
+
+4. **Does tier-based guidance survive the swap?** `getNextProgression()` advises by tier
+   (T1 → add 10 lbs). A belt squat logged as T1 inherits that advice, but belt-squat
+   loading runs on a different scale, so the advice may be wrong rather than merely
+   imprecise. Open: whether an exercise-level flag should suppress or re-target the
+   guidance.
+
+5. **What happens to values already on the card at swap time?** If the user logged
+   225×5×3 and then swaps, the numbers are ambiguous: a starting point for the belt squat,
+   or a record of an abandoned set? Clear them, carry them over, or confirm first?
+
+6. **How should the swap be recorded?** A `substitutedFor` field on the logged record
+   would make substitutions visible in history — and would let the app eventually answer
+   "my squat progression has stalled; I have used belt squats 3 of the last 6 weeks."
+   Note this is **not** the same as `originalId`, which today means "supersedes a
+   *deleted* exercise" and drives the Exercise Detail "not found" fallback. Reusing
+   `originalId` would silently overload it and change existing history-matching behavior.
+   A distinct field is the safer route.
+
+#### Touch points
+
+| Area | Why |
+|------|-----|
+| `types.ts` | New optional field on `Exercise` and/or `SessionExercise` |
+| `validation.ts` | Both `validateExercise` and `validateWorkout` need an "absent is valid, present-but-wrong-typed is not" rule, matching how `equipment` and `meta.name` are handled. Backup import round-trips the whole document, so an unvalidated field is a silent-corruption path. |
+| `context.tsx` | A swap action. It should **not** route through `removeExerciseFromSession` — that is gated by `canRemoveExerciseFromSession`, which blocks removing the last T1, and swapping the only T1 must not be blocked. |
+| `WorkoutsPage` | Authoring surface for the relationship |
+| `SessionDetailPage` | The swap control itself |
+| `ProgressionInfo` | Questions 3 and 4 land here |
+| `SessionStats` | Worth noting: volume is `weight × reps × sets`, so substituting a much heavier implement changes the number. Not wrong, but it will look like a spike. |
+| Seed data | A substituted session or two, so the behaviour is visible without hand-editing IndexedDB |
+
+### Multi-equipment and a generic weight inventory
+
+**Motivation.** `equipment` is currently a single-value enum with exactly one meaningful
+member — `'barbell' | ''` — and it drives the plate calculator. That is too narrow for two
+real cases: a cable machine whose **stack starts at ~5 lbs** (so the "bar weight" is not
+zero and not a barbell), and any future implement that changes how weight is added.
+
+**Sibling idea: a kill switch.** A single "enable plate calculator" toggle, off by default
+for anyone who does not want the feature at all. Cheap, independent of the rest, and it
+de-risks the whole area — see the sequencing note below.
+
+#### What the model would have to become
+
+`equipment: 'barbell' | ''` → an array of objects. A shape that covers the cable machine
+would need, at minimum, an id/label and a **starting weight** that acts as the calculator's
+"bar" equivalent:
+
+```ts
+equipment: { id: string; label: string; baseWeight: number }[]
+```
+
+`meta.barbellWeight` and `meta.plates` are currently *global* — one bar, one inventory. With
+N equipment types, both become per-equipment. The "plates you own" section becomes a
+generic weights inventory with a checkbox matrix marking which weights are usable on which
+equipment:
+
+```
+weight │ barbell │ cable │ dumbbell
+  45   │    ☑    │       │    ☐
+  10   │    ☑    │   ☑   │    ☐
+  2.5  │    ☑    │   ☑   │    ☐
+```
+
+#### Open questions
+
+1. **A cable machine is not plate-loaded.** The whole calculator is a subset search over
+   plate stock that loads *symmetrically per side* — `perSideStock()` floors `count / 2`
+   and `calculatePlates()` doubles the per-side sum. A cable's selectable increments are a
+   single stack, not two sides, so the existing algorithm does not model it. Open: is this
+   one feature or two — "equipment becomes an array" (data model, mechanical) and "the
+   calculator handles non-plate equipment" (new algorithm)?
+
+2. **Is the cable machine's 5 lbs a `baseWeight`, or is `baseWeight` the wrong abstraction
+   entirely?** For a barbell, "bar weight" is an irreducible floor. For a cable stack it is
+   a *starting increment* and the increments themselves are the inventory. Open: model the
+   cable's own increment ladder as inventory rows, or keep `baseWeight` and accept that a
+   cable's smallest step is not representable.
+
+3. **Dumbbells are symmetric-per-side too, but not interchangeable.** Two 45s is one row;
+   a pair of dumbbells is two *sides* the user must load, and usually owns as a matched
+   pair rather than an even count. Open: does the per-side symmetry assumption hold for
+   every equipment type, or does it need to become a per-equipment property?
+
+4. **Does `equipment` become an array on the *session snapshot* too?** `SessionExercise`
+   snapshots `equipment` at log time so a session records what was actually used. An array
+   is a wider snapshot, so `addExerciseToSession` and `duplicateExerciseInSession` both need
+   updating — and the historical records that carry `equipment: 'barbell'` as a bare string
+   must keep rendering. Open: a migration, or a read-time coercion that keeps old data valid?
+
+5. **What does the equipment pill look like for a multi-equipment exercise?** The pill is
+   currently one `EQUIPMENT_LABELS` lookup and appears in two places (`ExercisesPage` card,
+   `SessionDetailPage` card) via `constants.ts`, which exists specifically so the label
+   cannot drift between them. An array means deciding the display rule — `Barbell`,
+   `Barbell + Cable`, `3 items` — and `EQUIPMENT_LABELS` stops being a `Record` lookup.
+
+6. **Migration risk on `validation.ts`.** `EQUIPMENT_VALUES = ['', 'barbell']` gates import
+   validation. Old backups carry the string; new ones carry an array. Whichever way this
+   goes, `validateExercise` and `validateSessionExercise` must accept both or existing
+   backups stop importing — a silent data-lockout for a cosmetic feature.
+
+7. **What is the default state for existing users?** New equipment types, a new weights
+   matrix, and a kill switch all need defaults. Open: does an existing user get the
+   calculator silently switched off (safe, but they lose a feature they use) or on (visible,
+   but a surprise)?
+
+#### Sequencing
+
+These are separable and should not ship as one PR. The natural order, lowest risk first:
+
+1. **The kill switch.** Self-contained, touches `meta`, and gives an escape hatch for
+   everything after it. Worth building first for that reason alone.
+2. **The checkbox matrix** on top of the existing single barbell inventory — still one
+   equipment, so the algorithm is untouched. De-risks the Settings UI before the model
+   changes shape.
+3. **Equipment as an array** — the data-model change, with the read-time coercion for
+   existing string records.
+4. **Non-plate equipment in the calculator** — the actual algorithm work, and the only
+   piece that needs new math.
+
+#### Touch points
+
+| Area | Why |
+|------|-----|
+| `types.ts` | `Exercise.equipment` and `SessionExercise.equipment` both widen to arrays; `meta` gains a per-equipment inventory and the feature toggle |
+| `constants.ts` | `EQUIPMENT_LABELS` stops being a `Record<string, string>` lookup once labels live on the equipment objects |
+| `validation.ts` | Must accept both legacy string and new array, or old backups stop importing — see open question 6 |
+| `utils/plates.ts` | `calculatePlates`, `perSideStock`, and the quarter-pound integer model are all barbell-and-two-sides assumptions. `DEFAULT_BARBELL_WEIGHT` and `DEFAULT_PLATES` become per-equipment defaults. Note the existing comment: the subset search is deliberate, not accidental — do not "simplify" it to greedy while reshaping it. |
+| `SessionDetailPage.tsx:370` | The `ex.equipment === 'barbell'` guard becomes a lookup: which equipment applies, and is the toggle on? |
+| `ExercisesPage.tsx` | The equipment pill renders for an array |
+| `SettingsPage.tsx` | The debounced-write barbell/plates inputs become a matrix plus a toggle. Note the existing half-typed-number handling — "4" and "45" must not clobber each other mid-edit. |
+| `data.ts` | Seed data carries the legacy string; exercises the feature is not on must be seeded to prove the toggle works |
+
+### Google Drive backup
+
+**Motivation.** The manual Export button is the only backup. If the user does not click it,
+they do not back up — and a local-first app with no server has exactly one copy of the data.
+The idea is to push the backup to Drive on a schedule so it happens without being remembered.
+
+**Research first, and the research is done.** Full findings, with citations and a
+verified/unverified split, are in `docs/google-drive-backup-research.md`. Summary below.
+
+#### The premise needed correcting
+
+The common assumption is that *Google blocked implicit flow in Jan/Feb 2023, so SPAs are
+stuck.* That is two deprecations conflated. Those dates are the **OOB flow** (blocked for new
+usage Feb 28 2022, fully deprecated Jan 31 2023). **Implicit was never hard-blocked** —
+Google's live OIDC discovery still advertises `"token"` in `response_types_supported`, though
+Google's own page calls it legacy-only and RFC 9700 says clients SHOULD NOT use it.
+
+The conclusion survives anyway, for a different reason. See below.
+
+#### The real blocker is architectural, not a policy sunset
+
+**A browser-only app cannot obtain a refresh token from Google, with any client type.** Two
+independent confirmations:
+
+1. The GIS `TokenResponse` object has **no `refresh_token` field**. Its documented properties
+   are `access_token`, `expires_in`, `hd`, `prompt`, `token_type`, `scope`, `state`.
+2. Google's live discovery document advertises
+   `token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"]`.
+   The OAuth spec value `none` — how a public client authenticates under PKCE — **is absent**.
+
+And even if a token were in hand, Google's own flow comparison table says implicit requires
+a **user gesture** on every expiry, and rates user-must-be-present as **"Yes"**.
+
+So: *"send the backup every so often"* means *unattended*, without the user present. That is
+**not achievable with zero backend.** This is a hard architectural limit, not a policy that
+might change.
+
+⚠️ **Stated at the limit of what was verified:** finding (2) is discovery metadata plus
+doc-corroboration, not a proven live failure — a probe with a fabricated client ID returns
+`invalid_client` either way, so it cannot distinguish the two cases. Confirming it needs a
+real client ID. The research doc marks this explicitly; do not upgrade it to settled fact.
+
+#### The recommended path reintroduces a backend
+
+A thin serverless proxy — Cloudflare Worker or similar:
+
+1. Holds the client secret in a secret binding, never in the repo.
+2. Performs the authorization-code exchange.
+3. **Holds the refresh token server-side**, so it never touches the browser.
+4. Uploads on a schedule (Workers Cron Triggers).
+
+**This is the part that needs your decision, not a technical one.** The app's defining
+property is "no backend, no accounts" (`PRD.md:5`, `AGENTS.md`). This feature spends that
+property to buy automation. That trade is a product judgement and it is reversible only at
+the cost of the work already done, so it is worth making deliberately.
+
+Note that step 3 does not merely route around the token-storage rules below — it removes
+them, which is the strongest argument for this option.
+
+#### Token storage, if we ever keep a token in the browser
+
+Both authorities say no, for refresh tokens:
+
+- **Google policy** mandates *"always store encrypted tokens at rest"* and *"never commit
+  client credentials into publicly available code repositories."*
+- **OWASP** is explicit about this exact case: *"do not store session tokens, credentials, or
+  other secrets in IndexedDB unless they are encrypted with a key that is not itself
+  recoverable from the browser"* — e.g. a passphrase-derived or non-extractable Web Crypto
+  key. It also notes *"a single Cross-Site Scripting vulnerability can read or write any data
+  in IndexedDB; treat its contents as untrusted input on read."*
+
+⚠️ Neither body endorses *encrypted-in-IndexedDB* as an accepted pattern. OWASP permits it
+conditionally; Google mandates encryption but does not bless the browser as a location. Treat
+it as grey-area and defensible, not approved.
+
+#### Scope: use `drive.file`, and not `appDataFolder`
+
+`drive.file` and `drive.appdata` are both **non-sensitive** — basic app verification only, no
+security assessment. That is significant for a solo project. Never request plain `drive`
+(restricted).
+
+**Avoid `appDataFolder`, which is a poor fit for backups on two independent counts:** its
+contents are *"hidden from the user and from other Google Drive apps,"* so the user cannot see
+or retrieve the backup without the app; and it is *"deleted when a user uninstalls your app."*
+A backup the user cannot see, and that vanishes on uninstall, is not a backup.
+
+#### Product requirements that fall out of the research
+
+These are easy to miss and are worth deciding now rather than during implementation:
+
+1. **A Disconnect button must treat `invalid_token` as success.** Google documents that for
+   an already-expired token, *"you can regard the grant associated with the accessToken is
+   revoked."* Since access tokens are short-lived and cannot be refreshed, **the common case
+   is an expired token** — so a naive implementation shows an error and the user believes
+   disconnect failed.
+2. **Disconnect must also wipe local state** — the stored `fileId` and any cached payload.
+   Google policy requires deleting revoked tokens permanently.
+3. **Store the returned `fileId`** rather than re-listing the Drive folder to find the prior
+   backup. ⚠️ Whether `files.list` reliably returns app-created files under `drive.file` was
+   **not verified**; storing the id sidesteps the question entirely.
+4. **Consent on a user click, in context — never at startup.** The existing Export button is
+   the natural trigger, which also matches the `BackupReminderBanner` / Settings UX already
+   built.
+5. **Handle partial grants.** A user may grant some requested scopes or deny outright, so
+   "scopes returned ≠ scopes requested" is a real path, not an edge case.
+6. **Write honest consent copy.** With a per-file scope the Google screen will say the app can
+   *"create new Drive files."* Do not write "backs up all your data."
+7. **Design for retention, not just the happy path.** Every "every so often" backup creates a
+   file. Open: one rolling file updated in place (needs the `fileId`), or dated files with a
+   keep-last-N policy? Drive's own trash behaviour and the app's `BackupReminderBanner`
+   messaging both interact with this.
+
+#### The honest fallback
+
+If no backend is acceptable, the answer is an improved manual export — and the app should
+**not claim to be automatic**, because it cannot be. The current Export flow already works;
+the deliverable would be better copy and clearer backup-state messaging, not automation.
+Worth writing that down explicitly so this section is not revisited as if it were still open.
+
+#### Decision needed before any card is written
+
+The backend trade. Everything else here is implementation detail that follows from it.

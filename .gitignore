@@ -38,6 +38,8 @@ next-env.d.ts
 
 # multica agent runtime
 .multica/
+# git worktrees (kanban task workspaces)
+.worktrees/
 .context
 .agent_context/
 .claude/
