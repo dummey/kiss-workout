@@ -1,18 +1,5 @@
 import { describe, it, expect } from 'vitest'
-
-// Test the date comparison logic from context
-function dateCompare(a: string, b: string): number {
-  const parse = (d: string) => {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d
-    if (/^\d{1,2}\/\d{1,2}(\s*-\s*\d{1,2}\/\d{1,2})?$/.test(d)) {
-      const main = d.split('-')[0].trim()
-      const parts = main.split('/')
-      return `2026-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`
-    }
-    return '0000-00-00'
-  }
-  return parse(a).localeCompare(parse(b))
-}
+import { dateCompare, generateExerciseId, canAddSession, parseSets } from '../utils'
 
 describe('dateCompare', () => {
   it('compares YYYY-MM-DD dates correctly', () => {
@@ -35,6 +22,11 @@ describe('dateCompare', () => {
     expect(dateCompare('invalid', '2026-09-01')).toBeLessThan(0)
   })
 })
+
+// TODO(candidate-01): this block still re-declares the GZCL Progression rule by hand.
+// It is the one shadow copy deliberately left in place — `getNextProgression` belongs to the
+// tier module that the Candidate 01 extraction will create. Move these assertions to import
+// the real implementation at that point and delete the copy below.
 
 // Test GZCL progression logic
 describe('GZCL Progression', () => {
@@ -97,33 +89,27 @@ describe('GZCL Progression', () => {
   })
 })
 
-// Test exercise ID generation slug logic
 describe('Exercise ID generation', () => {
-  function generateId(name: string): string {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  }
-
-  it('generates slug from exercise name', () => {
-    expect(generateId('Barbell Back Squat')).toBe('barbell-back-squat')
-    expect(generateId('DB Bench')).toBe('db-bench')
-    expect(generateId('Single Leg RDL')).toBe('single-leg-rdl')
+  it('prefixes the id with a slug of the exercise name', () => {
+    expect(generateExerciseId('Barbell Back Squat')).toMatch(/^barbell-back-squat-/)
+    expect(generateExerciseId('DB Bench')).toMatch(/^db-bench-/)
+    expect(generateExerciseId('Single Leg RDL')).toMatch(/^single-leg-rdl-/)
   })
 
-  it('handles special characters', () => {
-    expect(generateId('Cable Hip Flexion + Leg Extension')).toBe('cable-hip-flexion-leg-extension')
+  it('collapses special characters in the slug', () => {
+    expect(generateExerciseId('Cable Hip Flexion + Leg Extension')).toMatch(/^cable-hip-flexion-leg-extension-/)
   })
 
-  it('trims leading/trailing dashes', () => {
-    expect(generateId(' Test Exercise ')).toBe('test-exercise')
+  it('trims leading/trailing dashes from the slug', () => {
+    expect(generateExerciseId(' Test Exercise ')).toMatch(/^test-exercise-/)
+  })
+
+  it('appends a unique suffix so same-named exercises do not collide', () => {
+    expect(generateExerciseId('Barbell Back Squat')).not.toBe(generateExerciseId('Barbell Back Squat'))
   })
 })
 
-// Test duplicate detection for session dates
 describe('Session duplicate date guard', () => {
-  function canAddSession(existingSessions: { date: string }[], date: string): boolean {
-    return !existingSessions.some(s => s.date === date)
-  }
-
   it('allows new date', () => {
     expect(canAddSession([{ date: '2026-09-01' }], '2026-09-02')).toBe(true)
   })
@@ -131,16 +117,13 @@ describe('Session duplicate date guard', () => {
   it('rejects duplicate date', () => {
     expect(canAddSession([{ date: '2026-09-01' }], '2026-09-01')).toBe(false)
   })
+
+  it('allows any date when no Session exists', () => {
+    expect(canAddSession([], '2026-09-01')).toBe(true)
+  })
 })
 
-// Test parseInt for sets field
 describe('Sets field parsing', () => {
-  function parseSets(value: string): number | null {
-    if (value === '') return null
-    const n = parseInt(value, 10)
-    return isNaN(n) ? null : n
-  }
-
   it('parses valid numbers', () => {
     expect(parseSets('3')).toBe(3)
     expect(parseSets('10')).toBe(10)
@@ -149,6 +132,11 @@ describe('Sets field parsing', () => {
 
   it('returns null for empty string', () => {
     expect(parseSets('')).toBeNull()
+  })
+
+  it('truncates decimals to an integer set count', () => {
+    expect(parseSets('3.5')).toBe(3)
+    expect(parseSets('3abc')).toBe(3)
   })
 
   it('returns null for non-numeric input', () => {
