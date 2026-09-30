@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import BodyMusclesChart from '../components/BodyMusclesChart'
 import { useTracker } from '../context'
+import { matchesRecord } from '../domain/sessionRules'
 import type { SessionExercise } from '../types'
 
 const EMPTY_VALUE = '—'
@@ -31,7 +32,7 @@ export default function ExerciseDetailPage() {
 
     return data.sessions
       .flatMap(session => session.exercises
-        .filter(record => record.id === id || record.originalId === id)
+        .filter(record => matchesRecord(record, id))
         .map(record => ({ ...record, sessionDate: session.date })))
       .sort((a, b) => dateCompare(b.sessionDate, a.sessionDate))
       .slice(0, HISTORY_LIMIT)

@@ -8,6 +8,7 @@ import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal, useModalControl } from '../components/ModalProvider'
 import { usePagination } from '../hooks/usePagination'
 import { validateSession } from '../validation'
+import { isLogged } from '../domain/sessionRules'
 import type { Session } from '../types'
 
 type SortDirection = 'desc' | 'asc'
@@ -248,7 +249,7 @@ export default function SessionsPage() {
                   </p>
                 )}
                 <p style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>
-                  {session.exercises.filter(ex => ex.weight || ex.reps || ex.failed).length} / {session.exercises.length} exercises logged
+                  {session.exercises.filter(isLogged).length} / {session.exercises.length} exercises logged
                   {session.elapsedTime ? ` • ${Math.floor(session.elapsedTime / 60)}m ${session.elapsedTime % 60}s` : ''}
                 </p>
               </div>
