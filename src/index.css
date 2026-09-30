@@ -68,6 +68,25 @@ body {
 .tier-T2 { background: rgba(245,176,66,0.18); color: var(--t2); }
 .tier-T3 { background: rgba(78,203,113,0.18); color: var(--t3); }
 
+/* Pills */
+.pill {
+  display: inline-flex; align-items: center; gap: 0;
+  font-size: 0.78rem; font-weight: 600; line-height: 1;
+  padding: 6px 12px; border-radius: 6px; letter-spacing: 0.03em;
+  background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+  transition: all 0.15s; flex-shrink: 0;
+}
+button.pill { cursor: pointer; font-family: inherit; }
+button.pill:hover { border-color: var(--accent); color: var(--text); }
+.pill-count { opacity: 0.75; font-weight: 500; }
+/* Tier tones reuse the .tier-badge rgba fills so a T1 pill and a T1 badge read as the same tier. */
+.pill-t1 { background: rgba(255,107,107,0.18); color: var(--t1); border-color: rgba(255,107,107,0.35); }
+.pill-t2 { background: rgba(245,176,66,0.18); color: var(--t2); border-color: rgba(245,176,66,0.35); }
+.pill-t3 { background: rgba(78,203,113,0.18); color: var(--t3); border-color: rgba(78,203,113,0.35); }
+/* Pill pressed state: brighter border + weight + underline so the state is not conveyed by color alone. */
+.pill.active { border-color: currentColor; font-weight: 700; text-decoration: underline; }
+.tier-filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
 /* Tags */
 .tag { font-size: 0.72rem; background: var(--surface2); padding: 3px 9px; border-radius: 6px; color: var(--muted); }
 .tag.setup { color: #b8c0d0; }
