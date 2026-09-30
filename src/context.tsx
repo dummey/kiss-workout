@@ -2,6 +2,7 @@ import React, { useState, useEffect, createContext, useContext, useMemo, useCall
 import { getStore, setStore } from './db'
 import { SEED_DATA } from './data'
 import { useBackup } from './context/BackupContext'
+import { dateCompare, generateExerciseId, canAddSession, parseSets } from './utils'
 import type { TrackerData, TrackerContextValue, Exercise, Session, SessionExercise, PreviousPerformance } from './types'
 
 const TrackerContext = createContext<TrackerContextValue | null>(null)
@@ -65,7 +66,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
   const addSession = useCallback((date: string, workoutType: string): Session | null => {
     if (!data) return null
-    if (data.sessions.some(s => s.date === date)) {
+    if (!canAddSession(data.sessions, date)) {
       return null
     }
 
@@ -140,8 +141,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     if (field === 'weight') ex.weight = value
     else if (field === 'reps') ex.reps = value
     else if (field === 'sets') {
-      if (value === '') ex.sets = null
-      else { const n = parseInt(value, 10); ex.sets = isNaN(n) ? null : n }
+      ex.sets = parseSets(value)
     }
     saveData(newData)
   }, [data, saveData])
@@ -168,8 +168,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
   const addExercise = useCallback((exercise: Partial<Exercise> & { name: string }): string => {
     if (!data) return ''
-    const baseId = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    const id = `${baseId}-${crypto.randomUUID()}`
+    const id = generateExerciseId(exercise.name)
     const newEx: Exercise = {
       id,
       name: exercise.name || '',
@@ -467,19 +466,6 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [data])
 
-  const dateCompare = useCallback((a: string, b: string): number => {
-    const parse = (d: string): string => {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d
-      if (/^\d{1,2}\/\d{1,2}(\s*-\s*\d{1,2}\/\d{1,2})?$/.test(d)) {
-        const main = d.split('-')[0].trim()
-        const parts = main.split('/')
-        return `2026-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`
-      }
-      return '0000-00-00'
-    }
-    return parse(a).localeCompare(parse(b))
-  }, [])
-
   const value = useMemo<TrackerContextValue>(() => ({
     data,
     loading,
@@ -514,7 +500,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     reorderWorkoutExercise,
     setDisplayName,
     setBarbellSetup
-  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, setExerciseFailed, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, dateCompare, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise, setDisplayName, setBarbellSetup])
+  }), [data, loading, error, clearError, getExercise, getWorkoutExercises, addSession, deleteSession, updateSessionNotes, updateSessionTime, updateExercise, setExerciseFailed, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout, removeExerciseFromWorkout, addWorkout, updateWorkout, deleteWorkout, getPreviousPerformances, deleteAllData, resetToSeedData, importSession, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession, cloneWorkout, reorderWorkoutExercise, setDisplayName, setBarbellSetup])
 
   return (
     <TrackerContext.Provider value={value}>
