@@ -362,7 +362,11 @@ export default function SessionDetailPage() {
             )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
               {tierExs.map((ex) => {
-                const prevInfo = getPreviousPerformances(ex.id, session.date)
+                // A duplicated record's id is synthetic (`<id>-copy-<uuid>`) and
+                // matches no history record, so the lookup has to go through
+                // `originalId` — the same id-or-originalId rule the rest of the
+                // app uses (context.tsx, ExerciseDetailPage).
+                const prevInfo = getPreviousPerformances(ex.originalId || ex.id, session.date)
 
                 // Recalculated on every render, so it tracks the input live.
                 // `equipment` is optional on historical session exercises, so
@@ -524,7 +528,7 @@ export default function SessionDetailPage() {
             />
             <div style={{ maxHeight: 300, overflowY: 'auto' }}>
               {data?.exercises
-                .filter(ex => !session?.exercises.some(se => se.id === ex.id))
+                .filter(ex => !session?.exercises.some(se => se.id === ex.id || se.originalId === ex.id))
                 .filter(ex => addExerciseSearch.trim() === '' ||
                   ex.name.toLowerCase().includes(addExerciseSearch.toLowerCase()) ||
                   ex.muscles?.some(m => m.toLowerCase().includes(addExerciseSearch.toLowerCase()))
