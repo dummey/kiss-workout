@@ -383,7 +383,15 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     const copy: SessionExercise = {
       ...original,
       id: `${original.id}-copy-${crypto.randomUUID()}`,
-      originalId: original.id,
+      // Resolves to the ROOT definition, not the record this was copied from.
+      // A copy's own id is synthetic (`<id>-copy-<uuid>`) and matches no
+      // Exercise, so `originalId` is the only handle a reader has. Duplicating
+      // a copy must therefore carry the copy's own `originalId` forward —
+      // pointing at the intermediate copy would leave every reader resolving
+      // a synthetic id that matches nothing: getPreviousPerformances and
+      // Exercise Detail history filter on `originalId === <definition id>`,
+      // and SessionDetailPage looks the definition up by the same value.
+      originalId: original.originalId ?? original.id,
       name: `${original.name} (2)`,
       // The spread above already carries the snapshot; this normalises sessions
       // recorded before the field existed (undefined -> '').
