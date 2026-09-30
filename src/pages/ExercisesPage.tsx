@@ -13,12 +13,23 @@ import type { Exercise } from '../types'
  * from the domain module rather than a second hand-maintained list; the pill
  * `label` is the bare tier code (unlike `label(tier)`, which is the section
  * heading), and `tone` is the CSS tone Pill renders.
+ *
+ * `tone` comes from {@link TIER_TONES}, keyed by the tier itself so the compiler
+ * checks it: a future `T4` added to the `Tier` union makes that object incomplete,
+ * which is a build error, rather than silently rendering a `pill-t4` class with no
+ * CSS behind it.
  */
+const TIER_TONES: Record<Exclude<Exercise['tier'], ''>, 't1' | 't2' | 't3'> = {
+  T1: 't1',
+  T2: 't2',
+  T3: 't3'
+}
+
 const TIER_PILLS: { tier: Exercise['tier']; label: string; tone: 't1' | 't2' | 't3' | 'default' }[] = [
   ...order().filter((t): t is Exclude<Exercise['tier'], ''> => t !== '').map(tier => ({
     tier,
     label: tier,
-    tone: tier.toLowerCase() as 't1' | 't2' | 't3'
+    tone: TIER_TONES[tier]
   })),
   { tier: '', label: 'None', tone: 'default' }
 ]

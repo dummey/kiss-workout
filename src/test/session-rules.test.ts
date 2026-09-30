@@ -32,6 +32,12 @@ function session(exercises: SessionExercise[]): Session {
   return { date: '2026-09-30', workoutName: 'Bench', elapsedTime: 0, notes: '', exercises }
 }
 
+// Tier values that resolve up Object.prototype's chain instead of missing from a
+// table. restPeriod/label/restProse all take `string` because a stored tier is
+// not statically a `Tier`, so these are values a hand-edited or third-party
+// session JSON could carry.
+const PROTOTYPE_KEYS = ['toString', 'constructor', 'valueOf', 'hasOwnProperty', '__proto__']
+
 describe('restPeriod', () => {
   it("returns GZCL's rest period for each tier", () => {
     expect(restPeriod('T1')).toBe(240)
@@ -48,6 +54,19 @@ describe('restPeriod', () => {
     // Sessions snapshot tier as a plain string, so an unrecognised value from
     // stored or imported data must not produce NaN or Infinity.
     expect(restPeriod('T9')).toBe(DEFAULT_REST_SECONDS)
+  })
+
+  it('falls back to the default for a tier naming an Object.prototype member', () => {
+    // `??` catches only null/undefined, and an inherited member is neither, so a
+    // plain object table hands one straight back. SessionDetailPage then computes
+    // `restSeconds - elapsed`, and a function minus a number is NaN — the rest
+    // clock renders "NaN:NaN". Asserted on value and type, never on truthiness:
+    // a function IS truthy, so a truthiness assertion would pass here even though
+    // the code is broken.
+    for (const key of PROTOTYPE_KEYS) {
+      expect(restPeriod(key)).toBe(DEFAULT_REST_SECONDS)
+      expect(typeof restPeriod(key)).toBe('number')
+    }
   })
 
   it('times an untiered exercise as a T1 main lift', () => {
@@ -78,6 +97,16 @@ describe('label', () => {
       expect(label(tier)).not.toBe('')
     }
   })
+
+  it('returns an empty string, not an inherited member, for a tier it does not know', () => {
+    // Severity differs from restPeriod here: a function handed to a render is a
+    // hard React crash ("Functions are not valid as a React child"), failing the
+    // whole page rather than one field showing nonsense.
+    for (const key of [...PROTOTYPE_KEYS, 'T9']) {
+      expect(label(key)).toBe('')
+      expect(typeof label(key)).toBe('string')
+    }
+  })
 })
 
 describe('restProse', () => {
@@ -89,6 +118,13 @@ describe('restProse', () => {
 
   it('has no rest prose for an untiered exercise', () => {
     expect(restProse('')).toBe('')
+  })
+
+  it('returns an empty string, not an inherited member, for a tier it does not know', () => {
+    for (const key of [...PROTOTYPE_KEYS, 'T9']) {
+      expect(restProse(key)).toBe('')
+      expect(typeof restProse(key)).toBe('string')
+    }
   })
 
   it('agrees with restPeriod: every tier with prose has a real period', () => {

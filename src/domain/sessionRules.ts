@@ -18,12 +18,21 @@ import type { Session, SessionExercise, Tier } from '../types'
  * seam a future scheme change plugs into, not a parameterisation of it.
  */
 
-/** Rest seconds per tier. GZCL's values. */
-const REST_SECONDS: Record<string, number> = {
-  T1: 240, // 4 minutes
-  T2: 150, // 2.5 minutes
-  T3: 75   // 75 seconds
-}
+/**
+ * Rest seconds per tier. GZCL's values.
+ *
+ * A `Map`, not an object literal: each table here is looked up with an arbitrary
+ * `string`, and a plain object's lookup walks `Object.prototype`, so
+ * `REST_SECONDS['toString']` resolves to the inherited function rather than
+ * missing. `??` cannot catch that — an inherited member is neither null nor
+ * undefined — so the lookup would hand back a function, and the rest timer's
+ * `restSeconds - elapsed` would be `NaN`. A `Map` has no prototype to inherit.
+ */
+const REST_SECONDS = new Map<string, number>([
+  ['T1', 240], // 4 minutes
+  ['T2', 150], // 2.5 minutes
+  ['T3', 75]   // 75 seconds
+])
 
 /**
  * Rest applied to a tier absent from {@link REST_SECONDS} — which in practice
@@ -39,25 +48,25 @@ export const DEFAULT_REST_SECONDS = 120
  */
 export const DEFAULT_REST_TIER: Tier = 'T1'
 
-/** Section heading for each tier. */
-const TIER_LABELS: Record<string, string> = {
-  T1: 'T1 — Main Lift',
-  T2: 'T2 — Primary Accessory',
-  T3: 'T3 — Secondary',
-  '': 'Other'
-}
+/** Section heading for each tier. A `Map` — see {@link REST_SECONDS}. */
+const TIER_LABELS = new Map<string, string>([
+  ['T1', 'T1 — Main Lift'],
+  ['T2', 'T2 — Primary Accessory'],
+  ['T3', 'T3 — Secondary'],
+  ['', 'Other']
+])
 
 /**
  * Rest guidance shown under a section heading, in prose rather than seconds —
  * the human-facing restatement of {@link REST_SECONDS}. `''` has none. The two
  * now sit in one file so the number and its prose cannot disagree.
  */
-const TIER_REST_PROSE: Record<string, string> = {
-  T1: '3–5 minutes between sets',
-  T2: '2–3 minutes between sets',
-  T3: '60–90 seconds between sets',
-  '': ''
-}
+const TIER_REST_PROSE = new Map<string, string>([
+  ['T1', '3–5 minutes between sets'],
+  ['T2', '2–3 minutes between sets'],
+  ['T3', '60–90 seconds between sets'],
+  ['', '']
+])
 
 /**
  * Tiers in render order, plus `''` — the untiered bucket. It is part of the
@@ -78,20 +87,22 @@ export function order(): readonly Tier[] {
  * Takes `string` rather than `Tier` because `SessionExercise.tier` is a plain
  * `string`: sessions snapshot the tier at log time and predate this being a
  * closed union, so a value read back from storage is not statically a `Tier`.
- * Anything not in {@link REST_SECONDS} gets {@link DEFAULT_REST_SECONDS}.
+ * Anything not in {@link REST_SECONDS} gets {@link DEFAULT_REST_SECONDS} — which
+ * includes a key inherited from `Object.prototype`, since {@link REST_SECONDS} is
+ * a `Map` and has no prototype to resolve against.
  */
 export function restPeriod(tier: string): number {
-  return REST_SECONDS[tier] ?? DEFAULT_REST_SECONDS
+  return REST_SECONDS.get(tier) ?? DEFAULT_REST_SECONDS
 }
 
 /** Section heading for a tier, e.g. `'T1 — Main Lift'`. */
 export function label(tier: string): string {
-  return TIER_LABELS[tier] ?? ''
+  return TIER_LABELS.get(tier) ?? ''
 }
 
 /** Rest guidance in prose for a tier, e.g. `'3–5 minutes between sets'`. Empty for untiered. */
 export function restProse(tier: string): string {
-  return TIER_REST_PROSE[tier] ?? ''
+  return TIER_REST_PROSE.get(tier) ?? ''
 }
 
 /**
