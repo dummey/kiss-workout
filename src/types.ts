@@ -1,10 +1,19 @@
+/**
+ * A progression tier. `''` means the exercise is untiered — it belongs to the
+ * "Other" group and has no rest period of its own.
+ *
+ * Tiers are a general concept; the GZCL meaning of each tier is not. See
+ * `src/domain/sessionRules.ts` for the values that belong to the scheme.
+ */
+export type Tier = 'T1' | 'T2' | 'T3' | ''
+
 export interface Exercise {
   id: string
   name: string
   muscles: string[]
   setup: string
   superset: string
-  tier: 'T1' | 'T2' | 'T3' | ''
+  tier: Tier
   /** Equipment the exercise is performed with. Only 'barbell' drives behaviour today. */
   equipment: 'barbell' | ''
 }

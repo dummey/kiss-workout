@@ -4,6 +4,7 @@ import Button from '../components/Button'
 import { useModal } from '../components/ModalProvider'
 import { useTracker } from '../context'
 import BodyMusclesChart from '../components/BodyMusclesChart'
+import { label, order } from '../domain/sessionRules'
 import type { Exercise } from '../types'
 
 export default function WorkoutsPage() {
@@ -80,9 +81,6 @@ export default function WorkoutsPage() {
       }
     })
   }
-
-  const tierOrder = ['T1', 'T2', 'T3', '']
-  const tierLabels: Record<string, string> = { 'T1': 'T1 — Main Lift', 'T2': 'T2 — Primary Accessory', 'T3': 'T3 — Secondary', '': 'Other' }
 
   function handleMoveExercise(exId: string, direction: 'up' | 'down') {
     if (!workout) return
@@ -203,13 +201,13 @@ export default function WorkoutsPage() {
               {workoutExercises.length === 0 ? (
                 <p style={{ color: 'var(--muted)' }}>No exercises assigned to this workout. Click "+ Add Exercise" to get started.</p>
               ) : (
-                tierOrder.map(tier => {
+                order().map(tier => {
                   const tierExs = workoutExercises.filter(ex => (ex.tier || '') === tier)
                   if (tierExs.length === 0) return null
                   return (
                     <div key={tier} style={{ marginBottom: 16 }}>
                       <h3 style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
-                        {tierLabels[tier]}
+                        {label(tier)}
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {tierExs.map(ex => (

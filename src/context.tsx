@@ -3,6 +3,7 @@ import { getStore, setStore } from './db'
 import { SEED_DATA } from './data'
 import { useBackup } from './context/BackupContext'
 import { dateCompare, generateExerciseId, canAddSession, parseSets } from './utils'
+import { canRemove, isLogged, matchesRecord } from './domain/sessionRules'
 import type { TrackerData, TrackerContextValue, Exercise, Session, SessionExercise, PreviousPerformance } from './types'
 
 const TrackerContext = createContext<TrackerContextValue | null>(null)
@@ -352,7 +353,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     if (!session) return
     const ex = getExercise(exId)
     if (!ex) return
-    if (session.exercises.some(se => se.id === exId || se.originalId === exId)) return
+    if (session.exercises.some(se => matchesRecord(se, exId))) return
 
     const newEx: SessionExercise = {
       id: ex.id,
@@ -417,15 +418,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     const session = data.sessions.find(s => s.date === sessionDate)
     if (!session) return false
 
-    const ex = session.exercises.find(e => e.id === exId)
-    if (!ex) return false
-
-    if (ex.tier === 'T1') {
-      const t1Count = session.exercises.filter(e => e.tier === 'T1').length
-      if (t1Count <= 1) return false
-    }
-
-    return true
+    return canRemove(session, exId)
   }, [data])
 
   const removeExerciseFromSession = useCallback((sessionDate: string, exId: string) => {
@@ -446,8 +439,8 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
         if (dateCompare(session.date, currentDate) >= 0) continue
         let hasMatch = false
         for (const ex of session.exercises) {
-          if (!hasMatch && ex.id !== exId && ex.originalId !== exId) continue
-          if (!ex.weight && !ex.reps && !ex.failed) continue
+          if (!hasMatch && !matchesRecord(ex, exId)) continue
+          if (!isLogged(ex)) continue
           if (!hasMatch) {
             hasMatch = true
             if (!bestSession || dateCompare(session.date, bestSession.date) > 0) {
@@ -461,7 +454,7 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     if (!bestSession) return []
 
     const best = bestSession
-    const exercises = best.exercises.filter(ex => (ex.id === exId || ex.originalId === exId) && (ex.weight || ex.reps || ex.failed))
+    const exercises = best.exercises.filter(ex => matchesRecord(ex, exId) && isLogged(ex))
 
     if (exercises.length === 0) return []
 

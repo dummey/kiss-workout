@@ -23,71 +23,14 @@ describe('dateCompare', () => {
   })
 })
 
-// TODO(candidate-01): this block still re-declares the GZCL Progression rule by hand.
-// It is the one shadow copy deliberately left in place — `getNextProgression` belongs to the
-// tier module that the Candidate 01 extraction will create. Move these assertions to import
-// the real implementation at that point and delete the copy below.
-
-// Test GZCL progression logic
-describe('GZCL Progression', () => {
-  function getNextProgression(tier: string, prevInfo: { weight: string; reps: string; sets: number | string } | null): string {
-    if (tier === 'T1') {
-      if (prevInfo) {
-        const prevReps = prevInfo.reps
-        const prevSets = prevInfo.sets
-        if (prevSets && prevReps && prevReps !== '—') {
-          return 'Try ' + prevInfo.weight + ' x ' + (parseInt(prevReps) + 1) + ' (' + prevSets + ') or add weight'
-        }
-      }
-      return 'Work up to 2-3RM @ 85-100% Goal Weight'
-    } else if (tier === 'T2') {
-      if (prevInfo && prevInfo.reps && prevInfo.reps !== '—' && parseInt(prevInfo.reps) >= 10) {
-        return 'Add weight, drop to 8 reps'
-      }
-      return 'Target: 8-10 reps @ 65-85% of T1'
-    } else if (tier === 'T3') {
-      if (prevInfo && prevInfo.reps && prevInfo.reps !== '—' && parseInt(prevInfo.reps) >= 15) {
-        return 'Add weight, drop to 10 reps'
-      }
-      return 'Target: 10-15+ reps @ ≤65%'
-    }
-    return 'Fill in your target weight, reps, and sets'
-  }
-
-  it('suggests rep increase for T1 when previous data exists', () => {
-    const result = getNextProgression('T1', { weight: '135', reps: '3', sets: 3 })
-    expect(result).toContain('135')
-    expect(result).toContain('4')
-    expect(result).toContain('or add weight')
-  })
-
-  it('gives default T1 guidance without previous data', () => {
-    const result = getNextProgression('T1', null)
-    expect(result).toContain('2-3RM')
-  })
-
-  it('suggests weight increase for T2 when reps hit 10+', () => {
-    const result = getNextProgression('T2', { weight: '100', reps: '10', sets: 3 })
-    expect(result).toContain('Add weight')
-    expect(result).toContain('8 reps')
-  })
-
-  it('gives default T2 guidance when reps below 10', () => {
-    const result = getNextProgression('T2', { weight: '100', reps: '8', sets: 3 })
-    expect(result).toContain('8-10 reps')
-  })
-
-  it('suggests weight increase for T3 when reps hit 15+', () => {
-    const result = getNextProgression('T3', { weight: '50', reps: '15', sets: 4 })
-    expect(result).toContain('Add weight')
-    expect(result).toContain('10 reps')
-  })
-
-  it('gives default guidance for unknown tier', () => {
-    const result = getNextProgression('', null)
-    expect(result).toContain('target weight')
-  })
-})
+// GZCL progression guidance is NOT tested here. `getNextProgression` lives in
+// `src/components/ProgressionInfo.tsx` and is covered by `ProgressionInfo.test.tsx`.
+// This file previously carried a hand-written second copy of that function plus
+// six tests against it; five of the six asserted behaviour the shipped
+// implementation does not have (its adaptive branches were commented out in
+// ca5bee0 and this copy was never updated), so those tests passed while
+// exercising zero production lines. Progression is being redesigned from
+// scratch, so the copy is deleted rather than reconciled.
 
 describe('Exercise ID generation', () => {
   it('prefixes the id with a slug of the exercise name', () => {

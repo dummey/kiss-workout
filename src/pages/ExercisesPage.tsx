@@ -5,12 +5,32 @@ import Button from '../components/Button'
 import Pill from '../components/Pill'
 import { useModal } from '../components/ModalProvider'
 import { EQUIPMENT_LABELS } from '../constants'
+import { order } from '../domain/sessionRules'
 import type { Exercise } from '../types'
 
+/**
+ * Filter pills for the tier row. Built from `order()` so the set of tiers comes
+ * from the domain module rather than a second hand-maintained list; the pill
+ * `label` is the bare tier code (unlike `label(tier)`, which is the section
+ * heading), and `tone` is the CSS tone Pill renders.
+ *
+ * `tone` comes from {@link TIER_TONES}, keyed by the tier itself so the compiler
+ * checks it: a future `T4` added to the `Tier` union makes that object incomplete,
+ * which is a build error, rather than silently rendering a `pill-t4` class with no
+ * CSS behind it.
+ */
+const TIER_TONES: Record<Exclude<Exercise['tier'], ''>, 't1' | 't2' | 't3'> = {
+  T1: 't1',
+  T2: 't2',
+  T3: 't3'
+}
+
 const TIER_PILLS: { tier: Exercise['tier']; label: string; tone: 't1' | 't2' | 't3' | 'default' }[] = [
-  { tier: 'T1', label: 'T1', tone: 't1' },
-  { tier: 'T2', label: 'T2', tone: 't2' },
-  { tier: 'T3', label: 'T3', tone: 't3' },
+  ...order().filter((t): t is Exclude<Exercise['tier'], ''> => t !== '').map(tier => ({
+    tier,
+    label: tier,
+    tone: TIER_TONES[tier]
+  })),
   { tier: '', label: 'None', tone: 'default' }
 ]
 
@@ -35,7 +55,9 @@ export default function ExercisesPage() {
   // Library-wide tier counts — deliberately NOT derived from the filtered list, so
   // the numbers on the pills stay put while the user types.
   const tierCounts = useMemo(() => {
-    const counts: Record<string, number> = { T1: 0, T2: 0, T3: 0, '': 0 }
+    // Keys come from the tier order, so a new tier needs no edit here.
+    const counts: Record<string, number> = {}
+    for (const tier of order()) counts[tier] = 0
     for (const ex of data?.exercises ?? []) {
       if (ex.tier in counts) counts[ex.tier]++
     }
@@ -196,9 +218,9 @@ export default function ExercisesPage() {
                       <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>Tier</label>
                       <select value={editValues.tier} onChange={e => setEditValues({ ...editValues, tier: e.target.value })} style={{ width: '100%', padding: '6px 8px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 4, fontSize: '0.85rem' }}>
                         <option value="">None</option>
-                        <option value="T1">T1</option>
-                        <option value="T2">T2</option>
-                        <option value="T3">T3</option>
+                        {order().filter(t => t !== '').map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
                       </select>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -292,9 +314,9 @@ export default function ExercisesPage() {
               <label>Tier</label>
               <select value={newEx.tier} onChange={e => setNewEx({ ...newEx, tier: e.target.value as Exercise['tier'] })}>
                 <option value="">None</option>
-                <option value="T1">T1</option>
-                <option value="T2">T2</option>
-                <option value="T3">T3</option>
+                {order().filter(t => t !== '').map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
             </div>
             <div style={{ marginTop: 16 }}>

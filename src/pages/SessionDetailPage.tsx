@@ -11,6 +11,7 @@ import {
   DEFAULT_PLATES,
 } from '../utils/plates'
 import { EQUIPMENT_LABELS } from '../constants'
+import { canRemove, definitionId, label, matchesRecord, order, restPeriod, restProse, DEFAULT_REST_TIER } from '../domain/sessionRules'
 import type { Exercise, SessionExercise } from '../types'
 
 /**
@@ -45,6 +46,10 @@ function resolveEquipment(
     // Prefer the record the copy was duplicated from: it is the closest thing
     // to an original reading, and it preserves the snapshot of a modern
     // session even when the definition has since been reclassified.
+    //
+    // The sibling lookup is by exact id, NOT `matchesRecord` — it wants the one
+    // record this was duplicated from, and a looser match could land on a
+    // further copy of the same exercise instead.
     const source = siblings.find(e => e.id === sessionEx.originalId)
     if (source) return source.equipment ?? getExercise(source.id)?.equipment
     // The source is gone (removed, or from a different session). Fall back to
@@ -58,7 +63,7 @@ function resolveEquipment(
 export default function SessionDetailPage() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
-  const { data, loading, updateExercise, setExerciseFailed, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, canRemoveExerciseFromSession, duplicateExerciseInSession } = useTracker()
+  const { data, loading, updateExercise, setExerciseFailed, deleteSession, updateSessionNotes, updateSessionTime, getPreviousPerformances, getExercise, addExerciseToSession, removeExerciseFromSession, duplicateExerciseInSession } = useTracker()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [addExerciseSearch, setAddExerciseSearch] = useState('')
   const [removeConfirm, setRemoveConfirm] = useState<{ exId: string; name: string; tier: string; canRemove: boolean } | null>(null)
@@ -66,13 +71,7 @@ export default function SessionDetailPage() {
   const [restIsRunning, setRestIsRunning] = useState(false)
   const restStartTimeRef = useRef(Date.now())
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const restTierRef = useRef('T1')
-
-  const tierRestDurations: Record<string, number> = {
-    T1: 240,  // 4 minutes
-    T2: 150,  // 2.5 minutes
-    T3: 75    // 75 seconds
-  }
+  const restTierRef = useRef<string>(DEFAULT_REST_TIER)
 
   useEffect(() => {
     if (!restIsRunning) {
@@ -85,7 +84,7 @@ export default function SessionDetailPage() {
 
     const tick = () => {
       const elapsed = Math.floor((Date.now() - restStartTimeRef.current) / 1000)
-      const duration = tierRestDurations[restTierRef.current] || 120
+      const duration = restPeriod(restTierRef.current)
       const remaining = duration - elapsed
       if (remaining <= 0) {
         setRestTime(0)
@@ -118,7 +117,7 @@ export default function SessionDetailPage() {
   }, [restIsRunning])
 
   const startRestTimer = useCallback((tier: string) => {
-    const duration = tierRestDurations[tier] || 120
+    const duration = restPeriod(tier)
     restTierRef.current = tier
     setRestTime(duration)
     restStartTimeRef.current = Date.now()
@@ -131,7 +130,7 @@ export default function SessionDetailPage() {
 
   const resumeRestTimer = useCallback(() => {
     if (restTime > 0) {
-      const duration = tierRestDurations[restTierRef.current] || 120
+      const duration = restPeriod(restTierRef.current)
       restStartTimeRef.current = Date.now() - (duration - restTime) * 1000
       setRestIsRunning(true)
     }
@@ -139,7 +138,7 @@ export default function SessionDetailPage() {
 
   const resetRestTimer = useCallback(() => {
     setRestIsRunning(false)
-    setRestTime(tierRestDurations[restTierRef.current] || 120)
+    setRestTime(restPeriod(restTierRef.current))
   }, [])
 
   const skipRestTimer = useCallback(() => {
@@ -239,9 +238,7 @@ export default function SessionDetailPage() {
     }, 500)
   }
   const resolvedExercises = session?.exercises?.map((sessionEx, idx) => {
-    // A duplicated exercise carries a synthetic id (`<id>-copy-<uuid>`) that
-    // matches no definition; `originalId` points at the real one.
-    const def = getExercise(sessionEx.originalId ?? sessionEx.id) || {}
+    const def = getExercise(definitionId(sessionEx)) || {}
     return {
       ...def,
       ...sessionEx,
@@ -251,10 +248,6 @@ export default function SessionDetailPage() {
       idx
     }
   }) || []
-
-  const tierOrder = ['T1', 'T2', 'T3', '']
-  const tierLabels: Record<string, string> = { T1: 'T1 — Main Lift', T2: 'T2 — Primary Accessory', T3: 'T3 — Secondary', '': 'Other' }
-  const tierSubtitles: Record<string, string> = { T1: '3–5 minutes between sets', T2: '2–3 minutes between sets', T3: '60–90 seconds between sets', '': '' }
 
   return (
     <div>
@@ -347,26 +340,22 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      {tierOrder.map(tier => {
+      {order().map(tier => {
         const tierExs = resolvedExercises.filter(ex => (ex.tier || '') === tier)
         if (tierExs.length === 0) return null
         return (
           <div key={tier} style={{ marginBottom: 24 }}>
             <h3 style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 4, fontWeight: 700 }}>
-              {tierLabels[tier]}
+              {label(tier)}
             </h3>
-            {tierSubtitles[tier] && (
+            {restProse(tier) && (
               <p style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: 12 }}>
-                {tierSubtitles[tier]}
+                {restProse(tier)}
               </p>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
               {tierExs.map((ex) => {
-                // A duplicated record's id is synthetic (`<id>-copy-<uuid>`) and
-                // matches no history record, so the lookup has to go through
-                // `originalId` — the same id-or-originalId rule the rest of the
-                // app uses (context.tsx, ExerciseDetailPage).
-                const prevInfo = getPreviousPerformances(ex.originalId || ex.id, session.date)
+                const prevInfo = getPreviousPerformances(definitionId(ex), session.date)
 
                 // Recalculated on every render, so it tracks the input live.
                 // `equipment` is optional on historical session exercises, so
@@ -384,7 +373,7 @@ export default function SessionDetailPage() {
                   <div key={ex.id || ex.idx} className="card">
                     <div className="card-head" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Link to={`/exercises/${encodeURIComponent(ex.originalId || ex.id)}`} className="card-name" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        <Link to={`/exercises/${encodeURIComponent(definitionId(ex))}`} className="card-name" style={{ color: 'inherit', textDecoration: 'none' }}>
                           {ex.name}
                         </Link>
                         {ex.tier && <span className={'tier-badge tier-' + ex.tier}>{ex.tier}</span>}
@@ -415,7 +404,7 @@ export default function SessionDetailPage() {
                           if (date) duplicateExerciseInSession(date, ex.idx)
                         }}>⧉</Button>
                         <Button size="sm" danger title="Remove exercise" onClick={() => {
-                          if (!canRemoveExerciseFromSession(date!, ex.id)) {
+                          if (!canRemove(session, ex.id)) {
                             setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier, canRemove: false })
                           } else {
                             setRemoveConfirm({ exId: ex.id, name: ex.name, tier: ex.tier || '', canRemove: true })
@@ -473,7 +462,7 @@ export default function SessionDetailPage() {
                               if (date) updateExercise(date, ex.idx, 'sets', e.target.value)
                               const newVal = parseInt(e.target.value, 10)
                               if (!isNaN(newVal) && newVal > 0) {
-                                startRestTimer(ex.tier || 'T1')
+                                startRestTimer(ex.tier || DEFAULT_REST_TIER)
                               }
                             }}
                             style={{ width: '100%', boxSizing: 'border-box' }}
@@ -493,7 +482,7 @@ export default function SessionDetailPage() {
                             onClick={() => {
                               const current = ex.sets ?? 0
                               if (date) updateExercise(date, ex.idx, 'sets', (current + 1).toString())
-                              startRestTimer(ex.tier || 'T1')
+                              startRestTimer(ex.tier || DEFAULT_REST_TIER)
                             }}
                           >
                             +
@@ -528,7 +517,7 @@ export default function SessionDetailPage() {
             />
             <div style={{ maxHeight: 300, overflowY: 'auto' }}>
               {data?.exercises
-                .filter(ex => !session?.exercises.some(se => se.id === ex.id || se.originalId === ex.id))
+                .filter(ex => !session?.exercises.some(se => matchesRecord(se, ex.id)))
                 .filter(ex => addExerciseSearch.trim() === '' ||
                   ex.name.toLowerCase().includes(addExerciseSearch.toLowerCase()) ||
                   ex.muscles?.some(m => m.toLowerCase().includes(addExerciseSearch.toLowerCase()))
