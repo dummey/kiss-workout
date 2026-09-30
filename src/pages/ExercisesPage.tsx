@@ -2,9 +2,17 @@ import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
+import Pill from '../components/Pill'
 import { useModal } from '../components/ModalProvider'
 import { EQUIPMENT_LABELS } from '../constants'
 import type { Exercise } from '../types'
+
+const TIER_PILLS: { tier: Exercise['tier']; label: string; tone: 't1' | 't2' | 't3' | 'default' }[] = [
+  { tier: 'T1', label: 'T1', tone: 't1' },
+  { tier: 'T2', label: 'T2', tone: 't2' },
+  { tier: 'T3', label: 'T3', tone: 't3' },
+  { tier: '', label: 'None', tone: 'default' }
+]
 
 export default function ExercisesPage() {
   const { data, loading, addExercise, updateExerciseDef, deleteExercise, addExerciseToWorkout } = useTracker()
@@ -22,19 +30,37 @@ export default function ExercisesPage() {
   }>({ name: '', muscles: '', setup: '', superset: '', tier: '', equipment: '' })
   const [workoutToAdd, setWorkoutToAdd] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedTiers, setSelectedTiers] = useState<string[]>([])
+
+  // Library-wide tier counts — deliberately NOT derived from the filtered list, so
+  // the numbers on the pills stay put while the user types.
+  const tierCounts = useMemo(() => {
+    const counts: Record<string, number> = { T1: 0, T2: 0, T3: 0, '': 0 }
+    for (const ex of data?.exercises ?? []) {
+      if (ex.tier in counts) counts[ex.tier]++
+    }
+    return counts
+  }, [data?.exercises])
 
   // ✅ useMemo BEFORE the conditional return — hook count must be stable
   const filteredExercises = useMemo(() => {
     const exercises = data?.exercises ?? []
-    if (!searchQuery.trim()) return exercises
-    const query = searchQuery.toLowerCase()
-    return exercises.filter(ex =>
-      ex.name.toLowerCase().includes(query) ||
-      (ex.muscles && ex.muscles.some(m => m.toLowerCase().includes(query))) ||
-      (ex.tier && ex.tier.toLowerCase().includes(query)) ||
-      (ex.setup && ex.setup.toLowerCase().includes(query))
+    const query = searchQuery.trim().toLowerCase()
+    // Tier pills AND the text search — both must pass. No active pill = all tiers.
+    return exercises.filter(ex => {
+      if (selectedTiers.length > 0 && !selectedTiers.includes(ex.tier)) return false
+      if (!query) return true
+      return ex.name.toLowerCase().includes(query) ||
+        (ex.muscles && ex.muscles.some(m => m.toLowerCase().includes(query))) ||
+        (ex.setup && ex.setup.toLowerCase().includes(query))
+    })
+  }, [data?.exercises, searchQuery, selectedTiers])
+
+  function toggleTier(tier: string) {
+    setSelectedTiers(prev =>
+      prev.includes(tier) ? prev.filter(t => t !== tier) : [...prev, tier]
     )
-  }, [data?.exercises, searchQuery])
+  }
 
   // ✅ Early return AFTER all hooks
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
@@ -92,10 +118,32 @@ export default function ExercisesPage() {
         <Button variant="primary" onClick={() => setShowAdd(true)}>+ Add Exercise</Button>
       </div>
 
+      <div className="tier-filter-row" role="group" aria-label="Filter by tier">
+        {TIER_PILLS
+          // The untiered pill only appears once a user-created exercise needs it —
+          // a permanently-dead filter on the default library is just noise.
+          .filter(({ tier }) => tier !== '' || tierCounts[''] > 0)
+          .map(({ tier, label, tone }) => {
+            const active = selectedTiers.includes(tier)
+            return (
+              <Pill
+                key={label}
+                tone={tone}
+                active={active}
+                count={tierCounts[tier]}
+                aria-label={`${label}, ${tierCounts[tier]} exercise${tierCounts[tier] === 1 ? '' : 's'}${active ? ', selected' : ''}`}
+                onClick={() => toggleTier(tier)}
+              >
+                {label}
+              </Pill>
+            )
+          })}
+      </div>
+
       <div style={{ marginBottom: 20 }}>
         <input
           type="text"
-          placeholder="Search by name, muscle, tier, or setup..."
+          placeholder="Search by name, muscle, or setup..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={{
@@ -107,6 +155,11 @@ export default function ExercisesPage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {filteredExercises.length === 0 && (data?.exercises.length ?? 0) > 0 && (
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+            No exercises match the current filters.
+          </p>
+        )}
         {filteredExercises.map(ex => {
           const workouts = getWorkoutNamesForExercise(ex.id)
           const isEditing = editingId === ex.id
