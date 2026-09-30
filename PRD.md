@@ -183,13 +183,20 @@ So muscles look dimmer as a function of volume, and are highlighted *only* when 
 
 ## GZCL Progression Logic
 
+> **GZCL is currently the only progression scheme, and it is hardcoded.** The guidance below and
+> the rest periods are written into the app rather than selected. Tiers are a general concept
+> that GZCL leans on heavily — other schemes use them more loosely — so the tier field itself
+> stays; what becomes selectable is the scheme and the per-tier meaning. See **Progression
+> schemes** under Future Considerations.
+
 | Tier | Guidance |
 |------|----------|
 | T1 | Add 5lbs (bench) or 10lbs (squat and deadlift). If fail, 5x3 > 6x2 > 10x1 > restart at 85% of 1rep. |
 | T2 | Add weight. If fail, 3x10 > 3x8 > 3x6 > restart, +5-10lbs from last 3x10. |
 | T3 | Increase reps to 15+ at ≤65%. If fail, restart from the bottom of the range. |
 
-Rest periods are tier-aware: **T1 240s, T2 150s, T3 75s**.
+Rest periods are tier-aware and currently hardcoded: **T1 240s, T2 150s, T3 75s**. These are
+GZCL's values specifically, so they belong to the scheme rather than to the tier concept.
 
 ### Progression Display Logic
 
@@ -198,7 +205,7 @@ Rest periods are tier-aware: **T1 240s, T2 150s, T3 75s**.
 - **Skips empty records**: A row with no weight, no reps, and not failed is not a performance.
 - **Survives renames**: Exercise ID matching ensures progression history persists if the user renames an exercise
 - **Deload-aware**: Most recent session data is shown, so post-deload weights correctly appear as the baseline
-- **Guidance is currently static per tier.** The rep-milestone branches in `getNextProgression()` are commented out, so the displayed advice does not yet adapt to the actual previous set. Wiring those back up is a candidate, not current behavior.
+- **Guidance is currently static per tier.** `getNextProgression()` returns a hardcoded string per tier and does not read the previous set. The real direction is **selectable and customizable progression schemes** — see **Progression schemes** under Future Considerations. Note that the GZCL tests in `logic.test.ts` run against a duplicate of that function, not the shipped one, so they do not cover the current behavior.
 
 ---
 
@@ -483,7 +490,7 @@ Run: `npm run test` (single run) or `npm run test:watch` (watch mode)
 
 - Mobile-responsive layout improvements
 - Full volume & intensity dashboard (SessionStats is a start)
-- Plate calculator
+- Selectable and customizable progression schemes (GZCL is the first; see the section below)
 - PR tracking and display
 - Dark/light theme toggle
 - 1RM estimator (Epley/Brzycki)
@@ -491,8 +498,74 @@ Run: `npm run test` (single run) or `npm run test:watch` (watch mode)
 - Session comparison
 - Body weight log
 - CSV export
-- Re-enable the rep-milestone branches in `getNextProgression()` so guidance adapts to the actual previous set
 - Extract the Session Detail workout timer and rest timer into a reusable `Timer` component
+
+### Progression schemes — selectable, then customizable
+
+**Status: the current advice is static text, not progression logic.** Worth being precise
+about what exists today, because the shape of the work depends on it.
+
+`getNextProgression()` in `ProgressionInfo.tsx` branches on tier and returns a **hardcoded
+string** — "Add 5lbs (bench) or 10lbs (squat and deadlift)" for T1, and so on. The
+history-aware logic that would actually *look at the previous set* is present but **fully
+commented out** in all three branches, and the function signature keeps its parameter as
+`_prevInfo` to satisfy the unused check. The previous performance is fetched, formatted, and
+displayed as "Last time" — then not used for the advice at all.
+
+⚠️ **The tests give false confidence here.** `logic.test.ts` contains a *duplicate* local copy
+of `getNextProgression` — with the rep-milestone branches **active** — and 14 GZCL tests run
+against that copy. They never call the real function. The suite is green while the app returns
+static strings. Whatever happens to this feature, the first fix is to delete the duplicate and
+point the tests at the real implementation, otherwise they certify nothing.
+
+Note the old commented-out logic was also not correct on its own terms: it branched only on
+rep counts and never read the tier's own rules, and the T1 branch's "add a rep" advice ignores
+that a belt squat or a cable stack is not numerically comparable to a barbell (see **Exercise
+substitution** and **Multi-equipment**). So this is a rewrite, not an un-comment.
+
+**Direction, in two stages.**
+
+1. **Selectable scheme.** GZCL is hardcoded as if it were the only program that exists. Make the
+   scheme a setting: pick GZCL, and later P-Zero, 5×5, Starting Strength, or a custom one.
+
+   **Tiers remain a first-class concept and the existing `T1 | T2 | T3 | ""` union stays as
+   it is.** The *strength* of the tier concept varies by program — it is central to GZCL and
+   P-Zero, and a weaker organizing axis in others — but every scheme needs some way to say
+   "this movement is a primary lift" versus "this is accessory work." What changes is not
+   whether tiers exist but **what each one means**: in GZCL a tier encodes an intensity
+   percentage and a rep range, and in a weaker-tiered scheme it may encode only priority.
+   So the tier *labels* are a scheme's business; the tier *field* is not in question.
+2. **Customizable within a scheme.** The longer-term goal: let a user adjust the increment,
+   the rep targets, the progression rule, and the failure handling rather than accepting a
+   program's defaults. GZCL's own "add 5 lbs bench / 10 lbs squat" and the double-increment
+   variants (5/5/2.5, 2.5/1.25) are the natural first settings, because the program itself
+   already parameterizes them.
+
+**Open questions**
+
+1. **Is a scheme a global setting, or per-exercise?** Global is far simpler and matches how
+   people actually train — one program at a time. Per-exercise is what a real training max or
+   an accessory movement might need. Open: global now, per-exercise later?
+2. **What is the actual unit of a scheme?** Today it is a display string. For customization it
+   has to become structured data — increments, rep targets, a rule, a failure response, and
+   per-tier meaning — and that structure *is* the design. Everything else follows from it.
+3. **Does a tier mean the same thing on every exercise within a scheme?** A scheme that
+   encodes intensity percentage has to decide what a T1 bench and a T1 squat share — and the
+   honest answer may be "the tier sets a role, the exercise sets the numbers," which is
+   already how the rest of the app works. This is the substantive design question now that
+   the tier field itself is settled.
+4. **Are tiers fixed at three, or variable?** The type is currently a three-member union
+   because GZCL is. A scheme with more or fewer intensity bands (P-Zero's 2P/1P structure
+   does not map one-to-one onto T1/T2/T3) either fits inside three or the union has to widen.
+   Open, and lower stakes than it looks if the tier *label* is scheme-defined.
+5. **Does a scheme change *guidance only*, or also *progression math*?** The 1RM estimator
+   bullet above and this one are the same feature seen from two sides — a scheme should
+   eventually drive the 1RM estimate that drives the next target, not just the sentence
+   displayed under the card. Worth designing them together.
+6. **What happens to guidance already shown when the scheme changes?** Recompute on read
+   (nothing persisted, always current) or persist advice at log time? Recompute is simpler and
+   probably right, but it means the text is a function of current settings, so changing a
+   setting silently rewrites history's advice.
 
 ### Exercise substitution ("I did belt squats instead of barbell squats")
 
@@ -670,119 +743,229 @@ These are separable and should not ship as one PR. The natural order, lowest ris
 they do not back up — and a local-first app with no server has exactly one copy of the data.
 The idea is to push the backup to Drive on a schedule so it happens without being remembered.
 
-**Research first, and the research is done.** Full findings, with citations and a
-verified/unverified split, are in `docs/google-drive-backup-research.md`. Summary below.
+> ⚠️ **Scope note, added after the fact.** This section was written when the driver was
+> "get the MVP off the group chat so I could test whether it fits." That goal is met — a
+> month of consistent use. The surviving need is narrower and smaller: *durability of a month
+> of real data*, and possibly "get it onto a second device" (see **Multi-device sync** below).
+>
+> **Before building any of this, read the sequencing in the sync section.** A local-first app
+> with no service worker and no `navigator.storage.persist()` call is currently exposed to
+> silent eviction, which is a bigger day-one risk than anything Drive solves. Drive is now
+> the *last* rung, not the first, and a purpose-built sync backend may render it unnecessary.
 
-#### The premise needed correcting
+#### The shape of the idea
 
-The common assumption is that *Google blocked implicit flow in Jan/Feb 2023, so SPAs are
-stuck.* That is two deprecations conflated. Those dates are the **OOB flow** (blocked for new
-usage Feb 28 2022, fully deprecated Jan 31 2023). **Implicit was never hard-blocked** —
-Google's live OIDC discovery still advertises `"token"` in `response_types_supported`, though
-Google's own page calls it legacy-only and RFC 9700 says clients SHOULD NOT use it.
+Push the backup to Drive on a schedule, so it happens without being remembered. Today the
+Export button is the only backup: if it isn't clicked, there is no backup.
 
-The conclusion survives anyway, for a different reason. See below.
+**The product problem, not the API one:** an *unattended* upload almost certainly needs a
+server somewhere to hold the Google credential, because a browser can't silently re-auth as
+itself. That spends the app's defining property — no backend, no accounts. Whether that's
+worth buying is a product call, not a technical one, and it's reversible only at the cost of
+the work already done. **This is the decision; everything else is detail that follows from it.**
 
-#### The real blocker is architectural, not a policy sunset
+**Open questions:**
 
-**A browser-only app cannot obtain a refresh token from Google, with any client type.** Two
-independent confirmations:
+- One rolling file updated in place, or dated files with a keep-last-N policy? Every backup
+  run creates something, and retention has to be designed rather than discovered.
+- The backup must be visible and retrievable by the user without the app. Drive's hidden
+  app-private folder is deleted on uninstall — a backup that vanishes with the app isn't a
+  backup.
+- Disconnect has to also wipe stored local state, and should report success when the token is
+  already expired (the common case, since access tokens are short-lived).
+- Consent must be a user click in context, never at startup. The existing Export button is
+  the natural trigger and matches the `BackupReminderBanner` / Settings UX already built.
+- With a per-file Drive scope, the consent screen will literally say the app can *"create new
+  Drive files."* Don't write "backs up all your data."
 
-1. The GIS `TokenResponse` object has **no `refresh_token` field**. Its documented properties
-   are `access_token`, `expires_in`, `hd`, `prompt`, `token_type`, `scope`, `state`.
-2. Google's live discovery document advertises
-   `token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"]`.
-   The OAuth spec value `none` — how a public client authenticates under PKCE — **is absent**.
+#### If no backend is acceptable
 
-And even if a token were in hand, Google's own flow comparison table says implicit requires
-a **user gesture** on every expiry, and rates user-must-be-present as **"Yes"**.
+The answer is an improved manual export — and the app should **not claim to be automatic**,
+because it can't be. The current Export flow already works; the deliverable would be better
+copy and clearer backup-state messaging, not automation. Worth writing down explicitly so this
+section isn't revisited as if it were still open.
 
-So: *"send the backup every so often"* means *unattended*, without the user present. That is
-**not achievable with zero backend.** This is a hard architectural limit, not a policy that
-might change.
+**Feasibility research** (OAuth flows, scopes, token storage, citations, verified/unverified
+split) lives in `docs/google-drive-backup-research.md`. Deliberately kept out of this
+document — it's a feasibility answer, and this section is an idea register.
 
-⚠️ **Stated at the limit of what was verified:** finding (2) is discovery metadata plus
-doc-corroboration, not a proven live failure — a probe with a fabricated client ID returns
-`invalid_client` either way, so it cannot distinguish the two cases. Confirming it needs a
-real client ID. The research doc marks this explicitly; do not upgrade it to settled fact.
+### Multi-device sync
 
-#### The recommended path reintroduces a backend
+**Motivation.** The original Drive idea was about backup — a copy that exists somewhere else
+so a lost device isn't a lost month. That goal has evolved: the real gap is now **being able
+to see your own history on whichever device you're holding.** Logging a session on the phone
+should make it reviewable on the laptop without a manual export/import round-trip. Today
+that requires: export JSON, transfer the file by hand, import it. Every time.
 
-A thin serverless proxy — Cloudflare Worker or similar:
+**Backup and sync are different problems, and the Drive work does not deliver this.** Backup
+is one-way and append-only — write a whole snapshot, lose nothing that existed before it.
+Sync is bidirectional and concurrent: two devices edit while offline, and someone has to
+decide what happens when they reconnect. A Drive folder full of dated JSON snapshots gives
+you the first and not the second. At best it is manual: export from phone, import on laptop.
 
-1. Holds the client secret in a secret binding, never in the repo.
-2. Performs the authorization-code exchange.
-3. **Holds the refresh token server-side**, so it never touches the browser.
-4. Uploads on a schedule (Workers Cron Triggers).
+**The blocking finding: `Session` has no `id`.** `types.ts:37-43` defines identity as
+`date: string` — and `deleteSession(date)` filters on `s.date !== date`. The whole
+collection is keyed by a human-facing value that is **not unique**. You can plausibly log
+Push Day and Pull Day on the same date, and if you ever did, the second `addSession` call
+(`context.tsx:100`) prepends a second record with an identical key, and every subsequent
+operation that looks up by date — delete, rename, the progression lookups — becomes
+ambiguous. This is latent today because it only misbehaves on a collision, but it is
+exactly the thing that breaks the moment a second device writes concurrently.
 
-**This is the part that needs your decision, not a technical one.** The app's defining
-property is "no backend, no accounts" (`PRD.md:5`, `AGENTS.md`). This feature spends that
-property to buy automation. That trade is a product judgement and it is reversible only at
-the cost of the work already done, so it is worth making deliberately.
+**Why this has to be fixed before any sync design, and it's a good fix anyway:**
+`sessions` are a collection of independent records, so the standard solution is to give
+each one a stable UUID and treat the store as a set of records to merge rather than one
+blob to overwrite. Note that exercises and session-exercises already do this correctly —
+`addExercise` builds `` `${baseId}-${crypto.randomUUID()}` `` (`context.tsx:172`) and
+`duplicateExerciseInSession` appends `-copy-${crypto.randomUUID()}`. Sessions are the
+inconsistent one. Adding `id` to `Session` is backwards-compatible, and a migration that
+backfills ids for existing records is a prerequisite for sync.
 
-Note that step 3 does not merely route around the token-storage rules below — it removes
-them, which is the strongest argument for this option.
+**Open questions**
 
-#### Token storage, if we ever keep a token in the browser
+1. **What are the actual sync semantics?** Open: last-write-wins per record, a
+   field-level merge, or "sessions are append-only and everything else is last-writer-wins"?
+   The data model strongly suggests the third is sufficient — you log a session, you don't
+   co-edit one — and it would be dramatically simpler than a real CRDT. Worth confirming
+   that's true of real usage before building anything.
+2. **Deletions don't merge.** LWW handles "both devices changed the same record" but not
+   "deleted on phone, unchanged on laptop." The naive merge resurrects it. Open: tombstones,
+   or a "recently deleted" view?
+3. **Is there a server at all?** This is the same backend question as Drive, and the answer
+   is now forced: sync needs somewhere to reconcile, so the "no backend" property is spent
+   either way. Given that, **one backend serving both backup and sync is strictly better
+   than two** — see below. This is the decision point, and it's bigger than the Drive one.
+4. **Auth.** Drive forces Google OAuth. A purpose-built sync backend does not — anonymous
+   device pairing (a code from one device entered on the other) would keep the "no accounts"
+   property that Drive costs you. Open, and the reason this may be *better* than the Drive
+   route despite the extra work.
+5. **What about "logged on phone, didn't open laptop for 3 weeks"?** LWW per record handles
+   this cleanly if the merge is a set union, since each device only ever appends new
+   sessions. This is the case that actually matters, and it's the easy one.
+6. **Offline behaviour.** The app is currently write-local, always. Open: queue writes while
+   offline, or is it acceptable to only sync on load/foreground?
+7. **Does `deleteAllData` mean "delete everywhere"?** Today it clears one browser's
+   IndexedDB. Under sync, a user tapping "Delete Everything" on a phone may expect that to
+   mean it everywhere. This needs a deliberate answer and probably a much stronger
+   confirmation — see the hardening item in the Drive section; sync makes it worse.
 
-Both authorities say no, for refresh tokens:
+#### The strategic point
 
-- **Google policy** mandates *"always store encrypted tokens at rest"* and *"never commit
-  client credentials into publicly available code repositories."*
-- **OWASP** is explicit about this exact case: *"do not store session tokens, credentials, or
-  other secrets in IndexedDB unless they are encrypted with a key that is not itself
-  recoverable from the browser"* — e.g. a passphrase-derived or non-extractable Web Crypto
-  key. It also notes *"a single Cross-Site Scripting vulnerability can read or write any data
-  in IndexedDB; treat its contents as untrusted input on read."*
+The backup section above concluded that a backend is unavoidable for automatic backup. Sync
+**also** requires one, for the same reason. That's two features independently arriving at
+the same architectural change, which is the strongest signal available that the backend is
+the right move rather than a concession.
 
-⚠️ Neither body endorses *encrypted-in-IndexedDB* as an accepted pattern. OWASP permits it
-conditionally; Google mandates encryption but does not bless the browser as a location. Treat
-it as grey-area and defensible, not approved.
+Recommendation: treat "add a small backend" as its own decision, and treat backup and sync
+as two consumers of it. Building Drive-first and then retrofitting sync would mean
+reconciling two storage systems instead of one, and would spend the backend property twice
+to get there more slowly.
 
-#### Scope: use `drive.file`, and not `appDataFolder`
+The honest sequencing, cheapest protection first:
 
-`drive.file` and `drive.appdata` are both **non-sensitive** — basic app verification only, no
-security assessment. That is significant for a solo project. Never request plain `drive`
-(restricted).
+1. `navigator.storage.persist()` — one prompt, no architecture, removes silent eviction.
+2. Harden `deleteAllData` — auto-export first, or typed confirmation.
+3. Rolling local snapshots in IndexedDB with a "Restore from…" picker — recovers from
+   mistakes, which is the highest-*probability* loss, and needs no backend at all.
+4. `Session.id` + backfill migration — required by sync, valuable on its own.
+5. Backend + sync — the real answer to the phone/laptop gap.
+6. Online backup becomes a byproduct of 5, at which point Drive may be unnecessary: a
+   purpose-built backend can keep its own history without asking Google for anything.
 
-**Avoid `appDataFolder`, which is a poor fit for backups on two independent counts:** its
-contents are *"hidden from the user and from other Google Drive apps,"* so the user cannot see
-or retrieve the backup without the app; and it is *"deleted when a user uninstalls your app."*
-A backup the user cannot see, and that vanishes on uninstall, is not a backup.
+### Auth as the prerequisite for sync
 
-#### Product requirements that fall out of the research
+**Motivation.** Sync requires knowing *whose* data it is. The app currently has **no identity
+concept at all** — grepping `src/` for `userId|deviceId|installId` returns nothing, and
+`meta.name` is a display string stored in the same blob as `method` and `created`. It
+identifies nothing and is copied into backup files. Auth is therefore the gate on the whole
+sync effort, not a detail inside it.
 
-These are easy to miss and are worth deciding now rather than during implementation:
+#### Correction on record: the "one login per device" assumption
 
-1. **A Disconnect button must treat `invalid_token` as success.** Google documents that for
-   an already-expired token, *"you can regard the grant associated with the accessToken is
-   revoked."* Since access tokens are short-lived and cannot be refreshed, **the common case
-   is an expired token** — so a naive implementation shows an error and the user believes
-   disconnect failed.
-2. **Disconnect must also wipe local state** — the stored `fileId` and any cached payload.
-   Google policy requires deleting revoked tokens permanently.
-3. **Store the returned `fileId`** rather than re-listing the Drive folder to find the prior
-   backup. ⚠️ Whether `files.list` reliably returns app-created files under `drive.file` was
-   **not verified**; storing the id sidesteps the question entirely.
-4. **Consent on a user click, in context — never at startup.** The existing Export button is
-   the natural trigger, which also matches the `BackupReminderBanner` / Settings UX already
-   built.
-5. **Handle partial grants.** A user may grant some requested scopes or deny outright, so
-   "scopes returned ≠ scopes requested" is a real path, not an edge case.
-6. **Write honest consent copy.** With a per-file scope the Google screen will say the app can
-   *"create new Drive files."* Do not write "backs up all your data."
-7. **Design for retention, not just the happy path.** Every "every so often" backup creates a
-   file. Open: one rolling file updated in place (needs the `fileId`), or dated files with a
-   keep-last-N policy? Drive's own trash behaviour and the app's `BackupReminderBanner`
-   messaging both interact with this.
+An earlier draft of this section argued that login frequency barely matters, because the app
+is only authenticated once per device and then persists. **That assumption was wrong**, and
+two things invalidate it:
 
-#### The honest fallback
+1. **The phone is in your hand while you work out.** That is the app's entire premise. The
+   original argument leaned on a "phone in a locker, email on another device" scenario that
+   does not describe how the app is used, and it assumed email is not continuously reachable,
+   which is not true of a phone.
+2. **The app may run on shared devices.** This was not considered at all, and it is the more
+   important correction. For a shared device the question is not "how often does someone log
+   in" but **"should a session persist at all."** A long authenticated window on a device
+   other people touch is a security problem, and under sync it is also a *data integrity*
+   problem: a session logged on a shared device merges into the account owner's history, and
+   "whose session is this" becomes a question the data model does not currently answer.
 
-If no backend is acceptable, the answer is an improved manual export — and the app should
-**not claim to be automatic**, because it cannot be. The current Export flow already works;
-the deliverable would be better copy and clearer backup-state messaging, not automation.
-Worth writing that down explicitly so this section is not revisited as if it were still open.
+**What this changes.** Frequent re-auth is only tolerable if re-auth is frictionless, which is
+an argument *for* a short code over a link — the user types six digits in the app they are
+already holding, rather than switching to a mail client. It also promotes session lifetime
+from a detail to a first-class requirement, and one a provider's cheapest tier may not let
+you set.
 
-#### Decision needed before any card is written
+#### Vercel's own auth product is a dead end
 
-The backend trade. Everything else here is implementation detail that follows from it.
+Vercel ships "Sign in with Vercel," but it requires that **users have a Vercel account** —
+it's an OAuth provider for your app, not a general-purpose auth backend. Asking people to
+sign up for Vercel to track their squats is a non-starter. (Two related names to not confuse
+it with: "Vercel Authentication" means Deployment Protection, and Vercel Passport is
+enterprise SSO. Neither is end-user login.)
+
+⚠️ **Also relevant later:** there is **no first-party Vercel database anymore.** Vercel
+Postgres and Vercel KV were both retired 2025-05-31, auto-migrated to Neon and Upstash.
+Storage is now third-party via Vercel Marketplace. Worth knowing before the sync section
+picks a place to put data.
+
+#### Direction: magic link or magic code, not password
+
+The reasoning is mobile-first — the app is used at the gym, one-handed, between sets. A
+password is the worst-fit option on that surface, and hand-rolled password auth is where the
+real cost lives anyway: hashing, reset tokens, email verification, breach-password checks, and
+a permanent support surface. A magic code eliminates password reset and breach handling
+outright.
+
+**Between link and code, a short expiring code is safer.** A magic *link* is a bearer
+credential sitting in a mailbox, in browser history, and in server logs. A short code that
+expires is strictly better, and it also happens to be the lower-friction option on mobile.
+
+**Requirements this carries, whatever provider is picked:**
+
+- **Session lifetime must be configurable, and short by default.** This is the one that
+  actually disqualifies options, given the shared-device point above. A vendor's cheapest
+  tier with a non-adjustable multi-day session is a liability, not a default.
+- **Email deliverability becomes your problem.** Shared free SMTP tiers land in spam for
+  consumer addresses aggressively. With frequent logins this is a recurring failure, not a
+  rare one — budget for a proper sending domain, or you'll debug deliverability instead of the
+  app.
+- **Rate-limit the send endpoint** regardless of provider, or the app becomes an email-bomb
+  relay.
+- **Account recovery has no fallback.** If the inbox is lost, the account is gone, and with it
+  the key to a month of real training data. Plan recovery *before* this ships.
+- **Keep IndexedDB as the source of truth.** The server is a sync and backup target, not an
+  authority. An auth or email outage then degrades to "no backup today" rather than "app is
+  unusable."
+
+#### Open questions
+
+1. **Session lifetime on shared devices.** How long may a session live on a device that may
+   not be yours? Is there a "this is a shared device" mode that skips persistence?
+2. **Device pairing as an auth path.** If the requirement is genuinely two devices the user
+   controls, pairing may be the *whole* feature — no email provider, no deliverability, no
+   password surface. What is given up: logging in from a device that isn't already paired, and
+   recovery if both are lost. Given the data at stake, that recovery path is worth more than
+   it looks.
+3. **Does `meta` become user-scoped?** `barbellWeight` and the plates inventory are *your*
+   setup, not a device's. If two devices disagree about your barbell weight, that is a real
+   conflict, not a detail. Needs a decision before the schema moves.
+4. **What does `deleteAllData` mean once there is an account?** "Delete my data" is currently
+   one browser. Under an account it must distinguish *this device* from *everywhere* — and
+   guessing wrong wipes a month across devices. Resolve before any sync code exists. This is
+   the same hardening item as in the Drive section, sharpened.
+
+#### Sequencing
+
+Auth is not step one for the project — the local-first protections still come first, because
+they help today with no architecture. But *within* the sync effort, auth gates everything:
+local durability first (no backend), then `Session.id`, then the provider decision, then auth
++ sync. **Vendor selection and pricing deliberately not recorded here** — that's a later
+exercise, and a provider table in a roadmap goes stale within a quarter.
