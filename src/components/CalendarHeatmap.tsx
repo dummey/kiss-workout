@@ -16,7 +16,9 @@ function getIntensity(session: Session | undefined): 0 | 1 | 2 | 3 | 4 {
   if (!session) return 0
   const total = session.exercises.length
   if (total === 0) return 0
-  const logged = session.exercises.filter(ex => ex.weight || ex.reps).length
+  // `failed` counts as logged: a logged attempt that hit failure is still a
+  // logged attempt (same rule as getPreviousPerformances in context.tsx).
+  const logged = session.exercises.filter(ex => ex.weight || ex.reps || ex.failed).length
   const pct = logged / total
   if (pct >= 1) return 4
   if (pct >= 0.7) return 3
@@ -145,7 +147,7 @@ function CalendarHeatmap({ sessions, months = 6 }: CalendarHeatmapProps) {
       {hoveredDate && (() => {
         const s = sessions.find(x => x.date === hoveredDate.date)
         if (!s) return null
-        const logged = s.exercises.filter(ex => ex.weight || ex.reps).length
+        const logged = s.exercises.filter(ex => ex.weight || ex.reps || ex.failed).length
         // Clamp tooltip position to stay within container bounds
         const tooltipWidth = 180 // approximate width for clamping
         const tooltipHeight = 28
