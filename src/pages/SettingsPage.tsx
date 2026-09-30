@@ -341,19 +341,24 @@ export default function SettingsPage() {
                   The empty bar, in pounds
                 </div>
               </div>
-              <input
-                id="barbell-weight-input"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={barbellWeightInput}
-                onChange={e => handleBarbellWeightChange(e.target.value)}
-                onBlur={flushBarbellSetup}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') flushBarbellSetup()
-                }}
-                style={{ minWidth: 120 }}
-              />
+              {/* Wrapped in .form-group so this field picks up the same stylesheet rule
+                  as every other input in the app, instead of rendering unstyled. The
+                  previous minWidth lives on the wrapper because .form-group input is
+                  width:100% — the wrapper is what constrains the column. */}
+              <div className="form-group" style={{ width: 120, marginBottom: 0, flexShrink: 0 }}>
+                <input
+                  id="barbell-weight-input"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  value={barbellWeightInput}
+                  onChange={e => handleBarbellWeightChange(e.target.value)}
+                  onBlur={flushBarbellSetup}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') flushBarbellSetup()
+                  }}
+                />
+              </div>
             </div>
 
             <div style={{ marginTop: 24 }}>
@@ -365,25 +370,31 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {platesInput.map((plate, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      aria-label={`Plate ${i + 1} count`}
-                      value={plate.count}
-                      onChange={e => handlePlateChange(i, 'count', e.target.value)}
-                      style={{ width: 80 }}
-                    />
+                    {/* .form-group supplies the app-wide input styling; the wrapper
+                        carries the width that keeps the count x weight lb row intact
+                        (marginBottom:0 neutralises .form-group's 18px block margin,
+                        which would otherwise inflate the 8px row gap). */}
+                    <div className="form-group" style={{ width: 80, marginBottom: 0, flexShrink: 0 }}>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        aria-label={`Plate ${i + 1} count`}
+                        value={plate.count}
+                        onChange={e => handlePlateChange(i, 'count', e.target.value)}
+                      />
+                    </div>
                     <span style={{ color: 'var(--muted)' }}>×</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      aria-label={`Plate ${i + 1} weight`}
-                      value={plate.weight}
-                      onChange={e => handlePlateChange(i, 'weight', e.target.value)}
-                      style={{ width: 100 }}
-                    />
+                    <div className="form-group" style={{ width: 100, marginBottom: 0, flexShrink: 0 }}>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        aria-label={`Plate ${i + 1} weight`}
+                        value={plate.weight}
+                        onChange={e => handlePlateChange(i, 'weight', e.target.value)}
+                      />
+                    </div>
                     <span style={{ color: 'var(--muted)' }}>lb</span>
                     <Button
                       size="sm"
