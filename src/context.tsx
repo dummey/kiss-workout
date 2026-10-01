@@ -232,7 +232,21 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
       w.exercises = w.exercises.filter(id => id !== exId)
     })
     newData.sessions.forEach(s => {
-      s.exercises = s.exercises.filter(se => se.id !== exId)
+      s.exercises = s.exercises.flatMap(se => {
+        // A record duplicated within the session carries a synthetic
+        // `<id>-copy-<uuid>` id and points at this definition via `originalId`,
+        // so an id-only comparison misses every copy: it stripped the
+        // definition's own records and left the copies orphaned on a
+        // definition that no longer exists. `matchesRecord` is the predicate
+        // every other reader uses, so use it here too.
+        if (!matchesRecord(se, exId)) return [se]
+        // Logged evidence outlives the definition: `originalId` is the only
+        // handle a reader has once the id resolves to nothing, so pin it and
+        // keep the record — Exercise Detail history and previous-performance
+        // lookups both still resolve through it.
+        if (!isLogged(se)) return []
+        return [{ ...se, originalId: se.originalId ?? se.id }]
+      })
     })
     saveData(newData)
   }, [data, saveData])
