@@ -1,12 +1,12 @@
 import React from 'react'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { TrackerProvider } from '../context'
 import { BackupProvider } from '../context/BackupContext'
 import { ModalProvider } from '../components/ModalProvider'
 import SessionsPage from '../pages/SessionsPage'
-import CalendarHeatmap from '../components/CalendarHeatmap'
+import TrainingHeatmap from '../components/TrainingHeatmap'
 import { deleteStore, setStore } from '../db'
 import type { SessionExercise, Session, TrackerData } from '../types'
 
@@ -53,33 +53,46 @@ function makeData(): TrackerData {
   }
 }
 
-/** The UTC day string, which is how the heatmap formats its own dates. */
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10)
+/**
+ * Today as `YYYY-MM-DD`.
+ *
+ * Written in local calendar fields so the day is inside the grid's window
+ * whatever the runner's timezone. The UTC-bucket question — whether a UTC
+ * `Session.date` lands on its own cell — is covered by its own test in
+ * `TrainingHeatmap.test.tsx`; this file guards only the `failed`-counts-as-
+ * logged rule.
+ */
+function today(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
-/** Heatmap day cells, oldest first. Padding cells are not clickable. */
-function dayCells(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>('div'))
-    .filter(d => d.style.cursor === 'pointer')
-}
-
-function hoverTodayCell(): string {
-  const date = todayUtc()
-  const cells = dayCells()
-  expect(cells.length).toBeGreaterThan(0)
-  // `today` is the last day in the heatmap's window, so the last clickable cell
-  // is today. The tooltip renders the same logged/total count as the sessions
-  // list, so it is the observable half of the heatmap defect.
-  fireEvent.mouseOver(cells[cells.length - 1])
-  return date
+/**
+ * Find today's cell by its accessible name.
+ *
+ * That name is `YYYY-MM-DD — <workoutName> (logged/total)` — the same
+ * logged/total the tooltip shows and the same one the sessions list shows — so
+ * locating the cell is itself part of what these tests assert.
+ */
+function todayCell(count: string): HTMLElement {
+  return screen.getByLabelText(`${today()} — Test Workout ${count}`)
 }
 
 describe('failed-only session completion count', () => {
+  // The heatmap sizes its grid from the *measured* width of its `<svg>`, and jsdom
+  // measures every element as 0 — so without this stub the grid renders zero day
+  // cells and the assertions below would pass vacuously against an empty DOM.
+  let widthSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(async () => {
+    widthSpy = vi.spyOn(SVGElement.prototype, 'clientWidth', 'get').mockReturnValue(900)
     await deleteStore('tracker')
     await deleteStore('backup-meta')
     await setStore('tracker', makeData())
+  })
+
+  afterEach(() => {
+    widthSpy.mockRestore()
   })
 
   function renderSessionsPage() {
@@ -111,21 +124,23 @@ describe('failed-only session completion count', () => {
   })
 
   it('counts a failed-only session as logged in the calendar heatmap tooltip', () => {
-    render(<CalendarHeatmap sessions={[makeSession(todayUtc(), [FAILED_ONLY])]} />)
+    render(<TrainingHeatmap sessions={[makeSession(today(), [FAILED_ONLY])]} />)
 
-    const date = hoverTodayCell()
+    // THE REGRESSION: this day was actually trained, so the cell must not be
+    // named as an empty one — and hovering it must report 1/1.
+    fireEvent.mouseOver(todayCell('(1/1)'))
 
     // The tooltip's <strong> holds the date; its parent holds the whole line.
-    const tooltip = screen.getByText(date).parentElement as HTMLElement
+    const tooltip = screen.getByText(today()).parentElement as HTMLElement
     expect(tooltip).toHaveTextContent('— Test Workout (1/1)')
   })
 
   it('still reads 0/1 for a session where nothing was recorded at all', () => {
-    render(<CalendarHeatmap sessions={[makeSession(todayUtc(), [TOUCHED_NOTHING])]} />)
+    render(<TrainingHeatmap sessions={[makeSession(today(), [TOUCHED_NOTHING])]} />)
 
-    const date = hoverTodayCell()
+    fireEvent.mouseOver(todayCell('(0/1)'))
 
-    const tooltip = screen.getByText(date).parentElement as HTMLElement
+    const tooltip = screen.getByText(today()).parentElement as HTMLElement
     expect(tooltip).toHaveTextContent('— Test Workout (0/1)')
   })
 })

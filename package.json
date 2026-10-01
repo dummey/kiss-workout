@@ -12,6 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babel/runtime": "^8.0.5",
+    "@uiw/react-heat-map": "^2.3.4",
     "body-muscles": "^1.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

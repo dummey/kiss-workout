@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTracker } from '../context'
 import Button from '../components/Button'
-import CalendarHeatmap from '../components/CalendarHeatmap'
+import TrainingHeatmap from '../components/TrainingHeatmap'
 import SessionStats from '../components/SessionStats'
 import BackupReminderBanner from '../components/BackupReminderBanner'
 import { useModal, useModalControl } from '../components/ModalProvider'
@@ -185,7 +185,7 @@ export default function SessionsPage() {
 
       <div className="heatmap-stats-row" style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
         <div className="heatmap-card" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
-          <CalendarHeatmap sessions={data?.sessions || []} months={6} />
+          <TrainingHeatmap sessions={data?.sessions || []} months={6} />
         </div>
         <div className="stats-card" style={{ flex: '1 1 40%' }}>
           <SessionStats sessions={data?.sessions || []} />
