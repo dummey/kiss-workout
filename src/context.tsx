@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, createContext, useContext, useMemo, useCallback, useRef } from 'react'
 import { getStore, setStore } from './db'
 import { SEED_DATA } from './data'
 import { useBackup } from './context/BackupContext'
@@ -19,6 +19,22 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const { incrementBackupCounter, resetBackupMeta } = useBackup()
 
+  // Tail of the write chain. Every persistence call appends to it, so the last
+  // write issued is the last one to reach IndexedDB. Independent `readwrite`
+  // transactions commit in completion order, not call order, so without the
+  // chain a slower earlier write can land after and overwrite a later one.
+  const writeChainRef = useRef<Promise<void>>(Promise.resolve())
+  // Latest optimistically-applied state, held in a ref rather than read from
+  // the `data` closure so two saveData calls in the same tick each capture the
+  // snapshot they actually replace, instead of both rolling back to the same
+  // stale one.
+  const dataRef = useRef<TrackerData | null>(null)
+  // Monotonic id of the newest queued write. A write that fails may only
+  // revert the UI when nothing newer has been queued — a newer queued write
+  // already carries this change forward, so reverting would desync the UI from
+  // what is being persisted.
+  const writeSeqRef = useRef(0)
+
   useEffect(() => {
     initDB()
   }, [])
@@ -26,13 +42,11 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   async function initDB() {
     try {
       const stored = await getStore('tracker') as TrackerData | null
-      if (stored) {
-        setData(stored)
-      } else {
-        setData(null)
-      }
+      dataRef.current = stored ?? null
+      setData(stored ?? null)
     } catch (err) {
       console.error('Failed to initialize database:', err)
+      dataRef.current = null
       setData(null)
     } finally {
       setLoading(false)
@@ -43,17 +57,26 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), [])
 
-  const saveData = useCallback(async (newData: TrackerData) => {
-    const previousData = data
+  const saveData = useCallback((newData: TrackerData) => {
+    const previousData = dataRef.current
+    const writeId = ++writeSeqRef.current
+
+    // Optimistic UI: applied immediately — callers and the app depend on it.
+    dataRef.current = newData
     setData(newData)
-    try {
-      await setStore('tracker', newData)
-    } catch (err) {
-      console.error('Failed to save data:', err)
-      setData(previousData)
-      setError('Failed to save changes. Your data has been reverted.')
-    }
-  }, [data])
+
+    // The `.catch` also keeps one failure from poisoning the chain for the
+    // writes queued behind it.
+    writeChainRef.current = writeChainRef.current
+      .then(() => setStore('tracker', newData))
+      .catch(err => {
+        console.error('Failed to save data:', err)
+        setError('Failed to save changes. Your data has been reverted.')
+        if (writeId !== writeSeqRef.current) return
+        dataRef.current = previousData
+        setData(previousData)
+      })
+  }, [])
 
   const getExercise = useCallback((id: string): Exercise | undefined => {
     return data?.exercises.find(ex => ex.id === id)
@@ -313,22 +336,30 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
     saveData(newData)
   }, [data, saveData])
 
-  const resetToSeedData = useCallback(async () => {
-    await setStore('tracker', SEED_DATA)
-    setData(SEED_DATA)
-  }, [])
+  // These two replace the whole tracker key outright, so they go through the
+    // same chain as saveData: a bare setStore here could commit before an
+    // already-queued saveData write and let that older state overwrite the
+    // reset/delete.
+    const resetToSeedData = useCallback(async () => {
+      await writeChainRef.current.then(() => setStore('tracker', SEED_DATA))
+      dataRef.current = SEED_DATA
+      setData(SEED_DATA)
+    }, [])
 
-  const deleteAllData = useCallback(async () => {
-    const emptyData: TrackerData = {
-      meta: { method: 'GZCL', created: new Date().toISOString() },
-      exercises: [],
-      workouts: [],
-      sessions: []
-    }
-    await setStore('tracker', emptyData)
-    await resetBackupMeta()
-    setData(emptyData)
-  }, [resetBackupMeta])
+    const deleteAllData = useCallback(async () => {
+      const emptyData: TrackerData = {
+        meta: { method: 'GZCL', created: new Date().toISOString() },
+        exercises: [],
+        workouts: [],
+        sessions: []
+      }
+      await writeChainRef.current.then(async () => {
+        await setStore('tracker', emptyData)
+        await resetBackupMeta()
+      })
+      dataRef.current = emptyData
+      setData(emptyData)
+    }, [resetBackupMeta])
 
   const importSession = useCallback((session: Session, overwrite = false) => {
     if (!data) return false
