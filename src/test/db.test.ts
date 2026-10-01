@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { getStore, setStore, deleteStore } from '../db'
 
 describe('db.ts error handling', () => {
@@ -66,5 +66,138 @@ describe('db.ts error handling', () => {
     await setStore('tracker', complex)
     const result = await getStore('tracker')
     expect(result).toEqual(complex)
+  })
+})
+
+/**
+ * Durability: these three helpers must settle on the transaction, not on the
+ * request. A put/delete request can succeed and then be rolled back by an
+ * abort that fires *after* every request in the transaction has succeeded —
+ * quota exhaustion, a `versionchange` from another tab, an explicit abort.
+ * Settling on `req.onsuccess` reports "saved" for a write that is about to be
+ * discarded, and the later `tx.onabort` rejection is a no-op on an
+ * already-settled promise.
+ *
+ * Each test forces that exact sequence against fake-indexeddb by spying on the
+ * store method: perform the real operation, then abort the transaction from a
+ * `success` listener added via `addEventListener` (so it fires independently of
+ * whatever handler the module under test assigns).
+ */
+describe('db.ts durability', () => {
+  /** Whether the transaction really aborted / committed, so no assertion
+   *  below can pass vacuously because the abort never happened. */
+  let aborted: boolean
+  let committed: boolean
+
+  beforeEach(async () => {
+    aborted = false
+    committed = false
+    try {
+      await deleteStore('tracker')
+      await deleteStore('backup-meta')
+    } catch {
+      // ignore
+    }
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  /** Record how the transaction that `request` belongs to ends up. */
+  function track(tx: IDBTransaction): void {
+    tx.addEventListener('abort', () => {
+      aborted = true
+    })
+    tx.addEventListener('complete', () => {
+      committed = true
+    })
+  }
+
+  /** Make the next put succeed and then abort its transaction. */
+  function abortAfterPutSuccess(): void {
+    const original = IDBObjectStore.prototype.put
+
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (
+      this: IDBObjectStore,
+      value: unknown,
+      key?: IDBValidKey
+    ) {
+      const req = original.call(this, value, key)
+      const tx = this.transaction
+      track(tx)
+      req.addEventListener('success', () => tx.abort())
+      return req
+    })
+  }
+
+  /** Make the next delete succeed and then abort its transaction. */
+  function abortAfterDeleteSuccess(): void {
+    const original = IDBObjectStore.prototype.delete
+
+    vi.spyOn(IDBObjectStore.prototype, 'delete').mockImplementation(function (
+      this: IDBObjectStore,
+      key: IDBKeyRange | IDBValidKey
+    ) {
+      const req = original.call(this, key)
+      const tx = this.transaction
+      track(tx)
+      req.addEventListener('success', () => tx.abort())
+      return req
+    })
+  }
+
+  it('setStore rejects when the transaction aborts after the put succeeds', async () => {
+    abortAfterPutSuccess()
+
+    await expect(setStore('doomed', { foo: 'bar' })).rejects.toBeInstanceOf(
+      Error
+    )
+
+    // The abort really happened, and the transaction never committed.
+    expect(aborted).toBe(true)
+    expect(committed).toBe(false)
+
+    // And the write was rolled back — nothing durable landed.
+    expect(await getStore('doomed')).toBeNull()
+  })
+
+  it('setStore resolves only after the transaction commits', async () => {
+    // Record whether `complete` had fired at the moment setStore's promise
+    // settled. Resolving on request success settles strictly earlier.
+    const original = IDBObjectStore.prototype.put
+
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (
+      this: IDBObjectStore,
+      value: unknown,
+      key?: IDBValidKey
+    ) {
+      const req = original.call(this, value, key)
+      track(this.transaction)
+      return req
+    })
+
+    let completeAtSettle: boolean | null = null
+    await setStore('committed', 'value').then(() => {
+      completeAtSettle = committed
+    })
+
+    expect(completeAtSettle).toBe(true)
+    expect(await getStore('committed')).toBe('value')
+  })
+
+  it('deleteStore rejects when the transaction aborts after the delete succeeds', async () => {
+    await setStore('keep-me', 'value')
+    expect(await getStore('keep-me')).toBe('value')
+
+    abortAfterDeleteSuccess()
+
+    await expect(deleteStore('keep-me')).rejects.toBeInstanceOf(Error)
+
+    expect(aborted).toBe(true)
+    expect(committed).toBe(false)
+
+    // The deletion was rolled back — the key is still there.
+    expect(await getStore('keep-me')).toBe('value')
   })
 })

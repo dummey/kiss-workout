@@ -41,6 +41,21 @@ function openDB(): Promise<IDBDatabase> {
   })
 }
 
+/**
+ * All three store helpers settle on the *transaction*, never on the request.
+ *
+ * A request can succeed and still be rolled back: IndexedDB aborts the whole
+ * transaction on quota exhaustion, a `versionchange` from another tab, or an
+ * explicit `abort()`. Those aborts fire *after* every request in the
+ * transaction has already succeeded, so settling on `req.onsuccess` reports
+ * "saved" for a write that is about to be discarded — and a later
+ * `tx.onabort` rejection against an already-settled promise is a silent no-op.
+ *
+ * Resolving on `tx.oncomplete` makes the promise mean what callers assume it
+ * means: the data is durable. A request-level error still surfaces, because an
+ * unhandled request error propagates to the transaction and aborts it, which
+ * rejects through `onabort` below.
+ */
 function getStore(key: string): Promise<unknown> {
   return openDB().then(database => {
     return new Promise<unknown>((resolve, reject) => {
@@ -52,6 +67,7 @@ function getStore(key: string): Promise<unknown> {
         return
       }
 
+      tx.oncomplete = () => resolve(result)
       tx.onabort = () => reject(tx.error || new Error('Transaction aborted'))
       tx.onerror = () => reject(tx.error || new Error('Transaction error'))
 
@@ -64,8 +80,10 @@ function getStore(key: string): Promise<unknown> {
         return
       }
 
-      req.onsuccess = () => resolve(req.result ?? null)
-      req.onerror = () => reject(req.error)
+      let result: unknown = null
+      req.onsuccess = () => {
+        result = req.result ?? null
+      }
     })
   })
 }
@@ -81,20 +99,16 @@ function setStore(key: string, value: unknown): Promise<void> {
         return
       }
 
+      tx.oncomplete = () => resolve()
       tx.onabort = () => reject(tx.error || new Error('Transaction aborted'))
       tx.onerror = () => reject(tx.error || new Error('Transaction error'))
 
       const store = tx.objectStore(STORE_NAME)
-      let req: IDBRequest
       try {
-        req = store.put(value, key)
+        store.put(value, key)
       } catch (err) {
         reject(err)
-        return
       }
-
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error)
     })
   })
 }
@@ -110,20 +124,16 @@ function deleteStore(key: string): Promise<void> {
         return
       }
 
+      tx.oncomplete = () => resolve()
       tx.onabort = () => reject(tx.error || new Error('Transaction aborted'))
       tx.onerror = () => reject(tx.error || new Error('Transaction error'))
 
       const store = tx.objectStore(STORE_NAME)
-      let req: IDBRequest
       try {
-        req = store.delete(key)
+        store.delete(key)
       } catch (err) {
         reject(err)
-        return
       }
-
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error)
     })
   })
 }
