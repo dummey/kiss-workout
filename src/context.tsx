@@ -351,29 +351,47 @@ export function TrackerProvider({ children }: { children: React.ReactNode }) {
   }, [data, saveData])
 
   // These two replace the whole tracker key outright, so they go through the
-    // same chain as saveData: a bare setStore here could commit before an
-    // already-queued saveData write and let that older state overwrite the
-    // reset/delete.
-    const resetToSeedData = useCallback(async () => {
-      await writeChainRef.current.then(() => setStore('tracker', SEED_DATA))
-      dataRef.current = SEED_DATA
-      setData(SEED_DATA)
-    }, [])
+  // same chain as saveData: a bare setStore here could commit before an
+  // already-queued saveData write and let that older state overwrite the
+  // reset/delete.
+  //
+  // Reassigning the tail (rather than only awaiting it) is what makes the
+  // reset part of the chain: an edit issued while the reset is in flight
+  // queues behind the reset's own write instead of racing it, so the edit
+  // wins. The `.catch` is the same one saveData uses — without it a failed
+  // reset would leave the chain rejected and poison every write behind it.
+  const resetToSeedData = useCallback(async () => {
+    writeChainRef.current = writeChainRef.current
+      .then(() => setStore('tracker', SEED_DATA))
+      .catch(err => {
+        console.error('Failed to reset to seed data:', err)
+        setError('Failed to reset data. Your data has been left unchanged.')
+      })
+    await writeChainRef.current
+    dataRef.current = SEED_DATA
+    setData(SEED_DATA)
+  }, [])
 
-    const deleteAllData = useCallback(async () => {
-      const emptyData: TrackerData = {
-        meta: { method: 'GZCL', created: new Date().toISOString() },
-        exercises: [],
-        workouts: [],
-        sessions: []
-      }
-      await writeChainRef.current.then(async () => {
+  const deleteAllData = useCallback(async () => {
+    const emptyData: TrackerData = {
+      meta: { method: 'GZCL', created: new Date().toISOString() },
+      exercises: [],
+      workouts: [],
+      sessions: []
+    }
+    writeChainRef.current = writeChainRef.current
+      .then(async () => {
         await setStore('tracker', emptyData)
         await resetBackupMeta()
       })
-      dataRef.current = emptyData
-      setData(emptyData)
-    }, [resetBackupMeta])
+      .catch(err => {
+        console.error('Failed to delete all data:', err)
+        setError('Failed to delete data. Your data has been left unchanged.')
+      })
+    await writeChainRef.current
+    dataRef.current = emptyData
+    setData(emptyData)
+  }, [resetBackupMeta])
 
   const importSession = useCallback((session: Session, overwrite = false) => {
     if (!data) return false
