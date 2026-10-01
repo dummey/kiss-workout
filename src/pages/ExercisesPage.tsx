@@ -86,6 +86,14 @@ export default function ExercisesPage() {
 
   // ✅ Early return AFTER all hooks
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
+  // `data` is null on a fresh install (nothing in IndexedDB yet). Every
+  // workout lookup below reads `data.workouts`, so bail out rather than
+  // dereferencing null when the library isn't loaded.
+  if (!data) return <p style={{ color: 'var(--muted)' }}>No data available. Go to Settings → Load Seed to get started.</p>
+
+  // Narrowed once so the `!data` guard above is visible to the helpers below —
+  // TypeScript does not carry a narrowing into a function declaration.
+  const allWorkouts = data.workouts
 
   function handleAdd() {
     if (!newEx.name.trim()) return
@@ -127,7 +135,7 @@ export default function ExercisesPage() {
   }
 
   function getWorkoutNamesForExercise(exId: string): string[] {
-    return data!.workouts.filter(w => w.exercises.includes(exId)).map(w => w.name)
+    return allWorkouts.filter(w => w.exercises.includes(exId)).map(w => w.name)
   }
 
   return (
@@ -230,7 +238,7 @@ export default function ExercisesPage() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600, marginRight: 8 }}>Add to workout:</label>
-                    {data!.workouts.filter(w => !w.exercises.includes(ex.id)).map(w => (
+                    {allWorkouts.filter(w => !w.exercises.includes(ex.id)).map(w => (
                       <Button key={w.name} size="sm" style={{ marginRight: 4 }} onClick={() => addExerciseToWorkout(w.name, ex.id)}>
                         + {w.name}
                       </Button>
@@ -321,7 +329,7 @@ export default function ExercisesPage() {
             </div>
             <div style={{ marginTop: 16 }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600, display: 'block', marginBottom: 8 }}>Add to workouts (optional)</label>
-              {data!.workouts.map(w => (
+              {allWorkouts.map(w => (
                 <label key={w.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: '0.85rem' }}>
                   <input
                     type="checkbox"

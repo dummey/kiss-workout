@@ -36,6 +36,20 @@ function AddSessionForm() {
     // If addSession returns falsy, the form stays open — user can pick another date
   }
 
+  // Fresh install: `data` is null until IndexedDB resolves, and there is no
+  // workout to offer. Hooks above must stay above this, so the guard is a
+  // return of rendered content rather than an early return in the hook list.
+  if (!data) {
+    return (
+      <>
+        <p className="modal-sub">No data available. Go to Settings → Load Seed to get started.</p>
+        <div className="modal-actions">
+          <Button onClick={() => onClose()}>Close</Button>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <p className="modal-sub">Pick a date and workout type to start logging.</p>
@@ -47,11 +61,11 @@ function AddSessionForm() {
         <div className="form-group">
           <label htmlFor="session-workout">Workout</label>
           <select id="session-workout" value={workout} onChange={e => setWorkout(e.target.value)}>
-            {data!.workouts.map(w => (
+            {data.workouts.map(w => (
               <option key={w.name} value={w.name}>{w.name}</option>
             ))}
           </select>
-          {!data!.workouts.some(w => w.name === workout) && (
+          {!data.workouts.some(w => w.name === workout) && (
             <p style={{ color: 'var(--t1)', fontSize: '0.75rem', marginTop: 4 }}>
               Selected workout no longer exists — pick another.
             </p>
@@ -83,7 +97,9 @@ export default function SessionsPage() {
         )
       : (data?.sessions || [])
     
-    return sessions.sort((a, b) => {
+    // Sort a COPY. On the empty-search path `sessions` *is* `data.sessions`,
+    // so an in-place sort would reorder the live store during render.
+    return [...sessions].sort((a, b) => {
       const cmp = a.date.localeCompare(b.date)
       return sortDirection === 'desc' ? -cmp : cmp
     })
@@ -106,6 +122,7 @@ export default function SessionsPage() {
   }, [searchQuery, sortDirection, pageSize, goToPage])
 
   if (loading) return <p style={{ color: 'var(--muted)' }}>Loading...</p>
+  if (!data) return <p style={{ color: 'var(--muted)' }}>No data available. Go to Settings → Load Seed to get started.</p>
 
   const paginatedSessions = filteredSessions.slice(startIndex, endIndex)
 

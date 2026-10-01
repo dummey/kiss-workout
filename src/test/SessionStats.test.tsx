@@ -63,6 +63,15 @@ describe('SessionStats', () => {
     expect(screen.getByText('0 lbs')).toBeInTheDocument()
   })
 
+  it('uses the midpoint of a reps range instead of inflating volume', () => {
+    // 100 lbs x "8-10" reps x 3 sets. The old parseNumber returned 810 for
+    // "8-10", which reported 243,000 lbs for this one record.
+    const sessions = [createSession('2026-01-01', 0, [{ weight: '100', reps: '8-10', sets: 3 }])]
+    render(<SessionStats sessions={sessions} />)
+    expect(screen.getByText('2,700 lbs')).toBeInTheDocument()
+    expect(screen.queryByText('243,000 lbs')).toBeNull()
+  })
+
   it('renders average duration', () => {
     const sessions = [
       createSession('2026-01-01', 3600), // 60 min
